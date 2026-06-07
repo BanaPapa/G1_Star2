@@ -1,0 +1,16 @@
+{
+  "_comment": "통상 스킬(AP 소모) + 필살기(TP 소모, 컷인 연출). target: self/single/line/aoe_ally/aoe_enemy. effect는 구조화 + desc 병행.",
+  "skills": [
+    { "id": "focus_fire",   "name": "집중사격",   "type": "active", "cost": { "ap": 1 }, "target": "single",    "effect": { "accBonus": 20, "duration": 1 }, "desc": "이번 공격 명중 +20" },
+    { "id": "evasive",      "name": "회피기동",   "type": "active", "cost": { "ap": 1 }, "target": "self",      "effect": { "evaBonus": 30, "duration": 1 }, "restrict": "scout", "desc": "1턴 EVA +30 (정찰함 전용)" },
+    { "id": "guard",        "name": "경계태세",   "type": "active", "cost": { "ap": 1 }, "target": "self",      "effect": { "defBonus": 20, "counter": true }, "desc": "DEF +20, 받은 근접공격 반격" },
+    { "id": "repair_drone", "name": "수리드론",   "type": "active", "cost": { "ap": 1 }, "target": "single",    "effect": { "heal": 40 }, "restrict": "carrier", "desc": "아군 HP 40 회복 (모함 전용)" },
+    { "id": "booster",      "name": "부스터 가동", "type": "active", "cost": { "ap": 1 }, "target": "self",      "effect": { "accBonus": 15, "evaPenalty": 15, "duration": 1 }, "restrict": "battleship", "desc": "1턴 ACC +15 / EVA -15 (전함)" },
+
+    { "id": "radiant_charge", "name": "광휘 돌격", "type": "finisher", "cost": { "tp": "full" }, "target": "line",      "effect": { "damageMultiplier": 2.2, "pierce": true }, "owner": "kai",   "cutin": "cutin_kai_01",   "desc": "직선상 적 관통 대미지" },
+    { "id": "stellar_snipe",  "name": "성흔 저격", "type": "finisher", "cost": { "tp": "full" }, "target": "single",    "effect": { "damageMultiplier": 3.0, "ignoreRange": true }, "owner": "sera", "cutin": "cutin_sera_01",  "desc": "사거리 무시 초고대미지 단일" },
+    { "id": "aegis_veil",     "name": "수호 장막", "type": "finisher", "cost": { "tp": "full" }, "target": "aoe_ally",  "effect": { "shield": 60, "heal": 30 }, "owner": "mila", "cutin": "cutin_mila_01",  "desc": "광역 아군 실드 + 회복" },
+    { "id": "shadow_strike",  "name": "그림자 일격", "type": "finisher", "cost": { "tp": "full" }, "target": "single",   "effect": { "damageMultiplier": 2.5, "unavoidable": true }, "owner": "raven", "cutin": "cutin_raven_01", "desc": "회피불가 확정 대미지" },
+    { "id": "area_emp",       "name": "광역 EMP",  "type": "finisher", "cost": { "tp": "full" }, "target": "aoe_enemy", "effect": { "damageMultiplier": 1.2, "apDebuff": 1, "duration": 1 }, "owner": "any", "cutin": "cutin_emp_01", "desc": "광역 대미지 + 다음 턴 적 행동 -1AP" }
+  ]
+}

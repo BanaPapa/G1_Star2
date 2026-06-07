@@ -1,0 +1,18 @@
+{
+  "_comment": "플레이어 함선 클래스. 수치는 밸런싱 시작값. unlock: start=처음부터, progress:sX=해당 별계 진행, research:NODE=연구 해금. rng=[최소,최대] 사거리(칸).",
+  "ships": [
+    { "id": "scout",      "name": "정찰함", "hp": 60,  "atk": 15, "def": 8,  "acc": 75, "eva": 60, "mov": 6, "rng": [1, 2], "ap": 4, "tpPerTurn": 2, "cost": 200, "role": "회피·정찰·교란",       "unlock": "start",                 "sprite": "unit_scout_ally" },
+    { "id": "fighter",    "name": "전투함", "hp": 110, "atk": 35, "def": 20, "acc": 80, "eva": 25, "mov": 4, "rng": [1, 1], "ap": 3, "tpPerTurn": 1, "cost": 350, "role": "밸런스 근접 주력",     "unlock": "start",                 "sprite": "unit_fighter_ally" },
+    { "id": "cruiser",    "name": "순양함", "hp": 90,  "atk": 30, "def": 15, "acc": 85, "eva": 20, "mov": 3, "rng": [2, 4], "ap": 3, "tpPerTurn": 1, "cost": 450, "role": "원거리 화력지원",     "unlock": "start",                 "sprite": "unit_cruiser_ally" },
+    { "id": "battleship", "name": "전함",   "hp": 220, "atk": 50, "def": 40, "acc": 70, "eva": 8,  "mov": 2, "rng": [1, 2], "ap": 2, "tpPerTurn": 1, "cost": 700, "role": "탱커·주포",           "unlock": "progress:s4",           "sprite": "unit_battleship_ally" },
+    { "id": "carrier",    "name": "모함",   "hp": 160, "atk": 20, "def": 25, "acc": 70, "eva": 12, "mov": 2, "rng": [1, 1], "ap": 3, "tpPerTurn": 2, "cost": 900, "role": "지휘·드론·버프",       "unlock": "research:carrier_ops",  "sprite": "unit_carrier_ally" }
+  ],
+  "combatRules": {
+    "accuracyFormula": "hitChance = attacker.acc - defender.eva + terrainMod + boosterMod",
+    "terrainMod": { "cover": 20, "exposed": -20, "nebula": -15, "open": 0 },
+    "boosterMod": { "acc": 15, "evaPenalty": -15, "duration": 1 },
+    "damageFormula": "damage = max(1, attacker.atk - defender.def) * counterMultiplier",
+    "counterNote": "엄격한 가위바위보가 아닌 '소프트 그물': 정찰함은 전함 공격 회피, 순양함은 사거리로 전함 카이팅, 전투함은 근접 순양함 제압, 전함은 전투함 탱킹. 노출된 정찰함은 누구에게나 잘 맞음.",
+    "counterMultiplier": { "default": 1.0, "exampleFighterVsCruiser": 1.25, "exampleScoutVsBattleship_attack": 0.5 }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "_comment": "성단 맵 9노드. connections=인접 이동 가능 노드. s4/s5는 순서 자유. devUnlock=행성 개발 시 해금. shop=상점 데이터 키(shops.json).",
+  "cluster": "변경 성단 (Frontier Cluster)",
+  "systems": [
+    { "id": "s0", "name": "다이달로스 정거장", "role": "home",     "theme": "허브",        "terrain": "none",      "connections": ["s1"],         "shop": "home_shop", "facilities": ["repair","class_change","research","shipyard","shop","fleet"] },
+    { "id": "s1", "name": "여명 성역",       "role": "mission",  "theme": "튜토리얼",     "terrain": "open",      "connections": ["s0","s2"],    "enemy": ["void_scout"],                 "reward": { "ace": "kai" },                       "hidden": null,           "devUnlock": null },
+    { "id": "s2", "name": "소행성 회랑",     "role": "mission",  "theme": "지형 전술",    "terrain": "asteroid",  "connections": ["s1","s3"],    "enemy": ["void_scout","void_fighter"],  "reward": { "resource": { "ti": 60 } },           "hidden": "ghost_nav",    "devUnlock": "mining_station" },
+    { "id": "s3", "name": "녹슨 잔해지대",   "role": "mission",  "theme": "노획·연구",    "terrain": "debris",    "connections": ["s2","s4","s5"], "enemy": ["void_gunship","void_thorn"], "reward": { "aceCondition": "sera" },             "hidden": null,           "devUnlock": "research_boost" },
+    { "id": "s4", "name": "심홍 성운",       "role": "mission",  "theme": "시야 제한",    "terrain": "nebula",    "connections": ["s3","s6"],    "enemy": ["void_fighter","void_command"], "miniboss": "garr", "reward": { "resource": { "dm": 8 }, "unlockShip": "battleship" }, "hidden": "last_flame", "devUnlock": "weapon_eng_adv" },
+    { "id": "s5", "name": "얼음 고리",       "role": "mission",  "theme": "채굴 압박",    "terrain": "mine",      "connections": ["s3","s6"],    "enemy": ["void_heavy","void_drone"],    "reward": { "ace": "mila" },                      "hidden": null,           "devUnlock": "dm_refinery", "mining": { "resource": "dm", "deposit": 200 } },
+    { "id": "s6", "name": "유령 항로",       "role": "mission",  "theme": "발견·영입",    "terrain": "ambush",    "connections": ["s4","s5","s7"], "enemy": ["void_scout","void_thorn"],  "reward": null,                                   "hidden": "ancient_core", "devUnlock": null, "secretShop": "ghost_market", "recruit": "raven" },
+    { "id": "s7", "name": "관문 요새",       "role": "mission",  "theme": "대규모 방어전", "terrain": "corridor",  "connections": ["s6","s8"],    "enemy": ["void_heavy","void_command","void_fighter","void_gunship"], "reward": null, "hidden": null, "devUnlock": "final_shipyard" },
+    { "id": "s8", "name": "심연의 눈",       "role": "boss",     "theme": "왜곡 공간",    "terrain": "distortion","connections": ["s7"],         "boss": "warden",                        "reward": { "ending": true, "teaser": "다음 은하" }, "hidden": null, "devUnlock": null }
+  ]
+}
