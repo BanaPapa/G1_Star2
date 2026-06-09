@@ -1,0 +1,213 @@
+.save-screen {
+  width: 100%;
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  text-align: left;
+}
+
+.save-back-btn {
+  align-self: flex-start;
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 1px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.save-back-btn:hover {
+  color: var(--text);
+  border-color: var(--dim);
+}
+
+.save-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.save-section-title {
+  margin: 0;
+  font-size: 15px;
+  color: var(--cyan);
+  font-family: var(--mono);
+  letter-spacing: 1px;
+}
+
+.save-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.save-slot {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.save-slot--used {
+  border-color: rgba(58, 214, 196, 0.35);
+}
+
+.save-slot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.save-slot-label {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--cyan);
+  letter-spacing: 0.5px;
+}
+
+.save-slot-time {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--dim);
+}
+
+.save-slot-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.save-slot-info span {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+}
+
+.save-slot-empty {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--dim);
+  text-align: center;
+  padding: 6px 0;
+}
+
+.save-slot-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.save-btn {
+  font-family: var(--kr);
+  font-size: 12px;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  transition: all 0.15s ease;
+}
+
+.save-btn--save {
+  color: var(--text);
+  background: rgba(79, 184, 255, 0.1);
+  border-color: var(--cyan);
+}
+
+.save-btn--save:hover {
+  background: rgba(79, 184, 255, 0.22);
+}
+
+.save-btn--load {
+  color: var(--text);
+  background: rgba(58, 214, 196, 0.1);
+  border-color: var(--cyan);
+}
+
+.save-btn--load:hover {
+  background: rgba(58, 214, 196, 0.22);
+}
+
+.save-btn--delete {
+  color: #e05555;
+  background: rgba(224, 85, 85, 0.08);
+  border-color: rgba(224, 85, 85, 0.4);
+}
+
+.save-btn--delete:hover {
+  background: rgba(224, 85, 85, 0.18);
+}
+
+/* 설정 패널 */
+.settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.settings-title {
+  margin: 0;
+  font-size: 15px;
+  color: var(--cyan);
+  font-family: var(--mono);
+  letter-spacing: 1px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.settings-label {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+  min-width: 160px;
+}
+
+.settings-toggle-group {
+  display: flex;
+  gap: 6px;
+}
+
+.settings-toggle-btn {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: var(--dim);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.settings-toggle-btn.active {
+  color: #061018;
+  background: var(--cyan);
+  border-color: var(--cyan);
+}
+
+.settings-slider {
+  flex: 1;
+  min-width: 120px;
+  max-width: 220px;
+  accent-color: var(--cyan);
+  cursor: pointer;
+}

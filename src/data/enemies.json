@@ -1,0 +1,32 @@
+{
+  "_comment": "보이드 군세. base=플레이어 클래스 스탯 변형(색만 다름). unique/miniboss/boss는 고유. phases는 보스 페이즈.",
+  "enemies": [
+    { "id": "void_scout",   "name": "보이드 정찰기",  "base": "scout",      "tier": "basic",  "note": "다수 출현·교란",            "sprite": "unit_scout_void" },
+    { "id": "void_fighter", "name": "보이드 전투기",  "base": "fighter",    "tier": "basic",  "note": "주력",                     "sprite": "unit_fighter_void" },
+    { "id": "void_gunship", "name": "보이드 포격함",  "base": "cruiser",    "tier": "basic",  "note": "원거리 견제",               "sprite": "unit_cruiser_void" },
+    { "id": "void_heavy",   "name": "보이드 중장함",  "base": "battleship", "tier": "basic",  "note": "탱커",                     "sprite": "unit_battleship_void" },
+    { "id": "void_command", "name": "보이드 지휘함",  "base": "carrier",    "tier": "basic",  "note": "버프·소환",                 "sprite": "unit_carrier_void" },
+    { "id": "void_drone",   "name": "보이드 드론 떼", "stats": { "hp": 25, "atk": 10, "def": 4, "acc": 70, "eva": 35, "mov": 5, "rng": [1,1], "ap": 2 }, "tier": "unique", "note": "소형 다수·물량", "sprite": "unit_drone_void" },
+    { "id": "void_thorn",   "name": "가시 순양함",    "stats": { "hp": 130, "atk": 28, "def": 22, "acc": 80, "eva": 15, "mov": 3, "rng": [1,3], "ap": 3 }, "tier": "unique", "note": "근접 피해 반사(가시 장갑)", "ability": "thorns_reflect", "sprite": "unit_thorn_void" },
+    { "id": "void_rift",    "name": "차원 균열",      "stats": { "hp": 100, "atk": 38, "def": 8, "acc": 90, "eva": 0, "mov": 0, "rng": [1,4], "ap": 2, "tpPerTurn": 0 }, "tier": "unique", "note": "보스 2페이즈 소환 — 이동 불가·고사거리", "sprite": "unit_rift_void" }
+  ],
+  "bosses": [
+    {
+      "id": "garr", "name": "약탈왕 가르", "type": "miniboss", "system": "s4",
+      "stats": { "hp": 600, "atk": 55, "def": 35, "acc": 75, "eva": 10, "mov": 2, "rng": [1,2], "ap": 3 },
+      "weakpoint": "측후방 DEF -50%", "note": "전면 강력 주포",
+      "sprite": "boss_garr", "cutin": "cutin_garr_01"
+    },
+    {
+      "id": "warden", "name": "심연의 파수꾼", "type": "galaxy_boss", "system": "s8",
+      "stats": { "hp": 1800, "atk": 60, "def": 45, "acc": 75, "eva": 6, "mov": 1, "rng": [1,4], "ap": 4 },
+      "phases": [
+        { "at": "100%", "name": "1페이즈", "behavior": "원거리 포화 + 지휘함 소환" },
+        { "at": "50%",  "name": "2페이즈", "behavior": "차원 균열 소환·광역 패턴·전용 컷인" }
+      ],
+      "phaseBoost": { "atk": 18 },
+      "note": "MVP 최종 보스. 격파 시 엔딩 + 다음 은하 티저",
+      "sprite": "boss_warden", "cutin": "cutin_warden_01"
+    }
+  ]
+}

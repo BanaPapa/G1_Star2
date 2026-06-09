@@ -1,0 +1,9 @@
+{
+  "_comment": "MVP 자원 4종 고정. 향후 확장 시 희토류·반물질 등 추가. start=모항 정비 허브 진입 시 보유 시작량(MOD-7).",
+  "resources": [
+    { "id": "sc", "name": "스텔라크레딧", "role": "통화(구매·수리·월급)",    "source": ["전투 보상", "판매"],            "icon": "res_sc", "start": 400 },
+    { "id": "ti", "name": "티타늄",       "role": "기본 제작 금속",          "source": ["채굴장", "소행성", "전투"],     "icon": "res_ti", "start": 60 },
+    { "id": "ec", "name": "에너지크리스탈", "role": "에너지·연구 연료",        "source": ["채굴", "특별 이벤트"],          "icon": "res_ec", "start": 50 },
+    { "id": "dm", "name": "다크매터",     "role": "희귀 고급 제작·전직",      "source": ["s5 광산", "보스", "상인"],      "icon": "res_dm", "start": 0 }
+  ]
+}

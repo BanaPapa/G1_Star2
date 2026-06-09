@@ -1,0 +1,41 @@
+{
+  "_comment": "무기/모듈(장착, slot), 소모품(consumable), 히든 유니크(unique·1회성·놓치면 영구 불가). mods=장착 시 스탯 변화. source: shop/research/craft/hidden:sX. price=상점 기준가(sc, MOD-7 — 함선 가격대 200~900·아이템 강도에 비례해 설계). craft 출처는 price 대신 recipes에서 재료를 확인.",
+  "weapons": [
+    { "id": "pulse_cannon",  "name": "펄스 캐논",       "slot": "weapon", "mods": { "atk": 8 },               "fit": ["fighter","cruiser"],  "source": "shop",     "price": 110, "icon": "item_pulse" },
+    { "id": "twin_pulse",    "name": "트윈 펄스",       "slot": "weapon", "mods": { "atk": 6 }, "extra": "2회 공격", "fit": ["fighter"],          "source": "shop",     "price": 140, "icon": "item_twinpulse" },
+    { "id": "railgun",       "name": "레일건",          "slot": "weapon", "mods": { "atk": 18 }, "extra": "관통", "fit": ["cruiser","battleship"], "source": "research:weapon_eng_1", "price": 260, "icon": "item_railgun" },
+    { "id": "missile_pod",   "name": "유도 미사일 포드", "slot": "weapon", "mods": { "atk": 12 }, "extra": "명중 일부 무시", "fit": ["all"],       "source": "shop",     "price": 170, "icon": "item_missile" },
+    { "id": "plasma_lance",  "name": "플라즈마 랜스",    "slot": "weapon", "mods": { "atk": 25 }, "extra": "근접", "fit": ["battleship"],        "source": "craft",    "icon": "item_lance" },
+    { "id": "particle_beam", "name": "입자 빔",         "slot": "weapon", "mods": { "atk": 15 }, "extra": "사거리 +1", "fit": ["cruiser"],       "source": "research:weapon_eng_1", "price": 230, "icon": "item_beam" },
+    { "id": "heavy_railgun", "name": "중형 레일건",      "slot": "weapon", "mods": { "atk": 28 }, "extra": "관통·원거리",  "fit": ["battleship","cruiser"], "source": "research:weapon_eng_adv", "price": 380, "icon": "item_railgun" }
+  ],
+  "modules": [
+    { "id": "armor_plate",   "name": "강화 장갑판",   "slot": "module", "mods": { "hp": 40, "def": 10 }, "source": "shop", "price": 150, "icon": "item_armor" },
+    { "id": "booster_engine","name": "부스터 엔진",   "slot": "module", "mods": { "mov": 1, "acc": 5 },  "source": "research:thrust_eng_1", "price": 190, "icon": "item_booster" },
+    { "id": "evasion_ctrl",  "name": "회피 제어기",   "slot": "module", "mods": { "eva": 15 },           "source": "shop", "price": 130, "icon": "item_evasion" },
+    { "id": "shield_gen",    "name": "실드 제너레이터","slot": "module", "mods": {}, "extra": "피해 흡수 실드", "source": "research:defense_eng_1", "price": 220, "icon": "item_shield" },
+    { "id": "targeting_comp","name": "표적 컴퓨터",   "slot": "module", "mods": { "acc": 15 },           "source": "shop", "price": 120, "icon": "item_targeting" },
+    { "id": "drone_bay",     "name": "드론 베이",     "slot": "module", "mods": {}, "extra": "모함 드론 +1", "fit": ["carrier"], "source": "research:carrier_ops", "price": 200, "icon": "item_dronebay" }
+  ],
+  "consumables": [
+    { "id": "nano_kit",   "name": "수리 나노킷",  "effect": { "heal": 60 },            "source": "shop", "price": 45, "icon": "item_nanokit" },
+    { "id": "tp_injector","name": "TP 인젝터",   "effect": { "tpFull": true },        "source": "shop", "price": 60, "icon": "item_tpinjector" },
+    { "id": "smoke",      "name": "연막 사출기",  "effect": { "areaEva": 20, "duration": 1 }, "source": "shop", "price": 50, "icon": "item_smoke" },
+    { "id": "emp_grenade","name": "EMP 수류탄",  "effect": { "apDebuff": 1, "duration": 1 }, "source": "shop", "price": 55, "icon": "item_emp" }
+  ],
+  "uniques": [
+    { "id": "last_flame",   "name": "최후의 불꽃", "slot": "weapon", "mods": { "atk": 35, "acc": -5 }, "extra": "관통, 전함 전용", "fit": ["battleship"], "source": "hidden:s4", "missable": true, "icon": "item_lastflame" },
+    { "id": "ghost_nav",    "name": "유령 항법",   "slot": "module", "mods": { "eva": 30 }, "extra": "전투 시작 시 선제 1턴, 정찰함 전용", "fit": ["scout"], "source": "hidden:s2", "missable": true, "icon": "item_ghostnav" },
+    { "id": "ancient_core", "name": "고대 코어",   "slot": "module", "mods": {}, "extra": "TP 충전 +1/턴", "fit": ["all"], "source": "hidden:s6", "missable": true, "icon": "item_ancientcore" }
+  ],
+  "recipes": [
+    {
+      "id": "craft_plasma_lance",
+      "result": "plasma_lance",
+      "name": "플라즈마 랜스 조합",
+      "materials": { "ti": 70, "dm": 5, "sc": 150 },
+      "requires": "module_craft",
+      "note": "모듈 조합학 연구 해금 후 제작 가능 — 전함 전용 근접 무기"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "_comment": "별계 진입/이동 시 확률 판정. weights 합=100. special은 specialEvents에서 가중 랜덤. 보상/페널티는 자원 4종(sc/ti/ec/dm) 기준.",
+  "eventWeights": [
+    { "type": "battle",  "weight": 40, "desc": "보이드 함대 1~3척 조우 → 전술 전투" },
+    { "type": "resource","weight": 20, "desc": "ti/ec/dm 중 랜덤 획득(15~45)" },
+    { "type": "special", "weight": 10, "desc": "specialEvents 중 랜덤" },
+    { "type": "scout",   "weight": 10, "desc": "다음 전투 선제공격 또는 채굴 효율 등 버프" },
+    { "type": "peace",   "weight": 20, "desc": "휴식. 짧은 분위기 메시지, 가끔 소품 에피소드" }
+  ],
+  "specialEvents": [
+    { "id": "ancient_ruins", "name": "고대 유적 발견",  "reward": { "sc": 500, "xp": 100 },          "msg": "고대 문명의 기술을 해독했습니다." },
+    { "id": "space_storm",   "name": "우주 폭풍 조우",  "penalty": { "ec": 15, "hpPercent": 10 },     "msg": "강력한 우주 폭풍이 함대를 휩쓸었습니다." },
+    { "id": "signal",        "name": "미지의 신호 수신", "reward": { "dm": 4, "ec": 20 },             "msg": "미지의 신호를 해독해 희귀 자원을 얻었습니다." },
+    { "id": "pulsar",        "name": "펄서 조우",       "reward": { "ec": 30, "sc": 300 },           "msg": "펄서의 에너지를 수집했습니다." },
+    { "id": "asteroid_belt", "name": "소행성대 통과",   "reward": { "ti": 25 }, "penalty": { "sc": 0 }, "msg": "소행성대에서 희귀 광물을 발견했습니다." },
+    { "id": "merchant",      "name": "떠돌이 상인 조우", "shop": "wandering_merchant",                "msg": "떠돌이 상인과 거래할 수 있습니다." }
+  ],
+  "chainEvents": [
+    { "id": "faint_signal", "name": "미약한 신호 감지", "next": "signal_traced", "msg": "미약한 신호를 감지했습니다..." },
+    { "id": "signal_traced","name": "신호 추적 성공",   "choices": ["외교","공격","관찰"], "note": "선택에 따라 영입/전투/정보 분기 (Could)" }
+  ],
+  "trigger": "별계 진입 시 1회 + (선택)이동 시. 전투 성공 시에만 보상 이벤트 발생."
+}
