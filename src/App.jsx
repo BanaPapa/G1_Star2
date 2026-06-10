@@ -10,7 +10,7 @@ import FleetScreen from './ui/screens/FleetScreen'
 import MaintenanceHubScreen from './ui/screens/MaintenanceHubScreen'
 import EndingScreen from './ui/screens/EndingScreen'
 import SaveScreen from './ui/screens/SaveScreen'
-import ResourceHud from './ui/components/ResourceHud'
+import TopStatusBar from './ui/components/TopStatusBar'
 import './App.css'
 
 const BGM_FOR_VIEW = {
@@ -97,45 +97,11 @@ function App() {
 
       {view !== 'title' && view !== 'gameover' && (
         <div className="app-shell">
-          <aside className="app-sidebar">
-            <div className="app-sidebar-brand">
-              <span className="app-sidebar-logo">7<span className="accent">★</span> STAR</span>
-              <span className="app-sidebar-sub">MOD-13 · 수직 슬라이스</span>
-            </div>
-
-            <ResourceHud sidebar />
-
-            <nav className="app-sidebar-nav">
-              <button
-                className={`app-sidebar-btn${view === 'map' ? ' active' : ''}`}
-                onClick={() => !inBattle && navigate('map')}
-                disabled={inBattle}
-              >
-                🌌 성단 맵
-              </button>
-              <button
-                className={`app-sidebar-btn${view === 'fleet' ? ' active' : ''}`}
-                onClick={() => !inBattle && navigate('fleet')}
-                disabled={inBattle}
-              >
-                🚀 함대 편성
-              </button>
-              <button
-                className={`app-sidebar-btn${view === 'hub' ? ' active' : ''}`}
-                onClick={() => !inBattle && navigate('hub')}
-                disabled={inBattle}
-              >
-                🔧 정비 허브
-              </button>
-              <button
-                className={`app-sidebar-btn${view === 'save' ? ' active' : ''}`}
-                onClick={() => !inBattle && navigate('save')}
-                disabled={inBattle}
-              >
-                💾 저장/설정
-              </button>
-            </nav>
-          </aside>
+          <TopStatusBar
+            view={view}
+            onNavigate={(next) => !inBattle && navigate(next)}
+            inBattle={inBattle}
+          />
 
           <main className="app-content">
             {view === 'map' && (

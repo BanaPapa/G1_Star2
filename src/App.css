@@ -276,60 +276,129 @@
 /* ── 앱 전체 레이아웃 ── */
 .app-shell {
   display: flex;
+  flex-direction: column;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
 }
 
-.app-sidebar {
-  width: 210px;
-  min-width: 210px;
-  height: 100vh;
-  background: rgba(10, 14, 39, 0.96);
-  border-right: 1px solid var(--line);
+/* ── 상단 상태바 (Endless Space 2 스타일 압축 HUD) ── */
+.app-topbar {
+  position: relative;
+  z-index: 30;
   display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  overflow-y: auto;
-}
-
-.app-sidebar-brand {
-  padding: 18px 14px 14px;
-  border-bottom: 1px solid var(--line);
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 16px;
+  padding: 6px 14px;
+  min-height: 44px;
   flex-shrink: 0;
+  flex-wrap: wrap;
+  background: rgba(10, 14, 39, 0.96);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
 }
 
-.app-sidebar-logo {
+.app-topbar-burger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(79, 184, 255, 0.08);
+  color: var(--text);
   font-family: var(--mono);
-  font-size: 22px;
-  letter-spacing: 5px;
+  font-size: 15px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.app-topbar-burger:hover,
+.app-topbar-burger.open {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  background: rgba(79, 184, 255, 0.16);
+}
+
+.app-topbar-burger-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.app-topbar-logo {
+  font-weight: bold;
   color: #fff;
 }
 
-.app-sidebar-logo .accent {
+.app-topbar-logo .accent {
   color: var(--gold);
 }
 
-.app-sidebar-sub {
+.app-topbar-status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
   font-family: var(--mono);
-  font-size: 11px;
-  color: var(--cyan);
-  letter-spacing: 1px;
-  text-align: center;
+  font-size: 13px;
+  color: var(--dim);
+  flex-shrink: 0;
 }
 
-.app-sidebar-nav {
+.app-topbar-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.app-topbar-stat b {
+  color: var(--gold);
+}
+
+.app-topbar-stat--turn b {
+  color: var(--cyan);
+}
+
+.app-topbar-stat-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* ── 좌측 메뉴 드롭다운(햄버거 토글) ── */
+.app-topbar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 29;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.app-topbar-drawer {
+  position: absolute;
+  top: 100%;
+  left: 8px;
+  z-index: 31;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 10px 8px;
+  margin-top: 6px;
+  padding: 6px;
+  min-width: 180px;
+  background: rgba(10, 14, 39, 0.98);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+  animation: app-topbar-drawer-in 0.15s ease;
 }
 
-.app-sidebar-btn {
+@keyframes app-topbar-drawer-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.app-topbar-drawer-btn {
   width: 100%;
   padding: 11px 14px;
   border-radius: 8px;
@@ -343,25 +412,25 @@
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
-.app-sidebar-btn:hover:not(:disabled) {
+.app-topbar-drawer-btn:hover:not(:disabled) {
   background: rgba(79, 184, 255, 0.1);
   color: var(--text);
 }
 
-.app-sidebar-btn.active {
+.app-topbar-drawer-btn.active {
   background: rgba(79, 184, 255, 0.15);
   border-color: var(--cyan);
   color: var(--cyan);
 }
 
-.app-sidebar-btn:disabled {
+.app-topbar-drawer-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
 
 .app-content {
   flex: 1;
-  height: 100vh;
+  min-height: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -377,35 +446,53 @@
   align-items: flex-start;
 }
 
-/* ── 사이드바용 ResourceHud ── */
-.resource-hud--sidebar {
-  flex-direction: column;
-  gap: 0;
-  padding: 10px 14px;
-  border-radius: 0;
+/* ── 상단바용 ResourceHud(압축형) ── */
+.resource-hud--compact {
+  background: none;
   border: none;
-  border-bottom: 1px solid var(--line);
-  border-top: 1px solid var(--line);
-  justify-content: flex-start;
+  border-radius: 0;
+  padding: 0;
+  gap: 14px;
+  font-size: 13px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.resource-hud--compact::-webkit-scrollbar {
+  display: none;
+}
+
+.resource-hud--compact .resource-hud-item {
   flex-shrink: 0;
-  font-size: 14px;
 }
 
-.resource-hud--sidebar .resource-hud-item {
-  padding: 6px 0;
-  justify-content: space-between;
-  border-bottom: 1px solid rgba(79, 184, 255, 0.06);
+.resource-hud--compact .resource-hud-name {
+  display: none;
 }
 
-.resource-hud--sidebar .resource-hud-item:last-child {
-  border-bottom: none;
+.resource-hud--compact .resource-hud-value {
+  min-width: 0;
 }
 
-.resource-hud--sidebar .resource-hud-icon {
-  font-size: 17px;
-}
+/* ── 반응형 ── */
+@media (max-width: 720px) {
+  .app-topbar {
+    gap: 8px;
+    padding: 6px 8px;
+  }
 
-.resource-hud--sidebar .resource-hud-value {
-  font-size: 15px;
-  min-width: 36px;
+  .app-topbar-status {
+    order: 2;
+    gap: 10px;
+    font-size: 12px;
+    margin-left: 0;
+  }
+
+  .resource-hud--compact {
+    order: 3;
+    flex-basis: 100%;
+    gap: 10px;
+    font-size: 12px;
+  }
 }

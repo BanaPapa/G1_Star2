@@ -97,7 +97,8 @@
 .map-info {
   width: 260px;
   flex: none;
-  background: rgba(10, 14, 39, 0.96);
+  background: var(--panel);
+  backdrop-filter: blur(4px);
   border-left: 1px solid var(--line);
   padding: 16px;
   display: flex;
@@ -245,35 +246,480 @@
   background: rgba(255, 209, 102, 0.24);
 }
 
-.map-summary-toggle {
+/* ── 호버 툴팁 (가벼운 요약: 세력·위험·보상·이동 비용) ── */
+.map-tooltip {
   position: absolute;
-  top: 10px;
-  left: 10px;
-  padding: 6px 14px;
-  background: rgba(10, 14, 39, 0.92);
-  border: 2px solid rgba(255, 209, 102, 0.6);
-  border-radius: 8px;
-  color: var(--gold);
+  z-index: 20;
+  min-width: 168px;
+  padding: 8px 10px;
+  background: rgba(6, 10, 28, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
   font-family: var(--mono);
+}
+
+.map-tooltip-title {
+  margin: 0 0 4px;
+  font-family: var(--kr);
   font-size: 13px;
   font-weight: bold;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.map-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.map-tooltip-row b {
+  font-weight: normal;
+  color: var(--text);
+}
+
+/* ── 클릭 상세 패널: "상세 정보" 카드 (ui_mockups.html .panel 코너컷 스타일) ── */
+.map-info-card {
+  position: relative;
+  padding: 10px 12px;
+  background: rgba(79, 184, 255, 0.06);
+  border: 1px solid var(--line);
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.map-info-card-h {
+  margin: 0 0 2px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.map-info-card-h::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+
+.map-info-card-row {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+
+.map-info-card-row span {
+  color: var(--text);
+  text-align: right;
+}
+
+/* ── 하단 컨텍스트 액션바 (Endless Space 2 스타일 선택 바) ── */
+.map-actionbar {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 15;
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  max-width: calc(100% - 28px);
+  padding: 10px 38px 10px 12px;
+  background: var(--panel);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+  animation: map-actionbar-in 0.18s ease;
+}
+
+@keyframes map-actionbar-in {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.map-actionbar-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(10, 14, 39, 0.85);
+  color: var(--dim);
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
   cursor: pointer;
-  z-index: 10;
-  user-select: none;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition: color 0.15s, border-color 0.15s;
 }
 
-.map-summary-toggle:hover {
-  background: rgba(255, 209, 102, 0.14);
-  border-color: var(--gold);
+.map-actionbar-close:hover {
+  color: var(--text);
+  border-color: var(--cyan);
 }
 
-.map-summary-toggle--on {
+/* 함대 핵심 정보 — 캐릭터성 강조(리더/에이스 이름을 가장 먼저 노출) */
+.map-actionbar-fleet {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 14px 4px 4px;
+  border-right: 1px solid var(--line);
+}
+
+.map-actionbar-fleet-icon {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.map-actionbar-fleet-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.map-actionbar-fleet-name {
+  margin: 0;
+  font-size: 13px;
+  font-weight: bold;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.map-actionbar-fleet-ace {
+  color: var(--gold);
+  font-weight: normal;
+}
+
+.map-actionbar-fleet-lv {
+  color: var(--dim);
+  font-weight: normal;
+  font-size: 11px;
+}
+
+.map-actionbar-fleet-stats {
+  margin: 0;
+  display: flex;
+  gap: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.map-actionbar-fleet-stats b {
+  font-weight: normal;
+  color: var(--text);
+}
+
+/* 선택된 대상(별계) 정보 */
+.map-actionbar-target {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 14px;
+  border-right: 1px solid var(--line);
+}
+
+.map-actionbar-target-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.map-actionbar-target-name {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: bold;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.map-actionbar-target .map-info-status {
+  margin: 0;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* 액션 버튼 그룹 (ui_mockups.html .act 버튼 스타일) */
+.map-actionbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.act {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 1px;
+  padding: 10px 14px;
+  min-width: 72px;
+  text-align: center;
+  background: rgba(10, 16, 42, 0.85);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  transition: 0.18s;
+}
+
+.act:hover:not(:disabled) {
+  border-color: rgba(79, 184, 255, 0.5);
+  background: rgba(79, 184, 255, 0.1);
+}
+
+.act:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+@media (max-width: 720px) {
+  .map-actionbar {
+    flex-wrap: wrap;
+    justify-content: center;
+    bottom: 8px;
+    padding: 10px 34px 10px 10px;
+  }
+
+  .map-actionbar-fleet,
+  .map-actionbar-target {
+    border-right: none;
+    padding: 2px 8px;
+  }
+}
+
+/* ── 우하단 턴 컨트롤 허브 (Endless Space 2 스타일: 보조 버튼 + 턴 종료 고정) ── */
+.turn-hub {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 16;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 168px;
+  padding: 10px;
+  background: var(--panel);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+}
+
+.turn-hub-aux {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.turn-hub-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 8px 10px;
+  background: rgba(10, 16, 42, 0.85);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: 0.18s;
+}
+
+.turn-hub-btn:hover {
+  border-color: rgba(79, 184, 255, 0.5);
+  background: rgba(79, 184, 255, 0.1);
+}
+
+.turn-hub-btn--on {
   border-color: #7cffb2;
   color: #7cffb2;
-  background: rgba(12, 36, 20, 0.94);
+  background: rgba(12, 50, 28, 0.5);
 }
 
-.map-summary-toggle--on:hover {
-  background: rgba(12, 50, 28, 0.95);
+.turn-hub-badge {
+  flex-shrink: 0;
+  min-width: 18px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--bg-0);
+  font-size: 11px;
+  font-weight: bold;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.turn-hub-end {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px;
+  background: linear-gradient(135deg, var(--gold), #ffb347);
+  border: none;
+  border-radius: 6px;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  color: var(--bg-0);
+  font-family: var(--mono);
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  box-shadow: 0 0 16px rgba(255, 209, 102, 0.4);
+  transition: box-shadow 0.18s, transform 0.06s;
+}
+
+.turn-hub-end:hover {
+  box-shadow: 0 0 24px rgba(255, 209, 102, 0.6);
+}
+
+.turn-hub-end:active {
+  transform: scale(0.98);
+}
+
+.turn-hub-end-label {
+  font-size: 15px;
+}
+
+.turn-hub-end-key {
+  font-size: 10px;
+  opacity: 0.7;
+  letter-spacing: 1px;
+}
+
+@media (max-width: 720px) {
+  .turn-hub {
+    width: 140px;
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .turn-hub-btn {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+}
+
+/* ── 좌상단 뷰 토글 탭 (기본/위험도/자원/점령 현황 오버레이) ── */
+.map-view-tabs {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 16;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--panel);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.map-view-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: 0.18s;
+}
+
+.map-view-tab:hover {
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.map-view-tab.active {
+  color: var(--bg-0);
+  background: linear-gradient(180deg, var(--cyan), #27b9a8);
+  box-shadow: 0 0 14px rgba(58, 214, 196, 0.45);
+  font-weight: 600;
+}
+
+/* 활성 뷰 설명 — 토글 바로 아래에 한 줄로만 표시 (가벼운 안내) */
+.map-view-caption {
+  position: absolute;
+  top: 54px;
+  left: 14px;
+  z-index: 16;
+  max-width: min(360px, calc(100% - 28px));
+  padding: 5px 10px;
+  background: rgba(6, 10, 28, 0.85);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.4;
+  pointer-events: none;
+  animation: map-view-caption-in 0.18s ease;
+}
+
+@keyframes map-view-caption-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (max-width: 720px) {
+  .map-view-tabs {
+    top: 8px;
+    left: 8px;
+    gap: 2px;
+    padding: 3px;
+  }
+
+  .map-view-tab {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .map-view-tab-label {
+    display: none;
+  }
+
+  .map-view-caption {
+    top: 44px;
+    left: 8px;
+    font-size: 10px;
+  }
 }
