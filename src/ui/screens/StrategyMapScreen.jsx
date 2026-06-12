@@ -50,8 +50,8 @@ const STATUS_LABEL = {
 // 적 함대와 플레이어가 실제로 겹쳐야 전투 발동 (% 단위)
 const ENCOUNTER_DIST = 2.5
 const SYSTEM_DIST    = 7
-// 캔버스 위에서 별계 아이콘 호버/클릭 판정 반경 (px) — 아이콘(52px 폰트)·선택 링(반경 48px)을 모두 포함
-const NODE_HIT_RADIUS = 40
+// 캔버스 위에서 별계 아이콘 호버/클릭 판정 반경 (px) — 아이콘(104px 폰트)·선택 링(반경 96px)을 모두 포함
+const NODE_HIT_RADIUS = 80
 
 // 모항 안전지대 — 이 반경 안으로는 적이 들어올 수 없고, 전투도 발동하지 않음
 const HOME_POS          = SYS_POS.s0
@@ -242,23 +242,27 @@ function spawnEliteNearNode(ref, idBase) {
 }
 
 // 별계 위협 레벨에 따른 최소 유지 수 — 후반 별계일수록 더 많은 적이 상주
+// 고위험 지역(threatLevel 4 이상)은 기존 대비 약 1.2배로 증원
 function regularGuardCount(node) {
   const lv = node.threatLevel ?? 1
-  return 5 + Math.floor((lv - 1) / 2) // 5~8기
+  const base = 5 + Math.floor((lv - 1) / 2) // 5~8기
+  return lv >= 4 ? Math.round(base * 1.2) : base
 }
 function eliteGuardCount(node) {
   const lv = node.threatLevel ?? 1
-  return lv >= 5 ? 3 : 2 // 2~3기
+  const base = lv >= 5 ? 3 : 2 // 2~3기
+  return lv >= 4 ? Math.round(base * 1.2) : base
 }
 
-// 모항 안전지대 바로 바깥(반경 +2~+12%)에 배치되는 튜토리얼용 최약체 호위 함대
+// 모항 안전지대 바로 바깥(반경 +2~+22%)에 배치되는 튜토리얼용 최약체 호위 함대
 // nodeRef는 s1(여명 성역, threatLevel 1, void_scout) 데이터를 그대로 재사용한다.
-const HOME_GUARD_COUNT = 3
+// 시작 지점 주변 체감 밀도를 위해 기존 대비 2배로 증원
+const HOME_GUARD_COUNT = 12
 
 function spawnHomeGuard(idBase) {
   for (let tries = 0; tries < 40; tries++) {
     const angle = Math.random() * Math.PI * 2
-    const dist = HOME_SAFE_RADIUS + 2 + Math.random() * 10
+    const dist = HOME_SAFE_RADIUS + 2 + Math.random() * 20
     const x = Math.max(3, Math.min(97, HOME_POS.x + Math.cos(angle) * dist))
     const y = Math.max(3, Math.min(97, HOME_POS.y + Math.sin(angle) * dist))
     if (tooCloseToSystem(x, y)) continue
@@ -341,12 +345,24 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
   const canvasRef  = useRef(null)
   const rafRef     = useRef(null)
   const starsRef   = useRef(genStars())
+  // bgImageRef: 배경 이미지(성운/우주 사진) — 로드 완료 후 RAF 루프가 자연스럽게 그리기 시작
+  const bgImageRef = useRef(null)
   // drawFnRef: 매 렌더마다 최신 drawFrame을 가리킴 → RAF 루프가 재시작 없이 최신 상태 그림
   const drawFnRef  = useRef(null)
   // playerPosRef: 적 어그로 인터벌에서 재시작 없이 현재 위치를 읽기 위한 ref
   const playerPosRef = useRef({ ...SYS_POS.s0 })
   // eventModalRef: 모달 열림 여부를 인터벌 콜백에서 참조 (deps 없이)
   const eventModalRef = useRef(null)
+  // battlePendingRef: 전투 진입 대기 여부를 키 입력 핸들러에서 참조 (deps 없이)
+  const battlePendingRef = useRef(null)
+  // summaryBattleRef: 근접 조우 useEffect에서 stale closure 없이 최신값 읽기 위한 ref
+  const summaryBattleRef = useRef(summaryBattle)
+  // 함대 자동 이동용 refs
+  const fleetModeRef    = useRef('manual')
+  const moveTargetRef   = useRef(null)
+  const patrolCenterRef = useRef({ ...SYS_POS.s0 })
+  const patrolAngleRef  = useRef(0)
+  const handleAutoArrivalRef = useRef(() => {})
 
   // ─── 우주 이동 이벤트 추적 ───
   const lastEventPosRef  = useRef({ ...SYS_POS.s0 })
@@ -364,14 +380,34 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
   const [eventModal,    setEventModal]    = useState(null)
   const [alert,         setAlert]         = useState(null)
   const [battlePending, setBattlePending] = useState(null)
-  // 턴 허브 "미행동 유닛 순환"용 — 이번 턴에 행동(이동/정박/정찰/점령/전투 진입)을 완료한 별계 id 집합
-  const [actedNodeIds,  setActedNodeIds]  = useState(() => new Set())
+  // 함대 자동 이동 상태
+  const [fleetMode,     setFleetMode]     = useState('manual') // 'manual' | 'moving' | 'patrolling'
+  const [moveTarget,    setMoveTarget]    = useState(null)     // 목적지 별계 id
   // 상단 뷰 토글 — 맵 위에 표시할 오버레이 종류 (기본/위험도/자원/점령 현황)
   const [mapView,       setMapView]       = useState('default')
 
   // playerPos/eventModal → ref 동기화 (인터벌 콜백이 deps 없이 최신 상태 참조)
   useEffect(() => { playerPosRef.current = playerPos }, [playerPos])
   useEffect(() => { eventModalRef.current = eventModal }, [eventModal])
+  useEffect(() => { battlePendingRef.current = battlePending }, [battlePending])
+  useEffect(() => { summaryBattleRef.current = summaryBattle }, [summaryBattle])
+  useEffect(() => { fleetModeRef.current = fleetMode }, [fleetMode])
+  useEffect(() => { moveTargetRef.current = moveTarget }, [moveTarget])
+  useEffect(() => {
+    handleAutoArrivalRef.current = (nodeId) => {
+      const node = systems?.find(s => s.id === nodeId)
+      if (node) handleMoveTo(node)
+      setFleetMode('manual')
+      setMoveTarget(null)
+    }
+  }) // 매 렌더마다 최신 클로저 유지
+
+  // 배경 이미지 로드 (1회) — RAF 루프는 bgImageRef를 매 프레임 읽으므로 별도 상태 갱신 불필요
+  useEffect(() => {
+    const img = new Image()
+    img.src = '/assets/bg_space.jpg'
+    img.onload = () => { bgImageRef.current = img }
+  }, [])
 
   // 적 초기화 (systems 로드 후 1회, 이미 정복된 별계는 제외)
   useEffect(() => {
@@ -540,6 +576,43 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
     return () => clearInterval(interval)
   }, [systems])
 
+  // ─── 함대 자동 이동 (200ms마다) — moving: 목적지 직선 추진 / patrolling: 현 위치 궤도 순찰 ───
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (eventModalRef.current) return
+      const mode = fleetModeRef.current
+      if (mode === 'moving') {
+        const target = moveTargetRef.current
+        if (!target) return
+        const targetPos = SYS_POS[target]
+        if (!targetPos) return
+        setPlayerPos(p => {
+          const dx = targetPos.x - p.x
+          const dy = targetPos.y - p.y
+          const dist = Math.hypot(dx, dy)
+          if (dist < 1.5) {
+            handleAutoArrivalRef.current(target)
+            return { x: Math.max(0, Math.min(100, targetPos.x)), y: Math.max(0, Math.min(100, targetPos.y)) }
+          }
+          const speed = 2.0
+          return {
+            x: Math.max(0, Math.min(100, p.x + (dx / dist) * speed)),
+            y: Math.max(0, Math.min(100, p.y + (dy / dist) * speed)),
+          }
+        })
+      } else if (mode === 'patrolling') {
+        patrolAngleRef.current += 0.08
+        const cx = patrolCenterRef.current.x
+        const cy = patrolCenterRef.current.y
+        setPlayerPos({
+          x: Math.max(0, Math.min(100, cx + Math.cos(patrolAngleRef.current) * 4)),
+          y: Math.max(0, Math.min(100, cy + Math.sin(patrolAngleRef.current) * 4)),
+        })
+      }
+    }, 200)
+    return () => clearInterval(id)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // ─── 전투 딜레이 처리 ───
   useEffect(() => {
     if (!battlePending) return
@@ -566,7 +639,7 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
       )
       if (hit) {
         setMapEnemies(prev => prev.filter(e => e.id !== hit.id))
-        if (summaryBattle) {
+        if (summaryBattleRef.current) {
           handleSummaryBattle(hit.nodeRef, false)
         } else {
           showAlert('⚔️ 적 함대 발견! 전투 개시!')
@@ -582,7 +655,7 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
         Math.hypot(b.x - playerPos.x, b.y - playerPos.y) < ENCOUNTER_DIST
       )
       if (bossHit) {
-        if (summaryBattle) {
+        if (summaryBattleRef.current) {
           handleSummaryBattle(bossHit.nodeRef, true)
         } else {
           const node = systems.find(s => s.id === bossHit.nodeRef)
@@ -617,20 +690,20 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
     }
   }, [playerPos, mapEnemies, mapBosses, mapEvents, systems, battlePending, eventModal]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ─── 키보드 이동 + 턴 종료(Space) ───
-  // handleEndTurnRef: handleEndTurn은 컴포넌트 본문 아래쪽에서 선언되지만(함수 선언 호이스팅으로 참조는 가능),
-  // 매 렌더 최신 클로저(eventModal/battlePending 등)를 갖도록 ref에 동기화해 deps 없는 keydown 리스너에서 사용한다.
-  const handleEndTurnRef = useRef(() => {})
-  useEffect(() => { handleEndTurnRef.current = handleEndTurn })
-
+  // ─── 키보드 이동 + 자동항행 취소(Space) ───
   useEffect(() => {
     const STEP = 1.5
     function onKey(e) {
       if (e.code === 'Space' || e.key === ' ') {
         e.preventDefault()
-        handleEndTurnRef.current()
+        // Space: 자동 이동/정찰 모드 취소
+        fleetModeRef.current = 'manual'
+        setFleetMode('manual')
+        setMoveTarget(null)
         return
       }
+      // 모달(이벤트 결과 등)이 떠 있거나 전투 진입 대기 중이면 함대 이동 불가
+      if (eventModalRef.current || battlePendingRef.current) return
       let dx = 0, dy = 0
       switch (e.key) {
         case 'ArrowUp':    case 'w': case 'W': dy = -STEP; break
@@ -640,6 +713,10 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
         default: return
       }
       e.preventDefault()
+      // WASD/화살표: 자동항행 취소 후 수동 이동
+      fleetModeRef.current = 'manual'
+      setFleetMode('manual')
+      setMoveTarget(null)
       setPlayerPos(p => ({
         x: Math.max(0, Math.min(100, p.x + dx)),
         y: Math.max(0, Math.min(100, p.y + dy)),
@@ -660,7 +737,7 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
     }) ?? null
   }
 
-  // ─── 마우스 클릭 → 별계 노드 클릭 시 상세 패널 표시, 그 외에는 함대 이동 ───
+  // ─── 마우스 클릭 → 별계 노드 클릭 시 상세 패널 표시, 그 외(빈 공간)에는 선택 해제만 (함대 이동은 방향키/WASD 전용) ───
   function handleCanvasClick(e) {
     if (battlePending) return
     const canvas = canvasRef.current
@@ -675,12 +752,8 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
       return
     }
 
-    // 빈 공간 클릭 — 선택 해제(하단 액션바 닫힘) 후 함대 이동
+    // 빈 공간 클릭 — 선택 해제(하단 액션바 닫힘)
     setSelectedId(null)
-    setPlayerPos({
-      x: Math.max(0, Math.min(100, mx / rect.width  * 100)),
-      y: Math.max(0, Math.min(100, my / rect.height * 100)),
-    })
   }
 
   // ─── 마우스 호버 → 별계 노드 위에 있으면 가벼운 요약 툴팁 표시 ───
@@ -726,20 +799,28 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
     ctx.fillStyle = '#060a1c'
     ctx.fillRect(0, 0, W, H)
 
-    // 배경 별
-    starsRef.current.forEach(s => {
-      ctx.fillStyle = `rgba(255,255,255,${s.a})`
-      ctx.beginPath()
-      ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2)
-      ctx.fill()
-    })
+    // 배경 이미지(성운/우주 사진) — 로드 완료 시 캔버스 전체를 cover-fit으로 채움
+    const bg = bgImageRef.current
+    if (bg) {
+      const scale = Math.max(W / bg.width, H / bg.height)
+      const dw = bg.width * scale, dh = bg.height * scale
+      ctx.drawImage(bg, (W - dw) / 2, (H - dh) / 2, dw, dh)
+    } else {
+      // 이미지 로드 전 폴백 — 배경 별
+      starsRef.current.forEach(s => {
+        ctx.fillStyle = `rgba(255,255,255,${s.a})`
+        ctx.beginPath()
+        ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2)
+        ctx.fill()
+      })
 
-    // 성운 효과
-    const neb = ctx.createRadialGradient(W * 0.5, H * 0.45, 0, W * 0.5, H * 0.45, W * 0.45)
-    neb.addColorStop(0, 'rgba(80,40,160,0.07)')
-    neb.addColorStop(1, 'rgba(10,20,60,0)')
-    ctx.fillStyle = neb
-    ctx.fillRect(0, 0, W, H)
+      // 성운 효과
+      const neb = ctx.createRadialGradient(W * 0.5, H * 0.45, 0, W * 0.5, H * 0.45, W * 0.45)
+      neb.addColorStop(0, 'rgba(80,40,160,0.07)')
+      neb.addColorStop(1, 'rgba(10,20,60,0)')
+      ctx.fillStyle = neb
+      ctx.fillRect(0, 0, W, H)
+    }
 
     // 채굴 가능(매장량 잔존)한 별계의 단색 자원 아이콘 — 글로우 없이 작게만 표시
     function pickMiningIcon(sys) {
@@ -772,7 +853,7 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
 
       // 1) 영역 — 정복 지역(내 세력): 얇은 시안 점선 + 옅은 채움 (모항은 안전지대 반경을 영역으로 사용)
       if (isConq) {
-        const r = sys.role === 'home' ? HOME_SAFE_RADIUS / 100 * W : 54
+        const r = sys.role === 'home' ? HOME_SAFE_RADIUS / 100 * W : 108
         ctx.fillStyle = 'rgba(58,214,196,0.05)'
         ctx.beginPath()
         ctx.arc(px, py, r, 0, Math.PI * 2)
@@ -788,18 +869,18 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
 
       // 2) 목표 — 점령 가능(다음 진입 목표): 골드 링 + 은은한 글로우
       if (status === 'reachable') {
-        const glow = ctx.createRadialGradient(px, py, 0, px, py, 48)
+        const glow = ctx.createRadialGradient(px, py, 0, px, py, 96)
         glow.addColorStop(0, 'rgba(255,209,102,0.14)')
         glow.addColorStop(1, 'rgba(255,209,102,0)')
         ctx.fillStyle = glow
         ctx.beginPath()
-        ctx.arc(px, py, 48, 0, Math.PI * 2)
+        ctx.arc(px, py, 96, 0, Math.PI * 2)
         ctx.fill()
 
         ctx.strokeStyle = `rgba(255,209,102,${0.5 + Math.sin(t * 1.5) * 0.15})`
         ctx.lineWidth = 2
         ctx.beginPath()
-        ctx.arc(px, py, 48, 0, Math.PI * 2)
+        ctx.arc(px, py, 96, 0, Math.PI * 2)
         ctx.stroke()
       }
 
@@ -808,31 +889,31 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
         ctx.strokeStyle = `rgba(220,38,38,${0.5 + Math.sin(t * 1.5) * 0.15})`
         ctx.lineWidth = 2.5
         ctx.beginPath()
-        ctx.arc(px, py, 58, 0, Math.PI * 2)
+        ctx.arc(px, py, 116, 0, Math.PI * 2)
         ctx.stroke()
       }
 
       // 4) 현재 위치 — 시안+골드 복합 강조 (안쪽 시안 실선 + 바깥 골드 점선 + 옅은 시안 글로우)
       if (isCurr) {
-        const glow = ctx.createRadialGradient(px, py, 0, px, py, 60)
+        const glow = ctx.createRadialGradient(px, py, 0, px, py, 120)
         glow.addColorStop(0, 'rgba(58,214,196,0.28)')
         glow.addColorStop(1, 'rgba(58,214,196,0)')
         ctx.fillStyle = glow
         ctx.beginPath()
-        ctx.arc(px, py, 60, 0, Math.PI * 2)
+        ctx.arc(px, py, 120, 0, Math.PI * 2)
         ctx.fill()
 
         ctx.strokeStyle = '#3ad6c4'
         ctx.lineWidth = 2
         ctx.beginPath()
-        ctx.arc(px, py, 42, 0, Math.PI * 2)
+        ctx.arc(px, py, 84, 0, Math.PI * 2)
         ctx.stroke()
 
         ctx.strokeStyle = 'rgba(255,209,102,0.85)'
         ctx.lineWidth = 1.5
         ctx.setLineDash([3, 4])
         ctx.beginPath()
-        ctx.arc(px, py, 50, 0, Math.PI * 2)
+        ctx.arc(px, py, 100, 0, Math.PI * 2)
         ctx.stroke()
         ctx.setLineDash([])
       }
@@ -845,17 +926,26 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
         ctx.strokeStyle = '#ffd166'
         ctx.lineWidth = 3
         ctx.beginPath()
-        ctx.arc(px, py, 64, 0, Math.PI * 2)
+        ctx.arc(px, py, 128, 0, Math.PI * 2)
         ctx.stroke()
         ctx.restore()
       }
 
-      // 노드 아이콘 — 잠긴 별계는 옅게 표시해 정보 밀도를 낮춘다
-      ctx.font = '52px Arial'
+      // 노드 아이콘 — 행성 이미지를 먼저 그리고, 잠긴 별계는 옅게 표시해 정보 밀도를 낮춘다
+      // 모항(🏠) 아이콘은 같은 폰트 크기에서도 다른 행성(🪐)보다 시각적으로 커 보이므로 축소
+      ctx.font = sys.role === 'home' ? '74px Arial' : '104px Arial'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       ctx.globalAlpha = status === 'locked' ? 0.4 : 1
       ctx.fillText(ROLE_ICON[sys.role] ?? '🪐', px, py)
+
+      // 수호 보스 — 행성 이미지 위에 중심 정렬로 오버레이 표시(미정복 시).
+      // mapBosses의 좌표가 곧 이 중심점이므로, 이 위치 = 정복 전투 발동 지점이 된다.
+      // 일반 적 아이콘(👾🛸💀)과 비슷한 크기로 표시해, 행성 자체로 오인되지 않도록 한다.
+      if (boss && sys.role !== 'boss') {
+        ctx.font = `${28 + (boss.threatLevel ?? 1) * 1.5}px Arial`
+        ctx.fillText('👹', px, py)
+      }
       ctx.globalAlpha = 1
 
       // 이름 라벨 — 현재=시안, 정복 지역=시안 계열, 목표(점령 가능)=골드, 그 외(잠김)=무채색
@@ -863,23 +953,15 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
       ctx.fillStyle = isCurr ? '#3ad6c4' : isConq ? '#7cd6e8' : status === 'reachable' ? '#ffd166' : '#777'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'top'
-      ctx.fillText(sys.name, px, py + 34)
-
-      // 수호 보스 아이콘 — 진입 가능/현재 위치에서만 표시 (잠긴 별계는 생략해 밀도 절감)
-      if (boss && sys.role !== 'boss' && status !== 'locked') {
-        ctx.font = '22px Arial'
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText('👹', px + 28, py - 28)
-      }
+      ctx.fillText(sys.name, px, py + 68)
 
       // 부가 자원/채굴지 — 작은 단색 아이콘 1개만 (글로우 없음)
       const miningIcon = pickMiningIcon(sys)
       if (miningIcon) {
-        ctx.font = '16px Arial'
+        ctx.font = '32px Arial'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        ctx.fillText(miningIcon, px - 28, py - 28)
+        ctx.fillText(miningIcon, px - 56, py - 56)
       }
 
       // ─── 상단 뷰 토글 오버레이 — '기본' 보기는 위 표시만으로 충분하므로 추가 표시 없음 ───
@@ -887,12 +969,12 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
         // 위험도 보기 — 위협 레벨을 작은 경고 배지(레드 원 + 숫자)로 표시 (외곽선 범위 표시 대신 배지 사용)
         const lv = sys.threatLevel ?? 1
         const ratio = Math.min(1, lv / 7)
-        const bx = px + 30, by = py + 30
+        const bx = px + 60, by = py + 60
         ctx.fillStyle = `rgba(220,38,38,${0.6 + ratio * 0.3})`
         ctx.beginPath()
-        ctx.arc(bx, by, 11, 0, Math.PI * 2)
+        ctx.arc(bx, by, 22, 0, Math.PI * 2)
         ctx.fill()
-        ctx.font = 'bold 11px sans-serif'
+        ctx.font = 'bold 22px sans-serif'
         ctx.fillStyle = '#fff'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
@@ -916,21 +998,21 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
             lines.push(`${RESOURCE_ICONS[sys.devMining.resource] ?? '⛏'} +${sys.devMining.yield} (잔여 ${rem})`)
           }
         }
-        ctx.font = 'bold 12px sans-serif'
+        ctx.font = 'bold 24px sans-serif'
         ctx.fillStyle = '#ffd166'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'top'
-        lines.forEach((line, i) => ctx.fillText(line, px, py + 50 + i * 16))
+        lines.forEach((line, i) => ctx.fillText(line, px, py + 100 + i * 32))
       }
 
       if (mapView === 'conquest') {
         // 점령 현황 보기 — 상태(현재/정복/진입 가능/잠김) 아이콘만 표시 (외곽선은 기본 보기에서 이미 표현됨)
         const ICONS = { current: '📍', conquered: '✅', reachable: '🚀', locked: '🔒' }
-        ctx.font = '15px sans-serif'
+        ctx.font = '30px sans-serif'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'bottom'
         ctx.fillStyle = '#fff'
-        ctx.fillText(ICONS[status] ?? '', px, py - 50)
+        ctx.fillText(ICONS[status] ?? '', px, py - 100)
       }
     })
 
@@ -1004,12 +1086,47 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
     ctx.textBaseline = 'middle'
     ctx.fillText('🚀', ppx, ppy)
 
+    // 함대 자동항행 상태 시각화
+    if (fleetMode === 'moving' && moveTarget) {
+      const tp = SYS_POS[moveTarget]
+      if (tp) {
+        const tx = tp.x / 100 * W, ty = tp.y / 100 * H
+        ctx.save()
+        ctx.strokeStyle = 'rgba(58,214,196,0.55)'
+        ctx.lineWidth = 1.5
+        ctx.setLineDash([6, 8])
+        ctx.beginPath()
+        ctx.moveTo(ppx, ppy)
+        ctx.lineTo(tx, ty)
+        ctx.stroke()
+        ctx.setLineDash([])
+        ctx.font = '22px Arial'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText('📍', tx, ty - 28)
+        ctx.restore()
+      }
+    } else if (fleetMode === 'patrolling') {
+      const cx = patrolCenterRef.current.x / 100 * W
+      const cy = patrolCenterRef.current.y / 100 * H
+      const r  = 4 / 100 * Math.min(W, H) * 1.35
+      ctx.save()
+      ctx.strokeStyle = 'rgba(255,209,102,0.45)'
+      ctx.lineWidth = 1.5
+      ctx.setLineDash([4, 6])
+      ctx.beginPath()
+      ctx.arc(cx, cy, r, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.setLineDash([])
+      ctx.restore()
+    }
+
     // 조작 안내
     ctx.font = '11px sans-serif'
     ctx.fillStyle = 'rgba(255,255,255,0.3)'
     ctx.textAlign = 'left'
     ctx.textBaseline = 'bottom'
-    ctx.fillText('방향키/WASD · 마우스 클릭으로 이동 · 👾🛸 호위 함대 접촉 시 전투 · 👹 행성(보스) 진입 시 정복전투 · 🛒🛰️ 접촉 시 이벤트 · 모항 주변은 안전지대', 8, H - 6)
+    ctx.fillText('방향키/WASD로 이동 · 👾🛸 호위 함대 접촉 시 전투 · 👹 행성(보스) 진입 시 정복전투 · 🛒🛰️ 접촉 시 이벤트 · 모항 주변은 안전지대', 8, H - 6)
   }
   // 매 렌더마다 최신 함수로 갱신 (RAF 루프는 재시작 안 함)
   drawFnRef.current = drawFrame
@@ -1063,9 +1180,8 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
   const barStatus   = barTarget ? statusOf(barTarget, { currentNodeId, conqueredNodeIds }) : null
   const fleetSummary = getFleetSummary(roster, shipsData, acesData, skillsData)
 
-  // ─── 턴 허브 "미행동 유닛 순환" 대상: 진입 가능(미정복)한 별계 중 이번 턴에 아직 행동하지 않은 것 ───
-  const actionableNodes   = systems.filter((s) => statusOf(s, { currentNodeId, conqueredNodeIds }) === 'reachable')
-  const pendingObjectives = actionableNodes.filter((s) => !actedNodeIds.has(s.id))
+  // ─── 다음 목표 순환 대상: 진입 가능(미정복)한 별계 ───
+  const actionableNodes = systems.filter((s) => statusOf(s, { currentNodeId, conqueredNodeIds }) === 'reachable')
 
   function enemyName(id) {
     return enemyById.get(id)?.name ?? bossById.get(id)?.name ?? id
@@ -1187,45 +1303,54 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
     showAlert(`🔭 ${node.name} 정찰 — ${threatTxt} · 출현 전력: ${enemyTxt}${hiddenTxt}`)
   }
 
-  // ─── 액션바 "전투 진입" — 선택한 별계의 보스/적 함대에 즉시 교전을 명령 ───
-  function handleEngageNode(node) {
-    if (battlePending) return
-    const bossHit = mapBosses.find((b) => b.nodeRef === node.id)
-    if (bossHit) {
-      if (summaryBattle) {
-        handleSummaryBattle(bossHit.nodeRef, true)
-      } else {
-        showAlert(`👹 ${node.name} 수호자에게 교전을 명령했습니다!`)
-        setBattlePending(bossHit.nodeRef)
-      }
-      return
-    }
-    const enemyHit = mapEnemies.find((e) => e.nodeRef === node.id && !e.homeGuard)
-    if (enemyHit) {
-      setMapEnemies((prev) => prev.filter((e) => e.id !== enemyHit.id))
-      if (summaryBattle) {
-        handleSummaryBattle(enemyHit.nodeRef, false)
-      } else {
-        showAlert('⚔️ 적 함대에 교전을 명령했습니다!')
-        setBattlePending(enemyHit.nodeRef)
-      }
+  // ─── 자동 이동 — 선택한 별계를 목적지로 설정, 함대가 자동 항해 ───
+  function handleAutoMoveTo(node) {
+    setMoveTarget(node.id)
+    setFleetMode('moving')
+    setSelectedId(null)
+    showAlert(`🚀 ${node.name}(으)로 자동 항해를 시작합니다.`)
+  }
+
+  // ─── 정찰 — 현재 위치 중심으로 궤도 순찰 토글 ───
+  function handlePatrol() {
+    if (fleetMode === 'patrolling') {
+      setFleetMode('manual')
+      showAlert('🛑 정찰 모드 해제')
+    } else {
+      patrolCenterRef.current = { ...playerPos }
+      patrolAngleRef.current = 0
+      setFleetMode('patrolling')
+      setMoveTarget(null)
+      showAlert('🔄 정찰 모드 — 현 위치 궤도 순찰 시작')
     }
   }
 
-  // ─── 액션바 버튼 클릭 시 해당 별계를 "이번 턴 행동 완료"로 표시 (턴 허브 순환에서 제외) ───
-  function markActed(nodeId) {
-    setActedNodeIds((prev) => (prev.has(nodeId) ? prev : new Set(prev).add(nodeId)))
+  // ─── 정박 — 가장 가까운 정복·모항 행성으로 자동 이동 ───
+  function handleDock() {
+    const dockable = systems.filter(s => s.id === currentNodeId || conqueredNodeIds.includes(s.id))
+    if (!dockable.length) { showAlert('정박 가능한 아군 행성이 없습니다.'); return }
+    let nearest = null, nearestD = Infinity
+    for (const s of dockable) {
+      const p = SYS_POS[s.id]
+      if (!p) continue
+      const d = Math.hypot(p.x - playerPos.x, p.y - playerPos.y)
+      if (d < nearestD) { nearestD = d; nearest = s }
+    }
+    if (!nearest) return
+    setMoveTarget(nearest.id)
+    setFleetMode('moving')
+    setSelectedId(null)
+    showAlert(`⚓ ${nearest.name}(으)로 정박 항해를 시작합니다.`)
   }
 
-  // ─── 턴 허브 "다음 목표" — 이번 턴에 아직 행동하지 않은 진입 가능 별계를 순서대로 선택 ───
+  // ─── 다음 목표 — 진입 가능 별계를 순서대로 선택 ───
   function handleCycleObjective() {
-    const pool = pendingObjectives.length ? pendingObjectives : actionableNodes
-    if (!pool.length) {
+    if (!actionableNodes.length) {
       showAlert('🧭 진입 가능한 목표 별계가 없습니다.')
       return
     }
-    const curIdx = pool.findIndex((s) => s.id === selectedId)
-    const next = pool[(curIdx + 1) % pool.length]
+    const curIdx = actionableNodes.findIndex((s) => s.id === selectedId)
+    const next = actionableNodes[(curIdx + 1) % actionableNodes.length]
     setSelectedId(next.id)
   }
 
@@ -1245,13 +1370,6 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
     showAlert(`📡 감지된 이벤트 ${mapEvents.length}건 — 가장 가까운 신호: ${MAP_EVENT_ICON[nearest.type]} ${label} (${dir}쪽)`)
   }
 
-  // ─── 턴 허브 "턴 종료" — 이번 턴의 행동 기록을 초기화하고 다음 턴을 시작 (단축키: Space) ───
-  function handleEndTurn() {
-    if (eventModal || battlePending) return
-    setActedNodeIds(new Set())
-    showAlert('🔄 턴 종료 — 새로운 턴이 시작됩니다.')
-  }
-
   // ─── 요약전투: 맵 위에서 즉시 결과 산출 ───
   // isConquest=true: 별계 진입 전투(노드 정복), false: 순찰대 조우(정복 없음)
   function handleSummaryBattle(nodeId, isConquest) {
@@ -1261,8 +1379,9 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
     const shipMap = new Map((shipsData ?? []).map(s => [s.id, s]))
 
     // 위협 레벨 스케일링 — base형 적에게 적용 (encounter.js와 동일 공식)
+    // threat1=0.70x (초보존, 플레이어보다 약함) → threat3=1.10x → threat7=1.90x
     const threatLevel = node?.threatLevel ?? 1
-    const threatScale = threatLevel > 1 ? 1 + (threatLevel - 1) * 0.3 : 1
+    const threatScale = 0.7 + (threatLevel - 1) * 0.2
 
     // 해당 노드의 적 전력 수집 — base형(void_scout 등) 도 정상 해결
     const enemyStatsList = []
@@ -1477,6 +1596,24 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
               <span className="map-view-tab-label">{v.label}</span>
             </button>
           ))}
+          <button
+            className="map-view-tab map-view-tab--action"
+            onClick={handleCycleObjective}
+            title="미확인 진입 가능 별계를 순서대로 선택합니다"
+          >
+            <span className="map-view-tab-icon">🧭</span>
+            <span className="map-view-tab-label">다음 목표</span>
+            {actionableNodes.length > 0 && <span className="map-view-tab-badge">{actionableNodes.length}</span>}
+          </button>
+          <button
+            className="map-view-tab map-view-tab--action"
+            onClick={handleCheckEvents}
+            title="맵 위 미확인 이벤트(상인/표류 함선)를 알려줍니다"
+          >
+            <span className="map-view-tab-icon">📡</span>
+            <span className="map-view-tab-label">이벤트 확인</span>
+            {mapEvents.length > 0 && <span className="map-view-tab-badge">{mapEvents.length}</span>}
+          </button>
         </div>
         {mapView !== 'default' && (
           <div className="map-view-caption">{MAP_VIEWS.find((v) => v.id === mapView)?.caption}</div>
@@ -1512,13 +1649,9 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
 
         {/* 클릭(또는 근접) 선택 시: 하단 컨텍스트 액션바 — 선택 해제 시 사라짐 */}
         {barTarget && (() => {
-          const enemyHere = mapEnemies.some((e) => e.nodeRef === barTarget.id && !e.homeGuard)
-          const bossHere  = mapBosses.some((b) => b.nodeRef === barTarget.id)
-          const canMove    = barStatus === 'conquered' || (barStatus === 'reachable' && barTarget.role === 'home')
-          const canDock    = barStatus === 'current'
-          const canScout   = barStatus !== 'current'
-          const canConquer = barStatus === 'reachable' && barTarget.role !== 'home'
-          const canEngage  = enemyHere || bossHere
+          const canMove      = barStatus !== 'current'
+          const isMovingHere = fleetMode === 'moving' && moveTarget === barTarget.id
+          const isPatrolling = fleetMode === 'patrolling'
 
           return (
             <div className="map-actionbar">
@@ -1549,38 +1682,26 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
               </div>
 
               <div className="map-actionbar-actions">
-                <button className="act" disabled={!canMove} onClick={() => { handleMoveTo(barTarget); markActed(barTarget.id) }}>이동</button>
-                <button className="act" disabled={!canDock} onClick={() => { handleMoveTo(barTarget); markActed(barTarget.id) }}>정박</button>
-                <button className="act" disabled={!canScout} onClick={() => { handleScout(barTarget); markActed(barTarget.id) }}>정찰</button>
-                <button className="act" disabled={!canConquer} onClick={() => { handleEnterNode(barTarget); markActed(barTarget.id) }}>점령</button>
-                <button className="act" disabled={!canEngage} onClick={() => { handleEngageNode(barTarget); markActed(barTarget.id) }}>전투 진입</button>
+                <button className="act" disabled={!canMove} onClick={() => handleAutoMoveTo(barTarget)}>
+                  {isMovingHere ? '항해 중...' : '이동'}
+                </button>
+                <button className="act" onClick={handlePatrol}>
+                  {isPatrolling ? '정찰 중...' : '정찰'}
+                </button>
+                <button className="act" onClick={handleDock}>정박</button>
               </div>
             </div>
           )
         })()}
 
-        {/* 우하단 턴 컨트롤 허브 (Endless Space 2 스타일) — 보조 버튼 위, 턴 종료 버튼은 가장 아래 고정 */}
-        <div className="turn-hub">
-          <div className="turn-hub-aux">
-            <button className="turn-hub-btn" onClick={handleCycleObjective} title="미행동 유닛 순환 — 이번 턴에 아직 처리하지 않은 진입 가능 별계로 선택을 이동합니다">
-              <span>🧭 다음 목표</span>
-              {pendingObjectives.length > 0 && <span className="turn-hub-badge">{pendingObjectives.length}</span>}
-            </button>
-            <button className="turn-hub-btn" onClick={handleCheckEvents} title="이벤트 확인 — 맵 위 미확인 이벤트(상인/표류 함선)를 알려줍니다">
-              <span>📡 이벤트 확인</span>
-              {mapEvents.length > 0 && <span className="turn-hub-badge">{mapEvents.length}</span>}
-            </button>
-            <button
-              className={`turn-hub-btn${summaryBattle ? ' turn-hub-btn--on' : ''}`}
-              onClick={() => useSettingsStore.getState().setSummaryBattle(!summaryBattle)}
-              title="자동전투 — 켜면 전투 진입 시 전술전투 대신 결과를 즉시 산출합니다"
-            >
-              <span>⚡ 자동전투 {summaryBattle ? 'ON' : 'OFF'}</span>
-            </button>
-          </div>
-          <button className="turn-hub-end" onClick={handleEndTurn} title="턴 종료 (단축키: Space)">
-            <span className="turn-hub-end-label">턴 종료</span>
-            <span className="turn-hub-end-key">[ SPACE ]</span>
+        {/* 자동전투 토글 — 우하단 작게 유지 */}
+        <div style={{ position: 'absolute', bottom: 14, right: 14 }}>
+          <button
+            className={`turn-hub-btn${summaryBattle ? ' turn-hub-btn--on' : ''}`}
+            onClick={() => useSettingsStore.getState().setSummaryBattle(!summaryBattle)}
+            title="자동전투 — 켜면 전투 진입 시 전술전투 대신 결과를 즉시 산출합니다"
+          >
+            <span>⚡ 자동전투 {summaryBattle ? 'ON' : 'OFF'}</span>
           </button>
         </div>
       </div>

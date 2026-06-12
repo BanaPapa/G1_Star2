@@ -676,6 +676,31 @@
   font-weight: 600;
 }
 
+/* 액션 탭 — 다음 목표 / 이벤트 확인 (뷰 탭과 같은 줄, 골드 계열) */
+.map-view-tab--action {
+  color: #ffd166;
+  border-color: rgba(255, 209, 102, 0.3);
+}
+.map-view-tab--action:hover {
+  border-color: rgba(255, 209, 102, 0.6);
+  background: rgba(255, 209, 102, 0.08);
+}
+.map-view-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  margin-left: 4px;
+  border-radius: 8px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 /* 활성 뷰 설명 — 토글 바로 아래에 한 줄로만 표시 (가벼운 안내) */
 .map-view-caption {
   position: absolute;

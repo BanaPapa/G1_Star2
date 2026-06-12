@@ -1,9 +1,7 @@
 // 전투 판정 순수함수 — 수치는 ships.json의 combatRules를 그대로 전달받아 사용한다(하드코딩 금지).
 //
-// 명중 판정: hitChance = 공격자 ACC − (방어자 EVA + 지형 보정) + 부스터 보정
-//   지형 보정은 dev_plan_guide.md의 설계("엄폐 시 방어 EVA +20 / 완전 노출 시 −20")를 그대로 따른다.
-//   combatRules.terrainMod의 cover/exposed 값을 방어자의 "유효 EVA"에 가감하는 방식으로 해석한다
-//   (JSON에 적힌 값(20 / -20)이 그 EVA 보정폭과 정확히 일치한다).
+// 명중 판정: hitChance = 공격자 ACC + terrainAccMod − (방어자 EVA + terrainEvaMod) + 부스터 보정
+//   terrainEvaMod/terrainAccMod 는 terrain.js의 각 지형 타입에서 직접 전달받는다.
 // 데미지: combatRules.damageFormula 그대로 max(1, ATK − DEF) × 상성 배율(counterMultiplier).
 
 const titleCase = (id) => id.charAt(0).toUpperCase() + id.slice(1)
@@ -22,7 +20,8 @@ export function lookupCounterMultiplier(table, attackerId, defenderId) {
  * @param {object} input
  * @param {{id:string, acc:number, atk:number}} input.attacker
  * @param {{id:string, eva:number, def:number, hp:number}} input.defender - hp는 현재 HP
- * @param {boolean} input.defenderCovered - 방어자가 엄폐 지형 위에 있는지
+ * @param {number} [input.terrainEvaMod] - 방어자 위치 지형의 EVA 보정 (terrain.js evaMod)
+ * @param {number} [input.terrainAccMod] - 공격자 조준 지형의 ACC 보정 (terrain.js accMod, 음수=불리)
  * @param {boolean} [input.boosterActive] - 공격자가 부스터를 가동 중인지
  * @param {boolean} [input.forceHit] - true면 명중 판정을 건너뛰고 항상 명중시킨다
  *   (skills.json의 필살기 effect.unavoidable="회피불가 확정 대미지" 등 — 데이터가 명시한 경우에만 사용)
@@ -34,13 +33,12 @@ export function lookupCounterMultiplier(table, attackerId, defenderId) {
  * @returns {{hit:boolean, hitChance:number, damage:number, lethal:boolean}}
  */
 export function resolveAttack(
-  { attacker, defender, defenderCovered, boosterActive, forceHit = false, damageMultiplier = 1, rng = Math.random },
+  { attacker, defender, terrainEvaMod = 0, terrainAccMod = 0, boosterActive, forceHit = false, damageMultiplier = 1, rng = Math.random },
   rules,
 ) {
-  const terrainEvaMod = rules.terrainMod[defenderCovered ? 'cover' : 'exposed'] ?? 0
   const boosterAccMod = boosterActive ? (rules.boosterMod.acc ?? 0) : 0
 
-  const hitChance = attacker.acc - (defender.eva + terrainEvaMod) + boosterAccMod
+  const hitChance = attacker.acc + terrainAccMod - (defender.eva + terrainEvaMod) + boosterAccMod
   const hit = forceHit || rng() * 100 < hitChance
 
   if (!hit) {

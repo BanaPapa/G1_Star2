@@ -19,20 +19,47 @@ const COLS = 12
 const ROWS = 10
 let CELL = 80
 
-// 지형 샘플 배치 (MOD-1 프로토타입 — 빈 공간/소행성/잔해 표시 확인용)
-const ASTEROID_CELLS = [
-  [5, 2], [6, 2], [5, 3],
-  [8, 6], [8, 7], [9, 7],
-]
-const DEBRIS_CELLS = [
-  [3, 6], [4, 6], [4, 7],
-  [7, 2], [7, 3],
-]
+// 지형 배치 — 각 지형 타입별 [x, y] 좌표 목록
+const ASTEROID_CELLS      = [[5,2],[6,2],[5,3],[8,6],[8,7],[9,7]]
+const DEBRIS_CELLS        = [[3,6],[4,6],[4,7],[7,2],[7,3]]
+const NEBULA_CELLS        = [[2,4],[3,4]]
+const ASTEROID_FIELD_CELLS= [[6,5],[7,5]]
+const MINEFIELD_CELLS     = [[9,2],[10,3]]
+const PLASMA_STORM_CELLS  = [[4,8],[5,8]]
 
-function buildTerrainLayout() {
+function buildTerrainLayout(threatLevel = 1) {
   const layout = Array.from({ length: ROWS }, () => new Array(COLS).fill('empty'))
-  for (const [x, y] of ASTEROID_CELLS) layout[y][x] = 'asteroid'
-  for (const [x, y] of DEBRIS_CELLS) layout[y][x] = 'debris'
+
+  // 위협1-2: 평지 — 소행성 2칸만 (입문, 전략 부담 최소)
+  if (threatLevel <= 2) {
+    for (const [x, y] of [[5,4],[5,5]]) layout[y][x] = 'asteroid'
+    return layout
+  }
+
+  // 위협3-4: 가벼운 지형 — 소행성 + 잔해 + 성운
+  if (threatLevel <= 4) {
+    for (const [x, y] of [[5,2],[6,2],[8,6]]) layout[y][x] = 'asteroid'
+    for (const [x, y] of [[3,6],[4,6]])        layout[y][x] = 'debris'
+    for (const [x, y] of [[2,4],[3,4]])        layout[y][x] = 'nebula'
+    return layout
+  }
+
+  // 위협5-6: 중간 지형 — 소행성 + 잔해 + 성운 + 소행성대
+  if (threatLevel <= 6) {
+    for (const [x, y] of ASTEROID_CELLS)       layout[y][x] = 'asteroid'
+    for (const [x, y] of DEBRIS_CELLS)         layout[y][x] = 'debris'
+    for (const [x, y] of NEBULA_CELLS)         layout[y][x] = 'nebula'
+    for (const [x, y] of ASTEROID_FIELD_CELLS) layout[y][x] = 'asteroid_field'
+    return layout
+  }
+
+  // 위협7+: 풀 지형 — 지뢰밭·플라즈마 폭풍까지 포함
+  for (const [x, y] of ASTEROID_CELLS)       layout[y][x] = 'asteroid'
+  for (const [x, y] of DEBRIS_CELLS)         layout[y][x] = 'debris'
+  for (const [x, y] of NEBULA_CELLS)         layout[y][x] = 'nebula'
+  for (const [x, y] of ASTEROID_FIELD_CELLS) layout[y][x] = 'asteroid_field'
+  for (const [x, y] of MINEFIELD_CELLS)      layout[y][x] = 'minefield'
+  for (const [x, y] of PLASMA_STORM_CELLS)   layout[y][x] = 'plasma_storm'
   return layout
 }
 
@@ -112,7 +139,7 @@ export default class BattleScene extends Phaser.Scene {
     this.onExit = onExit ?? null
     this.onEnding = onEnding ?? null
     this.onGameOver = onGameOver ?? null
-    this.terrain = buildTerrainLayout()
+    this.terrain = buildTerrainLayout(node?.threatLevel ?? 1)
     this.units = []
     this.selected = null
     this.highlighted = new Set()
@@ -121,7 +148,7 @@ export default class BattleScene extends Phaser.Scene {
     this.phase = 'player' // 'player' | 'enemy'
     this.pendingAbility = null // { unit, skill, presenter } — 필살기 조준 대기 상태
     this.cutinEnabled = useSettingsStore.getState().cutinEnabled // 설정에서 초기값 읽기(MOD-12)
-    this.autoBattle = false // ON 시 플레이어 페이즈에서 아군도 적 AI와 동일한 휴리스틱으로 자동 행동(테스트 편의용 QoL)
+    this.autoBattle = useBattleStore.getState().autoBattle
 
     // MOD-5: 아군은 useFleetStore의 로스터(레벨·성장치·전직 여부 보유)를 그대로 가져와 생성한다 —
     // 전투 사이에도 성장이 영구 보존되며, 승리 시 이 스토어에 XP를 돌려준다.
@@ -186,36 +213,17 @@ export default class BattleScene extends Phaser.Scene {
     })
     this.refreshCutinToggleLabel()
 
-    this.autoBattleBg = this.add
-      .rectangle(this.scale.width - 14, 56, 295, 26, 0x1a1608, 0.94)
-      .setOrigin(1, 0)
-      .setDepth(20)
-      .setInteractive({ useHandCursor: true })
-
-    this.autoBattleToggleText = this.add
-      .text(this.scale.width - 22, 59, '', {
-        fontFamily: 'Share Tech Mono, monospace',
-        fontSize: '14px',
-        fontStyle: 'bold',
-        color: '#ffd166',
-      })
-      .setOrigin(1, 0)
-      .setDepth(21)
-      .setInteractive({ useHandCursor: true })
-
-    const _doToggleAuto = (_pointer, _lx, _ly, event) => {
-      event?.stopPropagation()
-      this.autoBattle = !this.autoBattle
-      this.refreshAutoBattleToggleLabel()
-      if (this.autoBattle && this.phase === 'player' && !this.busy && !this.battleEnded) {
+    // 자동전투 토글은 React UI(BattleScreen)에서 관리 — 스토어 변경을 구독해 this.autoBattle 동기화
+    this._unsubAutoBattle = useBattleStore.subscribe((state) => {
+      const v = state.autoBattle
+      if (v === this.autoBattle) return
+      this.autoBattle = v
+      if (v && this.phase === 'player' && !this.busy && !this.battleEnded) {
         this.pendingAbility = null
         this.clearSelection()
         this.time.delayedCall(this.actionDelay, () => this.runAllyAutoTurn(0))
       }
-    }
-    this.autoBattleToggleText.on('pointerdown', _doToggleAuto)
-    this.autoBattleBg.on('pointerdown', _doToggleAuto)
-    this.refreshAutoBattleToggleLabel()
+    })
 
     this.cutinManager = new CutinManager(this)
 
@@ -240,24 +248,6 @@ export default class BattleScene extends Phaser.Scene {
     )
   }
 
-  refreshAutoBattleToggleLabel() {
-    if (this.autoBattle) {
-      this.autoBattleToggleText?.setColor('#7dffb0')
-      this.autoBattleToggleText?.setText('🤖 자동전투 ON — 클릭 시 끄기')
-      if (this.autoBattleBg) {
-        this.autoBattleBg.setFillStyle(0x082212, 0.95)
-        this.autoBattleBg.setStrokeStyle(2, 0x7dffb0, 0.8)
-      }
-    } else {
-      this.autoBattleToggleText?.setColor('#ffd166')
-      this.autoBattleToggleText?.setText('🤖 자동전투 OFF ← 클릭해서 켜기')
-      if (this.autoBattleBg) {
-        this.autoBattleBg.setFillStyle(0x1a1608, 0.94)
-        this.autoBattleBg.setStrokeStyle(2, 0xffd166, 0.7)
-      }
-    }
-  }
-
   // ----- 좌표 변환 -----
   cellToWorld(x, y) {
     return {
@@ -276,6 +266,20 @@ export default class BattleScene extends Phaser.Scene {
     rect.setData('baseColor', terrain.color)
     rect.setInteractive({ useHandCursor: true })
     rect.on('pointerdown', () => this.handleCellClick(x, y))
+
+    // 지형 호버 — 빈 공간이 아닌 칸 위에 마우스를 올리면 HUD에 특성 표시
+    if (terrain.id !== 'empty') {
+      rect.on('pointerover', () => {
+        if (!this.selected && !this.pendingAbility && !this.busy) {
+          this.hudText.setText(`[지형] ${terrain.label}  —  ${terrain.desc}`)
+        }
+      })
+      rect.on('pointerout', () => {
+        if (!this.selected && !this.pendingAbility && !this.busy) {
+          this.refreshHud()
+        }
+      })
+    }
 
     if (terrain.glyph) {
       this.add.text(px, py, terrain.glyph, { fontSize: '28px' }).setOrigin(0.5).setAlpha(0.85)
@@ -669,11 +673,13 @@ export default class BattleScene extends Phaser.Scene {
     for (const target of targets) {
       if (!this.units.includes(target)) continue
 
+      const defTerrainF = getTerrain(this.terrain[target.gridY][target.gridX])
       const result = resolveAttack(
         {
           attacker: { id: unit.ship.id, acc: unit.ship.acc, atk: unit.ship.atk },
           defender: { id: target.ship.id, eva: target.ship.eva, def: target.ship.def, hp: target.hp },
-          defenderCovered: getTerrain(this.terrain[target.gridY][target.gridX]).cover,
+          terrainEvaMod: defTerrainF.evaMod,
+          terrainAccMod: defTerrainF.accMod,
           boosterActive: false,
           forceHit: !!effect.unavoidable,
           damageMultiplier: effect.damageMultiplier ?? 1,
@@ -716,6 +722,29 @@ export default class BattleScene extends Phaser.Scene {
     this.updateHpBar(unit)
     this.refreshUnitStatusLabel(unit)
     return toHp
+  }
+
+  // 진입 피해 — 지형의 entryDamage(%)만큼 HP를 깎는다. 지형 단독으로는 격파되지 않는다.
+  applyEntryDamage(unit, terrain) {
+    if (!terrain.entryDamage) return
+    const dmg = Math.max(1, Math.floor(unit.maxHp * terrain.entryDamage / 100))
+    unit.hp = Math.max(1, unit.hp - dmg)
+    this.updateHpBar(unit)
+    this.showFloatingText(unit, `-${dmg} (지형)`, '#ff9966')
+    this.syncUnitsToStore()
+  }
+
+  // 주기 피해 — 플레이어 턴 시작 시 periodicDamage(%)가 있는 지형 위의 모든 유닛에게 적용.
+  applyPeriodicTerrainDamage() {
+    for (const unit of [...this.units]) {
+      const terrain = getTerrain(this.terrain[unit.gridY][unit.gridX])
+      if (!terrain.periodicDamage) continue
+      const dmg = Math.max(1, Math.floor(unit.maxHp * terrain.periodicDamage / 100))
+      unit.hp = Math.max(1, unit.hp - dmg)
+      this.updateHpBar(unit)
+      this.showFloatingText(unit, `-${dmg} (폭풍)`, '#cc66ff')
+    }
+    this.syncUnitsToStore()
   }
 
   // ----- 이동 -----
@@ -762,7 +791,9 @@ export default class BattleScene extends Phaser.Scene {
     this.animateUnitAlongPath(unit, path, () => {
       unit.gridX = targetX
       unit.gridY = targetY
-      this.spendAp(unit, 1)
+      const destTerrain = getTerrain(this.terrain[targetY][targetX])
+      this.spendAp(unit, 1 + (destTerrain.movCost ?? 0))
+      this.applyEntryDamage(unit, destTerrain)
       this.busy = false
       this.refreshHud()
     })
@@ -771,12 +802,25 @@ export default class BattleScene extends Phaser.Scene {
   // ----- 전투 -----
   // onComplete: 연출까지 끝난 뒤 호출(적 AI가 다음 행동으로 이어갈 때 사용). 공격은 명중 여부와 무관하게 AP 1을 소모한다.
   resolveCombat(attacker, defender, onComplete) {
+    const defTerrain = getTerrain(this.terrain[defender.gridY][defender.gridX])
+
+    // 측면 공격 보너스 — y좌표 차이 2 이상이면 +25% (포위·측면 기동의 가치를 직접적으로 반영)
+    const dy = Math.abs(attacker.gridY - defender.gridY)
+    const isFlank = dy >= 2
+    const flankMult = isFlank ? 1.25 : 1.0
+
+    // 크리티컬 판정 — 15% 확률로 1.8× 데미지
+    const isCrit = Math.random() < 0.15
+    const critMult = isCrit ? 1.8 : 1.0
+
     const result = resolveAttack(
       {
         attacker: { id: attacker.ship.id, acc: attacker.ship.acc, atk: attacker.ship.atk },
         defender: { id: defender.ship.id, eva: defender.ship.eva, def: defender.ship.def, hp: defender.hp },
-        defenderCovered: getTerrain(this.terrain[defender.gridY][defender.gridX]).cover,
+        terrainEvaMod: defTerrain.evaMod,
+        terrainAccMod: defTerrain.accMod,
         boosterActive: false,
+        damageMultiplier: flankMult * critMult,
       },
       this.combatRules,
     )
@@ -800,19 +844,34 @@ export default class BattleScene extends Phaser.Scene {
     defender.hp = Math.max(0, defender.hp - result.damage)
     this.updateHpBar(defender)
 
-    this.showFloatingText(defender, `-${result.damage}`, DAMAGE_TEXT_COLOR, () => {
-      if (result.lethal) this.destroyUnit(defender)
-      else this.checkBossPhaseTransition(defender)
+    const hitColor  = isCrit ? '#ff6b35' : DAMAGE_TEXT_COLOR
+    const hitLabel  = isCrit ? `💥${result.damage}!` : `-${result.damage}`
+    const bonusTxt  = [isFlank ? '측면' : null, isCrit ? '크리티컬!' : null].filter(Boolean).join(' · ')
+    const bonusPart = bonusTxt ? ` [${bonusTxt}]` : ''
+
+    this.showFloatingText(defender, hitLabel, hitColor, () => {
+      if (result.lethal) {
+        this.destroyUnit(defender)
+        // 킬 시 AP +1 반환 (아군만) — 추격·연속 제거의 손맛
+        if (attacker.side === 'ally' && attacker.ap < attacker.maxAp) {
+          attacker.ap = Math.min(attacker.maxAp, attacker.ap + 1)
+          this.showFloatingText(attacker, '⚡ AP+1', HEAL_TEXT_COLOR)
+          this.refreshUnitStatusLabel(attacker)
+          this.updateUnitAvailability(attacker)
+        }
+      } else {
+        this.checkBossPhaseTransition(defender)
+      }
       finish()
     })
 
     if (result.lethal) {
       this.refreshHud(
-        `${attacker.ship.name} → ${defender.ship.name} : 명중! ${result.damage} 데미지로 격파! (명중률 ${chancePct}%)`,
+        `${attacker.ship.name} → ${defender.ship.name} : 명중! ${result.damage} 데미지로 격파!${bonusPart} (명중률 ${chancePct}%)`,
       )
     } else {
       this.refreshHud(
-        `${attacker.ship.name} → ${defender.ship.name} : 명중! ${result.damage} 데미지 (남은 HP ${defender.hp}/${defender.maxHp}, 명중률 ${chancePct}%)`,
+        `${attacker.ship.name} → ${defender.ship.name} : 명중! ${result.damage} 데미지${bonusPart} (남은 HP ${defender.hp}/${defender.maxHp}, 명중률 ${chancePct}%)`,
       )
     }
   }
@@ -1054,11 +1113,10 @@ export default class BattleScene extends Phaser.Scene {
 
   // 전투 종료 후 선택지 — "맵으로 복귀"는 노드 기반 전투(MOD-6)일 때만 보여준다(자유 전투 호환).
   buildEndActions() {
-    const actions = [{ label: '🔁 같은 전투 다시 시작 (함대 성장은 유지됩니다)', onClick: () => this.scene.restart(this.initArgs) }]
     if (this.node && this.onExit) {
-      actions.unshift({ label: '🌌 성단 맵으로 복귀', onClick: () => this.onExit() })
+      return [{ label: '🌌 성단 맵으로 복귀', onClick: () => this.onExit() }]
     }
-    return actions
+    return []
   }
 
   // 풀스크린 결과 배너 + 선택지 버튼들(위에서부터 쌓임). MOD-6: 맵 복귀/재도전 중 골라 다음 행동을 잇는다.
@@ -1152,31 +1210,53 @@ export default class BattleScene extends Phaser.Scene {
     unit.container.setAlpha(unit.ap > 0 ? 1 : ACTED_ALPHA)
   }
 
-  // ----- 배틀 스토어 동기화 (React 서브네비 패널용) -----
+  // ----- 배틀 스토어 동기화 (React 사이드패널용) -----
   syncUnitsToStore() {
     useBattleStore.getState().setUnits(
       this.units.map(u => ({
-        id: u.instanceId ?? `${u.side}_${u.ship.name}`,
-        side: u.side,
-        name: u.ship.name,
-        sprite: getEmojiFallback(u.ship.sprite),
-        hp: u.hp,
-        maxHp: u.maxHp,
-        ap: u.ap,
-        maxAp: u.maxAp,
-        tp: u.tp,
-        level: u.ship.level ?? 1,
-        aceName: u.ace?.name ?? null,
-        dead: u.hp <= 0,
+        id:         u.instanceId ?? `${u.side}_${u.ship.name}`,
+        instanceId: u.instanceId ?? null,
+        side:       u.side,
+        name:       u.ship.name,
+        sprite:     getEmojiFallback(u.ship.sprite),
+        hp:         u.hp,
+        maxHp:      u.maxHp,
+        ap:         u.ap,
+        maxAp:      u.maxAp,
+        tp:         u.tp,
+        level:      u.ship.level ?? 1,
+        aceName:    u.ace?.name ?? null,
+        dead:       u.hp <= 0,
+        mov:        u.ship.mov ?? 3,
+        atk:        u.ship.atk ?? 1,
       }))
     )
+  }
+
+  // 맵으로 즉시 복귀 — 도주/협상 성공 시 React에서 호출
+  executeFlee() {
+    if (this.battleEnded) return
+    this.battleEnded = true
+    this.busy = true
+    this.clearSelection()
+    this.actionChips?.forEach((chip) => chip.destroy())
+    this.actionChips = []
+    this.refreshHud('철수합니다...')
+    this.time.delayedCall(600, () => this.onExit?.())
+  }
+
+  // ----- 씬 정리 -----
+  shutdown() {
+    this._unsubAutoBattle?.()
   }
 
   // ----- 턴 순환: 플레이어 페이즈 ↔ 적 페이즈 -----
   startPlayerPhase() {
     this.phase = 'player'
+    useBattleStore.getState().setPlayerPhase(true)
     this.allyQueue = this.units.filter((u) => u.side === 'ally')
     for (const unit of this.allyQueue) this.refillAp(unit)
+    if (this.turnNumber > 1) this.applyPeriodicTerrainDamage()
     this.refreshHud()
     this.syncUnitsToStore()
 
@@ -1195,6 +1275,7 @@ export default class BattleScene extends Phaser.Scene {
 
   startEnemyPhase() {
     this.phase = 'enemy'
+    useBattleStore.getState().setPlayerPhase(false)
     this.clearSelection()
     this.enemyQueue = this.units.filter((u) => u.side === 'enemy')
     for (const unit of this.enemyQueue) this.refillAp(unit)
@@ -1291,7 +1372,9 @@ export default class BattleScene extends Phaser.Scene {
     this.animateUnitAlongPath(unit, path, () => {
       unit.gridX = targetX
       unit.gridY = targetY
-      this.spendAp(unit, 1)
+      const destTerrain = getTerrain(this.terrain[targetY][targetX])
+      this.spendAp(unit, 1 + (destTerrain.movCost ?? 0))
+      this.applyEntryDamage(unit, destTerrain)
       this.busy = false
       onDone()
     })

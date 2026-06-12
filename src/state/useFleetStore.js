@@ -53,6 +53,10 @@ export const useFleetStore = create((set, get) => ({
   roster: STARTING_ROSTER.map(freshEntry),
   ownedItems: {}, // { itemId: count } — 구매·조합으로 늘어나는 보유 수량(MOD-7)
 
+  removeFromRoster: (instanceId) => {
+    set((state) => ({ roster: state.roster.filter((e) => e.instanceId !== instanceId) }))
+  },
+
   // 전투 승리 보상 — instanceId 유닛에 XP를 가산하고 필요한 만큼 레벨업까지 처리한다.
   // 반환값: { levelsGained, level, xpGained } — 호출자(BattleScene)가 결과 메시지를 만들 때 사용.
   gainXp: (instanceId, amount) => {

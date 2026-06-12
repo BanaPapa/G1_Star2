@@ -5,12 +5,13 @@
 
 const STAT_KEYS = ['hp', 'atk', 'def', 'acc', 'eva', 'mov', 'rng', 'ap']
 const DEFAULT_TP_PER_TURN = 1 // enemies.json의 unique/boss 항목엔 tpPerTurn이 없다 — 표시용 기본치
-const THREAT_SCALE_PER_TIER = 0.3 // 위협 레벨 1당 스탯 30% 증가 (tier1=1.0x, tier6=2.5x)
+const THREAT_SCALE_PER_TIER = 0.2 // 위협 레벨 1당 스탯 20% 증가
+// 스케일 기준점: threat1=0.70x (플레이어보다 약함) → threat3=1.10x → threat7=1.90x
+const THREAT_BASE = 0.7
 
 // enemies.json 한 항목을 스폰 가능한 "함선 데이터" 형태로 합성한다.
-// base 참조형(예: void_scout → scout)은 ships.json 베이스 능력치를 그대로 쓰고,
-// stats 명시형(unique/miniboss/boss)은 그 stats를 그대로 쓴다 — 이름·스프라이트만 적 고유로 교체.
-// base형 적만 threatLevel 스케일링 적용 — 고유 stats형(unique/boss)은 이미 수동 조정된 값.
+// base 참조형은 ships.json 스탯을 threatLevel 스케일로 조정해 사용.
+// stats 명시형(unique/boss)은 그 stats를 그대로 씀 — 이름·스프라이트만 적 고유로 교체.
 function resolveEnemyShip(enemyDef, shipsById, threatLevel = 1) {
   const base = enemyDef.base ? shipsById.get(enemyDef.base) : null
   const source = base ?? enemyDef.stats
@@ -20,11 +21,13 @@ function resolveEnemyShip(enemyDef, shipsById, threatLevel = 1) {
   for (const key of STAT_KEYS) stats[key] = source[key]
   stats.tpPerTurn = source.tpPerTurn ?? DEFAULT_TP_PER_TURN
 
-  if (base && threatLevel > 1) {
-    const m = 1 + (threatLevel - 1) * THREAT_SCALE_PER_TIER
-    stats.hp = Math.round(stats.hp * m)
+  if (base) {
+    const m = THREAT_BASE + (threatLevel - 1) * THREAT_SCALE_PER_TIER
+    stats.hp  = Math.round(stats.hp  * m)
     stats.atk = Math.round(stats.atk * m)
-    stats.def = Math.round(stats.def * m)
+    // DEF는 스케일하지 않음 — 플레이어 ATK 성장으로 극복하는 구조.
+    // EVA는 기본치의 30%로 고정 — 적이 지나치게 회피해 전투가 늘어지는 것 방지.
+    stats.eva = Math.round(stats.eva * 0.3)
   }
 
   return { ...stats, id: enemyDef.id, name: enemyDef.name, sprite: enemyDef.sprite }

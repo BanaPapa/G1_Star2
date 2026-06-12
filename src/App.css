@@ -121,6 +121,7 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
+  position: relative;
 }
 
 .battle-screen {
@@ -132,10 +133,10 @@
   min-width: 0;
 }
 
-/* ── 전투 서브네비 (아군/적 정보) ── */
+/* ── 전투 사이드패널 (좌=아군 / 우=적군+조작) ── */
 .battle-subnav {
-  width: 220px;
-  min-width: 220px;
+  width: 190px;
+  min-width: 190px;
   height: 100%;
   background: rgba(6, 10, 28, 0.97);
   border-right: 1px solid var(--line);
@@ -143,20 +144,286 @@
   flex-direction: column;
   overflow-y: auto;
   flex-shrink: 0;
+  padding: 8px 10px;
+  gap: 0;
+}
+.battle-subnav--right {
+  border-right: none;
+  border-left: 1px solid var(--line);
+}
+
+/* ── 전투 조작 버튼 그룹 ── */
+.bnav-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.bnav-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: bold;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.04);
+  color: var(--dim);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+.bnav-action-btn:hover:not(:disabled) {
+  border-color: rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.08);
+  color: var(--text);
+}
+.bnav-action-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.bnav-action-btn--on {
+  color: #7dffb0;
+  border-color: rgba(125,255,176,0.5);
+  background: rgba(125,255,176,0.08);
+}
+.bnav-action-btn--flee {
+  color: #4fb8ff;
+  border-color: rgba(79,184,255,0.3);
+}
+.bnav-action-btn--flee:hover:not(:disabled) {
+  background: rgba(79,184,255,0.1);
+}
+.bnav-action-btn--negotiate {
+  color: #ffd166;
+  border-color: rgba(255,209,102,0.3);
+}
+.bnav-action-btn--negotiate:hover:not(:disabled) {
+  background: rgba(255,209,102,0.08);
+}
+.bnav-action-btn--endturn {
+  color: #ff7043;
+  border-color: rgba(255,112,67,0.45);
+  font-weight: 600;
+  margin-top: 4px;
+}
+.bnav-action-btn--endturn:hover:not(:disabled) {
+  background: rgba(255,112,67,0.12);
+}
+.bnav-action-icon { font-size: 14px; flex-shrink: 0; }
+
+/* ── 전투 모달 공통 ── */
+.btl-modal-bg {
+  position: absolute;
+  inset: 0;
+  background: rgba(5,6,15,0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+.btl-modal {
+  background: #0d1128;
+  border: 1px solid rgba(79,184,255,0.25);
+  border-radius: 10px;
+  padding: 22px 24px;
+  min-width: 340px;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+}
+.btl-modal-title {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: bold;
+  color: #ffd166;
+  letter-spacing: 1px;
+}
+.btl-modal-desc {
+  font-family: var(--kr);
+  font-size: 14px;
+  color: #cdd8f4;
+  line-height: 1.6;
+  margin: 0;
+}
+.btl-modal-chance {
+  font-family: var(--mono);
+  font-size: 16px;
+  color: #3ad6c4;
+}
+.btl-modal-note {
+  font-family: var(--kr);
+  font-size: 12px;
+  color: var(--dim);
+  margin: 0;
+}
+.btl-modal-note-inline {
+  font-size: 12px;
+  color: var(--dim);
+}
+.btl-modal-btns {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.btl-btn {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: bold;
+  padding: 7px 18px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btl-btn--confirm {
+  background: rgba(58,214,196,0.15);
+  border-color: #3ad6c4;
+  color: #3ad6c4;
+}
+.btl-btn--confirm:hover { background: rgba(58,214,196,0.25); }
+.btl-btn--cancel {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.2);
+  color: var(--dim);
+}
+.btl-btn--cancel:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+.btl-btn--option {
+  background: rgba(255,209,102,0.12);
+  border-color: rgba(255,209,102,0.4);
+  color: #ffd166;
+  font-size: 12px;
+  padding: 5px 12px;
+  flex-shrink: 0;
+}
+.btl-btn--option:hover:not(:disabled) { background: rgba(255,209,102,0.22); }
+.btl-btn--option:disabled { opacity: 0.35; cursor: not-allowed; }
+.btl-btn--danger {
+  background: rgba(226,59,78,0.12);
+  border-color: rgba(226,59,78,0.4);
+  color: #e23b4e;
+}
+.btl-btn--danger:hover { background: rgba(226,59,78,0.22); }
+
+/* ── 협상 옵션 목록 ── */
+.btl-modal-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.btl-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 7px;
+  border: 1px solid rgba(79,184,255,0.1);
+  background: rgba(255,255,255,0.03);
+}
+.btl-option--disabled {
+  opacity: 0.35;
+}
+.btl-option-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.btl-option-name {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--text);
+}
+.btl-option-cost {
+  font-family: var(--kr);
+  font-size: 11px;
+  color: var(--dim);
+}
+.btl-option-chance {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: bold;
+  flex-shrink: 0;
+  width: 38px;
+  text-align: right;
+}
+
+/* ── 지형 범례 ── */
+.bnav-terrain-legend {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bnav-terrain-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 0 2px;
+}
+.bnav-terrain-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 5px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.bnav-terrain-glyph {
+  font-size: 18px;
+  line-height: 1.2;
+  flex-shrink: 0;
+  width: 22px;
+  text-align: center;
+}
+.bnav-terrain-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.bnav-terrain-name {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--text);
+}
+.bnav-terrain-effect {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #ffd166;
+}
+.bnav-terrain-desc {
+  font-family: var(--kr);
+  font-size: 11px;
+  color: var(--dim);
+  line-height: 1.4;
 }
 
 .bnav-section {
-  padding: 12px 12px;
-  border-bottom: 1px solid var(--line);
+  padding: 0;
+  border-bottom: none;
 }
 
 .bnav-heading {
   font-family: var(--mono);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: bold;
   letter-spacing: 1px;
-  margin-bottom: 10px;
-  padding: 5px 8px;
+  margin-bottom: 8px;
+  padding: 4px 8px;
   border-radius: 5px;
 }
 
