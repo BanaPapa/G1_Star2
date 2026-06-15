@@ -132,6 +132,10 @@ export default class BattleScene extends Phaser.Scene {
     super('BattleScene')
   }
 
+  preload() {
+    this.load.image('bg_space', '/assets/bg_space.jpg')
+  }
+
   init({ ships, combatRules, skills, aces, enemies, items, node, onVictory, onExit, onEnding, onGameOver }) {
     // this.scene.restart()에 그대로 재전달하기 위해 보관(MOD-6: 노드·콜백도 함께 — "같은 전투 다시 시작"에 필요)
     this.initArgs = { ships, combatRules, skills, aces, enemies, items, node, onVictory, onExit, onEnding, onGameOver }
@@ -179,10 +183,12 @@ export default class BattleScene extends Phaser.Scene {
     const availW = this.scale.width  * 0.90
     const availH = this.scale.height - HUD_TOP - MARGIN_BOT
 
-    const iso_hw = Math.max(24, Math.min(
-      Math.floor(availW / (COLS + ROWS - 2)),           // width 제약: 20 * hw ≤ availW
-      Math.floor(availH / (COLS + ROWS) / ISO_TILE_RATIO), // height 제약: 22 * hh ≤ availH
-    ))
+    // 화면 최적 크기의 1.5× — 그리드가 화면보다 커지며 카메라 드래그로 탐색
+    const screenFitHw = Math.min(
+      Math.floor(availW / (COLS + ROWS - 2)),
+      Math.floor(availH / (COLS + ROWS) / ISO_TILE_RATIO),
+    )
+    const iso_hw = Math.max(44, Math.floor(screenFitHw * 1.5))
     const iso_hh = Math.round(iso_hw * ISO_TILE_RATIO)
 
     CELL = iso_hw
@@ -200,25 +206,12 @@ export default class BattleScene extends Phaser.Scene {
       cy: Math.round(HUD_TOP + iso_hh + topPad),        // 수직 중앙 정렬
     }
 
-    // ── 어두운 전술 배경 ──────────────────────────────────────────
-    this.add.rectangle(
-      this.scale.width / 2, this.scale.height / 2,
-      this.scale.width, this.scale.height,
-      0x05080f,
-    ).setDepth(-10)
+    // ── 우주 배경 이미지 (카메라에 고정) ────────────────────────────
+    const bg = this.add.image(this.scale.width / 2, this.scale.height / 2, 'bg_space')
+    bg.setDisplaySize(this.scale.width, this.scale.height)
+    bg.setDepth(-10).setScrollFactor(0).setAlpha(0.88)
 
-    // 별 파티클 (랜덤 소형 점)
-    const starGfx = this.add.graphics().setDepth(-9)
-    for (let i = 0; i < 160; i++) {
-      const sx = Math.random() * this.scale.width
-      const sy = Math.random() * this.scale.height
-      const sr = Math.random() * 1.2 + 0.2
-      const sa = Math.random() * 0.5 + 0.15
-      starGfx.fillStyle(0xaac8f0, sa)
-      starGfx.fillCircle(sx, sy, sr)
-    }
-
-    // 그리드 타일 생성
+    // ── 그리드 타일 생성 ─────────────────────────────────────────
     this.cellRects = []
     for (let y = 0; y < ROWS; y += 1) {
       const row = []
@@ -234,8 +227,6 @@ export default class BattleScene extends Phaser.Scene {
       const pos = ALLY_START_POSITIONS[index % ALLY_START_POSITIONS.length]
       return { side: 'ally', instanceId: entry.instanceId, shipId: entry.shipId, aceId: entry.aceId, x: pos.x, y: pos.y }
     })
-    // MOD-6: 적 구성은 더 이상 하드코딩이 아니라, 진입한 노드(systems.json)의 enemy/miniboss/boss를
-    // enemies.json·ships.json과 합성한 결과 그대로다(core/encounter.js).
     const enemyPlacements = buildEncounterPlacements(this.node, {
       enemiesById: this.enemiesById,
       bossesById: this.bossesById,
@@ -244,11 +235,12 @@ export default class BattleScene extends Phaser.Scene {
     })
     ;[...allyPlacements, ...enemyPlacements].forEach((placement) => this.spawnUnit(placement))
 
+    // ── HUD (카메라 스크롤에 고정) ────────────────────────────────
     this.hudText = this.add.text(16, 12, '', {
       fontFamily: 'Share Tech Mono, monospace',
       fontSize: '14px',
       color: '#cdd8f4',
-    })
+    }).setScrollFactor(0).setDepth(20)
     this.actionChips = []
 
     this.cutinToggleText = this.add
@@ -258,14 +250,61 @@ export default class BattleScene extends Phaser.Scene {
         color: TOGGLE_COLOR,
       })
       .setOrigin(1, 0)
+      .setScrollFactor(0).setDepth(20)
       .setInteractive({ useHandCursor: true })
-    this.cutinToggleText.on('pointerdown', (_pointer, _lx, _ly, event) => {
+    this.cutinToggleText.on('pointerup', (_pointer, _lx, _ly, event) => {
       event?.stopPropagation()
+      if (this._isDragging) return
       this.cutinEnabled = !this.cutinEnabled
-      useSettingsStore.getState().setCutinEnabled(this.cutinEnabled) // 설정 영구 저장
+      useSettingsStore.getState().setCutinEnabled(this.cutinEnabled)
       this.refreshCutinToggleLabel()
     })
     this.refreshCutinToggleLabel()
+
+    // ── 카메라 드래그 스크롤 (XCOM 스타일) ───────────────────────
+    // 그리드 전체가 카메라 월드보다 크게 설정되므로 드래그로 탐색 가능
+    const camMargin = iso_hw * 3
+    const gridLeft   = this.iso.cx - (ROWS - 1) * iso_hw - camMargin
+    const gridRight  = this.iso.cx + (COLS)     * iso_hw + camMargin
+    const gridTop    = this.iso.cy - iso_hh                - camMargin
+    const gridBottom = this.iso.cy + (COLS + ROWS - 1) * iso_hh + camMargin
+    this.cameras.main.setBounds(gridLeft, gridTop, gridRight - gridLeft, gridBottom - gridTop)
+    // 카메라 초기 위치: 그리드 중앙
+    const gridCenterX = this.iso.cx + iso_hw / 2
+    const gridCenterY = this.iso.cy + (COLS + ROWS - 2) / 2 * iso_hh
+    this.cameras.main.centerOn(gridCenterX, gridCenterY)
+
+    this._isDragging   = false
+    this._dragOriginX  = 0
+    this._dragOriginY  = 0
+    this._dragScrollX  = 0
+    this._dragScrollY  = 0
+
+    this.input.on('pointerdown', (p) => {
+      this._isDragging  = false
+      this._dragOriginX = p.x
+      this._dragOriginY = p.y
+      this._dragScrollX = this.cameras.main.scrollX
+      this._dragScrollY = this.cameras.main.scrollY
+    })
+    this.input.on('pointermove', (p) => {
+      if (!p.isDown) return
+      const dx = p.x - this._dragOriginX
+      const dy = p.y - this._dragOriginY
+      if (!this._isDragging && (Math.abs(dx) > 7 || Math.abs(dy) > 7)) {
+        this._isDragging = true
+      }
+      if (this._isDragging) {
+        this.cameras.main.setScroll(
+          this._dragScrollX - dx,
+          this._dragScrollY - dy,
+        )
+      }
+    })
+    this.input.on('pointerup', () => {
+      // 50ms 후 isDragging 해제 — pointerup 에 등록된 다른 핸들러들이 먼저 실행된 뒤 초기화
+      this.time.delayedCall(50, () => { this._isDragging = false })
+    })
 
     // 자동전투 토글은 React UI(BattleScreen)에서 관리 — 스토어 변경을 구독해 this.autoBattle 동기화
     this._unsubAutoBattle = useBattleStore.subscribe((state) => {
@@ -323,7 +362,7 @@ export default class BattleScene extends Phaser.Scene {
     poly.setStrokeStyle(1, GRID_LINE_COLOR, 0.28)
     poly.setData('baseColor', terrain.color)
     poly.setInteractive({ useHandCursor: true })
-    poly.on('pointerdown', () => this.handleCellClick(x, y))
+    poly.on('pointerup', () => { if (!this._isDragging) this.handleCellClick(x, y) })
 
     if (terrain.id !== 'empty') {
       poly.on('pointerover', () => {
@@ -494,9 +533,9 @@ export default class BattleScene extends Phaser.Scene {
       apBarFg,
       statusLabel,
     }
-    container.on('pointerdown', (_pointer, _lx, _ly, event) => {
+    container.on('pointerup', (_pointer, _lx, _ly, event) => {
       event?.stopPropagation()
-      this.handleUnitClick(unit)
+      if (!this._isDragging) this.handleUnitClick(unit)
     })
 
     this.units.push(unit)
@@ -698,13 +737,13 @@ export default class BattleScene extends Phaser.Scene {
           fontStyle: ready ? 'bold' : 'normal',
           color: ready ? FINISHER_READY_COLOR : FINISHER_WAIT_COLOR,
         })
-        .setDepth(5)
+        .setDepth(22).setScrollFactor(0)
 
       if (ready) {
         chip.setInteractive({ useHandCursor: true })
-        chip.on('pointerdown', (_pointer, _lx, _ly, event) => {
+        chip.on('pointerup', (_pointer, _lx, _ly, event) => {
           event?.stopPropagation()
-          this.beginFinisherTargeting(unit, finisherEntry)
+          if (!this._isDragging) this.beginFinisherTargeting(unit, finisherEntry)
         })
         this.tweens.add({ targets: chip, alpha: 0.4, duration: 480, yoyo: true, repeat: -1 })
       }
@@ -1280,18 +1319,18 @@ export default class BattleScene extends Phaser.Scene {
     const { width, height } = this.scale
     const cx = width / 2, cy = height / 2
 
-    this.add.rectangle(cx, cy, width, height, 0x050008, 0.88).setDepth(300)
+    this.add.rectangle(cx, cy, width, height, 0x050008, 0.88).setDepth(300).setScrollFactor(0)
     this.add.text(cx, cy - 80, '💥 게임 오버', {
       fontFamily: 'Share Tech Mono, monospace', fontSize: '42px', fontStyle: 'bold', color: '#dc2626',
-    }).setOrigin(0.5).setDepth(301)
+    }).setOrigin(0.5).setDepth(301).setScrollFactor(0)
     this.add.text(cx, cy - 20, '함대가 전멸했습니다.', {
       fontFamily: 'Share Tech Mono, monospace', fontSize: '18px', color: '#cdd8f4',
-    }).setOrigin(0.5).setDepth(301)
+    }).setOrigin(0.5).setDepth(301).setScrollFactor(0)
 
     const btn = this.add.text(cx, cy + 60, '🔄 처음부터 다시 시작', {
       fontFamily: 'Share Tech Mono, monospace', fontSize: '18px', fontStyle: 'bold', color: '#ffd166',
-    }).setOrigin(0.5).setDepth(301).setInteractive({ useHandCursor: true })
-    btn.on('pointerdown', () => this.onGameOver?.())
+    }).setOrigin(0.5).setDepth(301).setScrollFactor(0).setInteractive({ useHandCursor: true })
+    btn.on('pointerup', () => { if (!this._isDragging) this.onGameOver?.() })
     this.tweens.add({ targets: btn, alpha: 0.4, duration: 600, yoyo: true, repeat: -1 })
   }
 
@@ -1309,8 +1348,9 @@ export default class BattleScene extends Phaser.Scene {
     const cx = width / 2
     const cy = height / 2
 
-    const dim = this.add.rectangle(cx, cy, width, height, 0x05060f, 0.8).setDepth(300)
-    const titleText = this.add
+    const sf0 = (obj) => obj.setScrollFactor(0)  // 헬퍼: 카메라 고정
+    const dim = sf0(this.add.rectangle(cx, cy, width, height, 0x05060f, 0.8).setDepth(300))
+    const titleText = sf0(this.add
       .text(cx, cy - 130, title, {
         fontFamily: 'Share Tech Mono, monospace',
         fontSize: '32px',
@@ -1318,8 +1358,8 @@ export default class BattleScene extends Phaser.Scene {
         color: '#ffd166',
       })
       .setOrigin(0.5)
-      .setDepth(301)
-    const bodyText = this.add
+      .setDepth(301))
+    const bodyText = sf0(this.add
       .text(cx, cy - 80, lines.join('\n'), {
         fontFamily: 'Share Tech Mono, monospace',
         fontSize: '14px',
@@ -1328,11 +1368,11 @@ export default class BattleScene extends Phaser.Scene {
         lineSpacing: 8,
       })
       .setOrigin(0.5, 0)
-      .setDepth(301)
+      .setDepth(301))
 
     const buttonColors = ['#ffd166', '#3ad6c4']
     const buttons = actions.map((action, index) => {
-      const btn = this.add
+      const btn = sf0(this.add
         .text(cx, cy + 150 + index * 36, action.label, {
           fontFamily: 'Share Tech Mono, monospace',
           fontSize: '15px',
@@ -1341,11 +1381,11 @@ export default class BattleScene extends Phaser.Scene {
         })
         .setOrigin(0.5)
         .setDepth(301)
-        .setInteractive({ useHandCursor: true })
+        .setInteractive({ useHandCursor: true }))
 
-      btn.on('pointerdown', (_pointer, _lx, _ly, event) => {
+      btn.on('pointerup', (_pointer, _lx, _ly, event) => {
         event?.stopPropagation()
-        action.onClick()
+        if (!this._isDragging) action.onClick()
       })
       this.tweens.add({ targets: btn, alpha: 0.4, duration: 480, yoyo: true, repeat: -1 })
       return btn
