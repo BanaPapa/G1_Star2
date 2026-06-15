@@ -91,7 +91,7 @@ const HIGHLIGHT_ALPHA = 0.28
 const ABILITY_HIGHLIGHT_COLOR = 0xffd166
 const SELECT_RING_COLOR = 0xffd166
 const GRID_LINE_COLOR = 0x1e3d6b
-const ISO_TILE_RATIO = 0.5  // hh = hw * ISO_TILE_RATIO (standard 2:1 iso)
+const ISO_TILE_RATIO = 0.65  // hh = hw * ISO_TILE_RATIO (0.5=납작, 0.65=적당, 1.0=정사각)
 
 let HP_BAR_WIDTH = CELL * 0.56
 const HP_BAR_HEIGHT = 4
@@ -171,24 +171,33 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   create() {
-    // 아이소메트릭 타일 크기 계산 — 전체 그리드가 화면에 꼭 맞도록
-    // 그리드의 화면 폭 = (COLS + ROWS) * hw,  높이 = (COLS + ROWS) * hh
-    const iso_hw = Math.max(28, Math.min(
-      Math.floor(this.scale.width  * 0.88 / (COLS + ROWS)),
-      Math.floor(this.scale.height * 0.82 / (COLS + ROWS) / ISO_TILE_RATIO),
+    // ── 아이소메트릭 타일 크기 계산 ─────────────────────────────────
+    // 그리드 시각 폭: (COLS + ROWS - 2) * hw = 20 * hw
+    // 그리드 시각 높: (COLS + ROWS) * hh     = 22 * hh  (각 타일 상하 팁 포함)
+    const HUD_TOP    = 62   // 상단 HUD 여백
+    const MARGIN_BOT = 18   // 하단 여백
+    const availW = this.scale.width  * 0.90
+    const availH = this.scale.height - HUD_TOP - MARGIN_BOT
+
+    const iso_hw = Math.max(24, Math.min(
+      Math.floor(availW / (COLS + ROWS - 2)),           // width 제약: 20 * hw ≤ availW
+      Math.floor(availH / (COLS + ROWS) / ISO_TILE_RATIO), // height 제약: 22 * hh ≤ availH
     ))
     const iso_hh = Math.round(iso_hw * ISO_TILE_RATIO)
 
-    // 유닛 스프라이트·바 크기는 타일 hw 기준으로 설정
     CELL = iso_hw
     HP_BAR_WIDTH = Math.round(iso_hw * 1.6)
 
-    // 그리드의 최상단 꼭짓점(0,0) 기준 origin
+    // ── 그리드 중앙 정렬 ────────────────────────────────────────────
+    // 수평: 그리드의 시각적 중심 = cx + (COLS - ROWS)/2 * hw = cx + hw  → cx = screen_cx - hw
+    // 수직: cy - hh(상단 팁) 를 available 영역 내 수직 중앙에 배치
+    const gridFullH  = (COLS + ROWS) * iso_hh            // 22 * hh
+    const topPad     = Math.max(0, (availH - gridFullH) / 2)
     this.iso = {
       hw: iso_hw,
       hh: iso_hh,
-      cx: Math.round(this.scale.width / 2),
-      cy: 72 + iso_hh,  // HUD 여백 + 최상단 타일 절반
+      cx: Math.round(this.scale.width / 2 - iso_hw),    // COLS-ROWS 비대칭 보정
+      cy: Math.round(HUD_TOP + iso_hh + topPad),        // 수직 중앙 정렬
     }
 
     // ── 어두운 전술 배경 ──────────────────────────────────────────
