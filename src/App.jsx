@@ -8,6 +8,7 @@ import StrategyMapScreen from './ui/screens/StrategyMapScreen'
 import BattleScreen from './ui/screens/BattleScreen'
 import FleetScreen from './ui/screens/FleetScreen'
 import MaintenanceHubScreen from './ui/screens/MaintenanceHubScreen'
+import PlanetManagementScreen from './ui/screens/PlanetManagementScreen'
 import EndingScreen from './ui/screens/EndingScreen'
 import SaveScreen from './ui/screens/SaveScreen'
 import TopStatusBar from './ui/components/TopStatusBar'
@@ -18,6 +19,7 @@ const BGM_FOR_VIEW = {
   map: 'map',
   fleet: 'map',
   hub: 'map',
+  planet: 'map',
   save: 'map',
   battle: 'battle',
   ending: 'map',
@@ -32,6 +34,7 @@ function App() {
   const [view, setView] = useState('title')
   const [prevView, setPrevView] = useState(null)
   const [activeNodeId, setActiveNodeId] = useState(null)
+  const [planetNodeId, setPlanetNodeId] = useState(null)
 
   function navigate(next) {
     setPrevView(view)
@@ -73,6 +76,11 @@ function App() {
     navigate('ending')
   }
 
+  function handleManagePlanet(nodeId) {
+    setPlanetNodeId(nodeId ?? null)
+    navigate('planet')
+  }
+
   const inBattle = view === 'battle'
 
   return (
@@ -100,12 +108,13 @@ function App() {
           <TopStatusBar
             view={view}
             onNavigate={(next) => !inBattle && navigate(next)}
+            onManagePlanet={() => !inBattle && handleManagePlanet(null)}
             inBattle={inBattle}
           />
 
           <main className="app-content">
             {view === 'map' && (
-              <StrategyMapScreen onEnterBattle={handleEnterBattle} onGameOver={handleGameOver} />
+              <StrategyMapScreen onEnterBattle={handleEnterBattle} onGameOver={handleGameOver} onManagePlanet={handleManagePlanet} />
             )}
 
             {view === 'battle' && (
@@ -114,7 +123,7 @@ function App() {
 
             {view === 'ending' && <EndingScreen onRestart={() => window.location.reload()} />}
 
-            {(view === 'fleet' || view === 'hub' || view === 'save') && (
+            {(view === 'fleet' || view === 'hub' || view === 'save' || view === 'planet') && (
               <div className="app-content-scroll">
                 {view === 'save' && (
                   <SaveScreen
@@ -124,6 +133,12 @@ function App() {
                 )}
                 {view === 'fleet' && <FleetScreen />}
                 {view === 'hub' && <MaintenanceHubScreen />}
+                {view === 'planet' && (
+                  <PlanetManagementScreen
+                    nodeId={planetNodeId}
+                    onBack={() => navigate(prevView ?? 'map')}
+                  />
+                )}
               </div>
             )}
           </main>

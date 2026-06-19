@@ -1,0 +1,451 @@
+/* ── Planet Management Screen ── */
+
+.pm-screen {
+  position: relative;
+  min-height: 100%;
+  color: #cdd8f4;
+  font-family: var(--mono);
+  overflow: hidden;
+}
+
+/* ── 배경 레이어 ── */
+.pm-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 20% 50%, #0d0520 0%, #03010a 60%);
+}
+
+/* 별 스프라이트 — CSS only */
+.pm-bg-stars {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 15%  8%,  #fff 0%, transparent 100%),
+    radial-gradient(1px 1px at 32% 22%,  #d0c8ff 0%, transparent 100%),
+    radial-gradient(1px 1px at 54% 11%,  #fff 0%, transparent 100%),
+    radial-gradient(1px 1px at 72%  5%,  #c8d8ff 0%, transparent 100%),
+    radial-gradient(1px 1px at 88% 18%,  #fff 0%, transparent 100%),
+    radial-gradient(1px 1px at  4% 35%,  #fff 0%, transparent 100%),
+    radial-gradient(1px 1px at 21% 48%,  #e0d8ff 0%, transparent 100%),
+    radial-gradient(1px 1px at 43% 37%,  #fff 0%, transparent 100%),
+    radial-gradient(1px 1px at 66% 42%,  #fff 0%, transparent 100%),
+    radial-gradient(1px 1px at 81% 55%,  #c8e0ff 0%, transparent 100%),
+    radial-gradient(1px 1px at 95% 33%,  #fff 0%, transparent 100%),
+    radial-gradient(1px 1px at  9% 67%,  #fff 0%, transparent 100%),
+    radial-gradient(1px 1px at 28% 73%,  #d8d0ff 0%, transparent 100%),
+    radial-gradient(1px 1px at 49% 60%,  #fff 0%, transparent 100%),
+    radial-gradient(1px 1px at 63% 78%,  #fff 0%, transparent 100%),
+    radial-gradient(1px 1px at 77% 66%,  #e0e8ff 0%, transparent 100%),
+    radial-gradient(1px 1px at 92% 82%,  #fff 0%, transparent 100%),
+    radial-gradient(1px 1px at 13% 90%,  #fff 0%, transparent 100%),
+    radial-gradient(1px 1px at 37% 88%,  #d0d8ff 0%, transparent 100%),
+    radial-gradient(1px 1px at 58% 94%,  #fff 0%, transparent 100%),
+    radial-gradient(2px 2px at 24% 15%,  rgba(200,180,255,0.6) 0%, transparent 100%),
+    radial-gradient(2px 2px at 70% 28%,  rgba(180,220,255,0.6) 0%, transparent 100%),
+    radial-gradient(2px 2px at 85%  8%,  rgba(255,220,200,0.5) 0%, transparent 100%),
+    radial-gradient(2px 2px at 46% 55%,  rgba(200,230,255,0.5) 0%, transparent 100%),
+    radial-gradient(2px 2px at 10% 80%,  rgba(220,200,255,0.6) 0%, transparent 100%);
+  animation: pm-stars-drift 120s linear infinite alternate;
+}
+
+@keyframes pm-stars-drift {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(-6px, -4px); }
+}
+
+/* 성운 글로우 */
+.pm-bg-nebula {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 80% 20%, rgba(88, 28, 160, 0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 50% at 15% 70%, rgba(15, 60, 120, 0.22) 0%, transparent 70%),
+    radial-gradient(ellipse 30% 25% at 50% 90%, rgba(60, 15, 100, 0.14) 0%, transparent 70%);
+  animation: pm-nebula-pulse 8s ease-in-out infinite alternate;
+}
+
+@keyframes pm-nebula-pulse {
+  from { opacity: 0.7; }
+  to   { opacity: 1.0; }
+}
+
+/* 행성 구체 */
+.pm-bg-planet {
+  position: absolute;
+  right: -120px;
+  bottom: -120px;
+  width: 480px;
+  height: 480px;
+  border-radius: 50%;
+  animation: pm-planet-float 10s ease-in-out infinite alternate;
+}
+
+.pm-bg-planet--home {
+  background:
+    radial-gradient(ellipse 60% 55% at 35% 38%, rgba(180, 230, 255, 0.35) 0%, transparent 60%),
+    radial-gradient(circle at 40% 40%, #1a4a7a 0%, #0e2a50 40%, #071828 100%);
+  box-shadow:
+    0 0 80px rgba(30, 100, 200, 0.35),
+    0 0 160px rgba(10, 50, 120, 0.2),
+    inset -40px -40px 80px rgba(0, 0, 0, 0.5);
+}
+
+.pm-bg-planet--colony {
+  background:
+    radial-gradient(ellipse 55% 50% at 38% 35%, rgba(200, 180, 255, 0.25) 0%, transparent 60%),
+    radial-gradient(circle at 40% 40%, #3a1a5a 0%, #200e38 40%, #10071a 100%);
+  box-shadow:
+    0 0 80px rgba(120, 40, 220, 0.3),
+    0 0 160px rgba(60, 15, 120, 0.18),
+    inset -40px -40px 80px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes pm-planet-float {
+  from { transform: translate(0, 0) rotate(0deg); }
+  to   { transform: translate(-8px, -12px) rotate(1.5deg); }
+}
+
+/* ── 콘텐츠 레이어 ── */
+.pm-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* ── Header ── */
+.pm-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px 12px;
+  background: rgba(5, 2, 15, 0.75);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(120, 80, 220, 0.3);
+  flex-wrap: wrap;
+}
+
+.pm-back-btn {
+  background: rgba(120, 80, 220, 0.15);
+  border: 1px solid rgba(120, 80, 220, 0.4);
+  border-radius: 8px;
+  color: #a78bfa;
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.pm-back-btn:hover {
+  background: rgba(120, 80, 220, 0.3);
+  border-color: rgba(120, 80, 220, 0.7);
+}
+
+.pm-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.pm-header-icon { font-size: 22px; line-height: 1; }
+
+.pm-title {
+  font-family: 'Bangers', var(--mono);
+  font-size: 24px;
+  color: #e2d9ff;
+  letter-spacing: 2px;
+  margin: 0;
+  text-shadow: 0 0 20px rgba(167, 139, 250, 0.5);
+}
+
+/* Planet Selector */
+.pm-planet-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.pm-selector-label {
+  font-size: 12px;
+  color: #8899cc;
+  white-space: nowrap;
+}
+
+.pm-selector-select {
+  background: rgba(10, 5, 25, 0.85);
+  border: 1px solid rgba(120, 80, 220, 0.4);
+  border-radius: 8px;
+  color: #cdd8f4;
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 6px 10px;
+  cursor: pointer;
+  outline: none;
+}
+.pm-selector-select:focus { border-color: rgba(120, 80, 220, 0.8); }
+
+/* ── Planet Info Banner ── */
+.pm-planet-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  background: rgba(10, 5, 25, 0.55);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(120, 80, 220, 0.15);
+}
+
+.pm-planet-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #e2d9ff;
+  text-shadow: 0 0 12px rgba(167, 139, 250, 0.4);
+}
+
+.pm-planet-trait {
+  font-size: 12px;
+  color: #a78bfa;
+  opacity: 0.85;
+}
+
+.pm-planet-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 100px;
+  font-weight: 600;
+  margin-left: auto;
+}
+.pm-planet-badge--home {
+  background: rgba(255, 209, 102, 0.12);
+  border: 1px solid rgba(255, 209, 102, 0.35);
+  color: #ffd166;
+}
+.pm-planet-badge--colony {
+  background: rgba(124, 255, 178, 0.10);
+  border: 1px solid rgba(124, 255, 178, 0.3);
+  color: #7cffb2;
+}
+
+/* ── Building Grid ── */
+.pm-building-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  padding: 20px 24px 32px;
+}
+
+/* ── Building Card ── */
+.pm-card {
+  background: rgba(8, 4, 22, 0.78);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(120, 80, 220, 0.28);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.pm-card:hover {
+  border-color: rgba(120, 80, 220, 0.55);
+  box-shadow: 0 0 20px rgba(120, 80, 220, 0.14);
+}
+.pm-card--upgraded {
+  border-color: #7cffb2 !important;
+  box-shadow: 0 0 24px rgba(124, 255, 178, 0.3) !important;
+  animation: pm-flash 0.8s ease-out;
+}
+
+@keyframes pm-flash {
+  0%   { box-shadow: 0 0 40px rgba(124, 255, 178, 0.65); }
+  100% { box-shadow: 0 0 24px rgba(124, 255, 178, 0.3); }
+}
+
+/* Card Header */
+.pm-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pm-card-icon { font-size: 30px; line-height: 1; flex-shrink: 0; }
+
+.pm-card-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pm-card-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #e2d9ff;
+  letter-spacing: 0.5px;
+}
+
+.pm-card-level {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #a78bfa;
+  font-weight: 600;
+}
+
+.pm-card-level-bar { display: flex; gap: 3px; }
+
+.pm-level-pip {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: rgba(120, 80, 220, 0.18);
+  border: 1px solid rgba(120, 80, 220, 0.35);
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.pm-level-pip.filled {
+  background: #7c3aed;
+  border-color: #a78bfa;
+  box-shadow: 0 0 5px rgba(167, 139, 250, 0.55);
+}
+
+/* Description */
+.pm-card-desc {
+  font-size: 12px;
+  color: #7788bb;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Effect */
+.pm-card-effect {
+  background: rgba(120, 80, 220, 0.07);
+  border-left: 2px solid rgba(120, 80, 220, 0.4);
+  border-radius: 0 6px 6px 0;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pm-card-effect--next {
+  background: rgba(124, 255, 178, 0.05);
+  border-left-color: rgba(124, 255, 178, 0.35);
+}
+
+.pm-effect-label {
+  font-size: 10px;
+  color: #5566aa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.pm-card-effect--next .pm-effect-label { color: rgba(124, 255, 178, 0.55); }
+
+.pm-effect-value { font-size: 12px; color: #cdd8f4; }
+.pm-card-effect--next .pm-effect-value { color: #7cffb2; }
+
+/* Card Footer */
+.pm-card-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pm-upgrade-max {
+  text-align: center;
+  font-size: 12px;
+  color: #ffd166;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 7px;
+  background: rgba(255, 209, 102, 0.07);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 209, 102, 0.2);
+}
+
+.pm-upgrade-cost { display: flex; flex-direction: column; gap: 4px; }
+
+.pm-cost-label {
+  font-size: 10px;
+  color: #5566aa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pm-cost-list { display: flex; flex-wrap: wrap; gap: 4px; }
+
+.pm-cost-item {
+  font-size: 11px;
+  color: #cdd8f4;
+  background: rgba(120, 80, 220, 0.1);
+  border: 1px solid rgba(120, 80, 220, 0.25);
+  border-radius: 4px;
+  padding: 2px 7px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.pm-cost-item--short {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.07);
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+.pm-cost-none { font-size: 12px; color: #ffd166; }
+
+.pm-cost-have { color: #445588; font-size: 10px; }
+
+/* Upgrade Button */
+.pm-upgrade-btn {
+  width: 100%;
+  padding: 10px 16px;
+  background: rgba(124, 58, 237, 0.28);
+  border: 1px solid rgba(124, 58, 237, 0.6);
+  border-radius: 8px;
+  color: #e2d9ff;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  letter-spacing: 0.5px;
+}
+.pm-upgrade-btn:hover:not(.pm-upgrade-btn--disabled) {
+  background: rgba(124, 58, 237, 0.48);
+  border-color: #a78bfa;
+  box-shadow: 0 0 14px rgba(124, 58, 237, 0.3);
+}
+.pm-upgrade-btn--disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Outpost Unique Resource */
+.pm-outpost-res {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 209, 102, 0.06);
+  border: 1px solid rgba(255, 209, 102, 0.2);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+.pm-outpost-res-label { font-size: 12px; color: #ffd166; }
+.pm-outpost-res-value { font-size: 15px; font-weight: 700; color: #ffd166; }
+
+/* Empty State */
+.pm-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #5566aa;
+  font-size: 14px;
+  padding: 60px 24px;
+  text-align: center;
+}
+.pm-empty-icon { font-size: 40px; margin-bottom: 8px; }

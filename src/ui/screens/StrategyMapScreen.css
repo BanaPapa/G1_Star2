@@ -180,6 +180,16 @@
   cursor: not-allowed;
 }
 
+
+.map-action-btn--planet {
+  border-color: #a78bfa;
+  background: rgba(120, 80, 220, 0.18);
+}
+.map-action-btn--planet:hover {
+  background: rgba(120, 80, 220, 0.32);
+}
+
+
 /* ── 호버 툴팁 (가벼운 요약: 세력·위험·보상·이동 비용) ── */
 .map-tooltip {
   position: absolute;

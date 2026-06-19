@@ -4,6 +4,7 @@ import { useFleetStore } from './useFleetStore'
 import { useResearchStore } from './useResearchStore'
 import { useDevelopmentStore } from './useDevelopmentStore'
 import { useResourceStore } from './useResourceStore'
+import { useBuildingStore } from './useBuildingStore'
 
 // 세이브 슬롯 1~3 — 모든 게임 상태를 localStorage에 JSON 직렬화(MOD-12).
 const PREFIX = '7star_save_'
@@ -40,6 +41,7 @@ export const useSaveStore = create((set) => ({
     const r = useResearchStore.getState()
     const d = useDevelopmentStore.getState()
     const res = useResourceStore.getState()
+    const b = useBuildingStore.getState()
 
     writeSlot(slot, {
       timestamp: Date.now(),
@@ -57,6 +59,7 @@ export const useSaveStore = create((set) => ({
       research:    { unlockedIds: r.unlockedIds },
       development: { developed:   d.developed   },
       resources:   { wallet:      res.wallet    },
+      buildings:   { buildings: b.buildings, uniqueResources: b.uniqueResources },
     })
 
     set((s) => ({ rev: s.rev + 1 }))
@@ -86,6 +89,9 @@ export const useSaveStore = create((set) => ({
     useResourceStore.setState({
       wallet: data.resources.wallet,
     })
+    if (data.buildings) {
+      useBuildingStore.getState().loadState(data.buildings)
+    }
 
     return true
   },

@@ -6,11 +6,83 @@ import { useProgressStore } from '../../state/useProgressStore'
 import { useBattleStore }   from '../../state/useBattleStore'
 import { useFleetStore }    from '../../state/useFleetStore'
 import { useResourceStore } from '../../state/useResourceStore'
+import { useBuildingStore } from '../../state/useBuildingStore'
 import { TERRAIN_TYPES }    from '../../game/systems/terrain'
 
-// 지형 안내 아이콘 목록 — '빈 공간'(특수 효과 없음)은 제외
-const TERRAIN_LEGEND = Object.values(TERRAIN_TYPES).filter((t) => t.id !== 'empty')
+// ── 모듈 레벨 헬퍼 ──
+const tpColor = (tp) => tp >= 100 ? '#ffd166' : tp >= 50 ? '#4fb8ff' : '#6b7aa8'
 
+// ── 하단 유닛 카드 ──
+function UnitBottomCard({ u }) {
+  const [hov, setHov] = useState(false)
+  const hpPct = u.maxHp > 0 ? Math.max(0, (u.hp / u.maxHp) * 100) : 0
+  const apPct = u.maxAp > 0 ? Math.max(0, (u.ap / u.maxAp) * 100) : 0
+  const tpPct = Math.min(100, Math.round(u.tp))
+  const isAlly = u.side === 'ally'
+  return (
+    <div
+      className={`btm-card btm-card--unit${u.dead ? ' btm-card--dead' : ''}`}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+    >
+      <span className="btm-card-sprite">{u.sprite}</span>
+      <span className="btm-card-uname">{u.name}</span>
+      {hov && (
+        <div className={`btm-popup${isAlly ? ' btm-popup--ally' : ' btm-popup--enemy'}`}>
+          <div className="btm-popup-name">{u.name}</div>
+          {u.aceName && <div className="btm-popup-ace">{u.aceName}</div>}
+          <div className="btm-popup-bars">
+            <div className="btm-popup-bar-row">
+              <span className="btm-popup-bar-lbl">HP</span>
+              <div className="btm-popup-bar-track">
+                <div className="btm-popup-bar-fill" style={{ width: hpPct + '%', background: isAlly ? '#3ad6c4' : '#e23b4e' }} />
+              </div>
+              <span className="btm-popup-bar-val">{u.hp}/{u.maxHp}</span>
+            </div>
+            <div className="btm-popup-bar-row">
+              <span className="btm-popup-bar-lbl">AP</span>
+              <div className="btm-popup-bar-track">
+                <div className="btm-popup-bar-fill" style={{ width: apPct + '%', background: '#ffd166' }} />
+              </div>
+              <span className="btm-popup-bar-val">{u.ap}/{u.maxAp}</span>
+            </div>
+            <div className="btm-popup-bar-row">
+              <span className="btm-popup-bar-lbl">TP</span>
+              <div className="btm-popup-bar-track">
+                <div className="btm-popup-bar-fill" style={{ width: tpPct + '%', background: tpColor(u.tp) }} />
+              </div>
+              <span className="btm-popup-bar-val" style={{ color: tpColor(u.tp) }}>{tpPct}%</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── 하단 지형 카드 ──
+function TerrainBottomCard({ t }) {
+  const [hov, setHov] = useState(false)
+  return (
+    <div
+      className="btm-card btm-card--terrain"
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+    >
+      <span className="btm-card-glyph">{t.glyph || '·'}</span>
+      <span className="btm-card-tname">{t.label}</span>
+      {hov && (
+        <div className="btm-popup btm-popup--terrain">
+          <div className="btm-popup-name">{t.label}</div>
+          {t.effect && <div className="btm-popup-effect">{t.effect}</div>}
+          <div className="btm-popup-desc">{t.desc}</div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── 메인 컴포넌트 ──
 export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
   const containerRef  = useRef(null)
   const gameRef       = useRef(null)
@@ -33,6 +105,11 @@ export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
   const roster     = useFleetStore((s) => s.roster)
   const wallet     = useResourceStore((s) => s.wallet)
 
+  // 연구소 레벨 → 전투 그리드 크기: Lv1-2=10×8, Lv3=16×13, Lv4+=20×16
+  const labLevel   = useBuildingStore((s) => s.getLevel('s0', 'bld_research_lab'))
+  const gridCols   = labLevel >= 4 ? 20 : labLevel >= 3 ? 16 : 10
+  const gridRows   = labLevel >= 4 ? 16 : labLevel >= 3 ? 13 : 8
+
   // ── 전투 스토어 ──
   const units       = useBattleStore((s) => s.units)
   const autoBattle  = useBattleStore((s) => s.autoBattle)
@@ -43,8 +120,29 @@ export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
   const node       = systems?.find((s) => s.id === nodeId) ?? null
 
   // ── 도망/협상 모달 ──
-  const [fleeModal,      setFleeModal]      = useState(null) // null | {chance} | {result:'ok'|'fail'}
-  const [negotiateModal, setNegotiateModal] = useState(null) // null | {step:'choose'} | {step:'result', ...}
+  const [fleeModal,      setFleeModal]      = useState(null)
+  const [negotiateModal, setNegotiateModal] = useState(null)
+  const fleeModalRef      = useRef(fleeModal)
+  const negotiateModalRef = useRef(negotiateModal)
+  useEffect(() => { fleeModalRef.current = fleeModal },           [fleeModal])
+  useEffect(() => { negotiateModalRef.current = negotiateModal }, [negotiateModal])
+
+  // Enter 키로 결과 모달 닫기
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key !== 'Enter') return
+      const fm = fleeModalRef.current
+      const nm = negotiateModalRef.current
+      if (fm) {
+        if (fm.result === 'fail') { setFleeModal(null); return }
+        if (!fm.result)           { setFleeModal(null); return }
+        return
+      }
+      if (nm) { setNegotiateModal(null) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   useEffect(() => { return () => useBattleStore.getState().clearUnits() }, [])
 
@@ -52,8 +150,8 @@ export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
   useEffect(() => {
     if (!ships || !combatRules || !skills || !aces || !enemies || !items || !node || !containerRef.current || gameRef.current) return
 
-    const w = containerRef.current.offsetWidth  || window.innerWidth - 380
-    const h = containerRef.current.offsetHeight || window.innerHeight
+    const w = containerRef.current.offsetWidth  || window.innerWidth
+    const h = containerRef.current.offsetHeight || window.innerHeight - 90
 
     const game = new Phaser.Game({
       type: Phaser.AUTO,
@@ -64,6 +162,7 @@ export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
     })
     game.scene.add('BattleScene', BattleScene, true, {
       ships, combatRules, skills, aces, enemies, items, node,
+      gridCols, gridRows,
       onVictory:  (clearedNode) => conquer(clearedNode.id),
       onExit:     () => onExitRef.current?.(),
       onEnding:   () => onEndingRef.current?.(),
@@ -98,13 +197,12 @@ export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
   const allyAtk  = aliveAllies.reduce((s, u)  => s + (u.atk || 1), 0)
   const enemyAtk = aliveEnemies.reduce((s, u) => s + (u.atk || 1), 0)
   const enemyHp  = aliveEnemies.reduce((s, u) => s + u.hp, 0)
-  const powerRatio = allyAtk / Math.max(1, allyAtk + enemyAtk) // 0~1, 0.5=동등
+  const powerRatio = allyAtk / Math.max(1, allyAtk + enemyAtk)
 
   const payAmount   = Math.max(200, Math.round((enemyAtk * 12 + enemyHp * 0.4)))
   const payChance   = Math.round(Math.min(68, Math.max(30, 32 + powerRatio * 36)))
   const persuadeChance = Math.round(Math.min(38, Math.max(10, 10 + powerRatio * 28)))
 
-  // 희생할 함선 = 로스터에서 레벨 최저 함선 (1척만 있으면 불가)
   const sacrificeEntry = roster.length > 1
     ? [...roster].sort((a, b) => (a.level ?? 1) - (b.level ?? 1))[0]
     : null
@@ -115,11 +213,10 @@ export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
 
   function handleNegotiateAttempt(type) {
     const roll   = Math.random() * 100
-    let chance, cost = null, costDesc = null, shipLost = false
+    let chance, costDesc = null, shipLost = false
 
     if (type === 'pay') {
       chance   = payChance
-      cost     = { sc: payAmount }
       costDesc = `💰 ${payAmount} SC 지불`
       useResourceStore.getState().spend({ sc: payAmount })
     } else if (type === 'ship') {
@@ -133,15 +230,13 @@ export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
     }
 
     const success = roll < chance
-    if (success) {
-      getScene()?.executeFlee()
-    }
+    if (success) getScene()?.executeFlee()
     setNegotiateModal({
-      step:     'result',
+      step: 'result',
       success,
       costDesc,
       shipLost,
-      message:  success
+      message: success
         ? '협상 성공! 적이 조건을 수락했습니다. 철수합니다.'
         : shipLost
           ? '협상 실패. 함선을 잃었지만 적은 조건을 거부했습니다. 전투를 계속합니다.'
@@ -149,134 +244,88 @@ export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
     })
   }
 
-  // ── UnitCard ──
-  const tpColor = (tp) => tp >= 100 ? '#ffd166' : tp >= 50 ? '#4fb8ff' : '#6b7aa8'
-  const tpGlow = (tp) => tp >= 100 ? 'rgba(255,209,102,0.6)' : tp >= 50 ? 'rgba(79,184,255,0.6)' : 'transparent'
-
-  function UnitCard({ u }) {
-    const hpPct = u.maxHp > 0 ? Math.max(0, (u.hp / u.maxHp) * 100) : 0
-    const apPct = u.maxAp > 0 ? Math.max(0, (u.ap / u.maxAp) * 100) : 0
-    const tpPct = Math.min(100, Math.round((u.tp / 100) * 100))
-    const isAlly = u.side === 'ally'
-    return (
-      <div className={`bnav-unit holo-panel holo-panel--tight${u.dead ? ' bnav-unit--dead' : ''}`}>
-        <div className="bnav-unit-header">
-          <span className="bnav-unit-sprite">{u.sprite}</span>
-          <div className="bnav-unit-info">
-            <span className="bnav-unit-name">{u.name}</span>
-            {u.aceName && <span className="bnav-unit-ace">{u.aceName}</span>}
-          </div>
-        </div>
-        <div className="bnav-bars">
-          <div className="bnav-bar-row">
-            <span className="bnav-bar-label">HP</span>
-            <div className="bnav-bar-track">
-              <div className="bnav-bar-fill" style={{ width: hpPct + '%', background: isAlly ? '#3ad6c4' : '#e23b4e', boxShadow: `0 0 8px ${isAlly ? 'rgba(58,214,196,0.65)' : 'rgba(226,59,78,0.65)'}` }} />
-            </div>
-            <span className="bnav-bar-val">{u.hp}</span>
-          </div>
-          <div className="bnav-bar-row">
-            <span className="bnav-bar-label">AP</span>
-            <div className="bnav-bar-track">
-              <div className="bnav-bar-fill" style={{ width: apPct + '%', background: '#ffd166', boxShadow: '0 0 8px rgba(255,209,102,0.6)' }} />
-            </div>
-            <span className="bnav-bar-val">{u.ap}</span>
-          </div>
-          <div className="bnav-bar-row">
-            <span className="bnav-bar-label">TP</span>
-            <div className="bnav-bar-track">
-              <div className="bnav-bar-fill" style={{ width: tpPct + '%', background: tpColor(u.tp), boxShadow: `0 0 8px ${tpGlow(u.tp)}` }} />
-            </div>
-            <span className="bnav-bar-val" style={{ color: tpColor(u.tp) }}>{tpPct}%</span>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   const canAct = playerPhase && !autoBattle
 
   return (
     <div className="battle-layout">
 
-      {/* ── 좌측: 아군 패널 ── */}
-      <aside className="battle-subnav">
-        <div className="bnav-heading bnav-heading--ally">⚡ 아군</div>
-        {allies.length === 0 && units.length === 0 && <p className="bnav-empty">로딩 중…</p>}
-        {allies.map((u) => <UnitCard key={u.id} u={u} />)}
-      </aside>
+      {/* ── Phaser 캔버스 ── */}
+      <div className="battle-screen" ref={containerRef} />
 
-      {/* ── 중앙: Phaser 캔버스 ── */}
-      <div className="battle-screen" ref={containerRef}>
-        {/* 지형 안내 — 지형별 개별 아이콘, 호버 시 해당 지형 설명만 표시 */}
-        <div className="terrain-info-row">
-          {TERRAIN_LEGEND.map((t) => (
-            <div key={t.id} className="terrain-icon-item holo-badge holo-badge--dim" tabIndex={0}>
-              <span className="terrain-icon-glyph">{t.glyph}</span>
-              <div className="terrain-icon-tooltip holo-panel holo-panel--tight">
-                <span className="bnav-terrain-name">{t.label}</span>
-                {t.effect && <span className="bnav-terrain-effect">{t.effect}</span>}
-                <span className="bnav-terrain-desc">{t.desc}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* ── 우측 상단 조작 버튼 오버레이 ── */}
+      <div className="btl-action-overlay">
+        <button
+          className={`btl-act-btn${autoBattle ? ' btl-act-btn--on' : ''}`}
+          onClick={() => useBattleStore.getState().setAutoBattle(!autoBattle)}
+          title="아군 유닛도 AI 자동 행동"
+        >
+          🤖 자동{autoBattle ? ' ON' : ' OFF'}
+        </button>
+        <button
+          className="btl-act-btn btl-act-btn--flee"
+          onClick={handleFleeOpen}
+          disabled={!canAct}
+          title={`도주 성공률 ${fleePct}%`}
+        >
+          🚀 도망 ({fleePct}%)
+        </button>
+        <button
+          className="btl-act-btn btl-act-btn--negotiate"
+          onClick={() => setNegotiateModal({ step: 'choose' })}
+          disabled={!canAct}
+          title="자원·함선을 제안해 협상"
+        >
+          🤝 협상
+        </button>
+        <button
+          className="btl-act-btn btl-act-btn--endturn"
+          onClick={() => getScene()?.endPlayerPhase()}
+          disabled={!canAct}
+          title="턴 종료 (스페이스)"
+        >
+          ⏭ 턴종료
+        </button>
       </div>
 
-      {/* ── 우측: 적군 패널 + 전투 조작 ── */}
-      <aside className="battle-subnav battle-subnav--right">
+      {/* ── 하단 카드 바 ── */}
+      <div className="battle-bottom-bar">
 
-        {/* 전투 조작 버튼 */}
-        <div className="bnav-actions">
-          <button
-            className={`bnav-action-btn${autoBattle ? ' bnav-action-btn--on' : ''}`}
-            onClick={() => useBattleStore.getState().setAutoBattle(!autoBattle)}
-            title="아군 유닛도 AI와 동일한 휴리스틱으로 자동 행동합니다"
-          >
-            <span className="bnav-action-icon">🤖</span>
-            <span>자동전투 {autoBattle ? 'ON' : 'OFF'}</span>
-          </button>
-
-          <button
-            className="bnav-action-btn bnav-action-btn--flee"
-            onClick={handleFleeOpen}
-            disabled={!canAct}
-            title={`이동력 비교 기반 도주 — 현재 성공률 ${fleePct}%`}
-          >
-            <span className="bnav-action-icon">🚀</span>
-            <span>도망 ({fleePct}%)</span>
-          </button>
-
-          <button
-            className="bnav-action-btn bnav-action-btn--negotiate"
-            onClick={() => setNegotiateModal({ step: 'choose' })}
-            disabled={!canAct}
-            title="자원·함선을 제안해 협상을 시도합니다"
-          >
-            <span className="bnav-action-icon">🤝</span>
-            <span>협상</span>
-          </button>
-
-          <button
-            className="bnav-action-btn bnav-action-btn--endturn"
-            onClick={() => getScene()?.endPlayerPhase()}
-            disabled={!canAct}
-            title="플레이어 턴을 종료하고 적 턴으로 넘깁니다 (스페이스바와 동일)"
-          >
-            <span className="bnav-action-icon">⏭</span>
-            <span>턴 종료</span>
-          </button>
+        <div className="btm-section">
+          <span className="btm-sec-label">아군</span>
+          <div className="btm-cards-row">
+            {allies.length === 0 && units.length === 0
+              ? <span className="btm-loading">로딩 중…</span>
+              : allies.map((u) => <UnitBottomCard key={u.id} u={u} />)
+            }
+          </div>
         </div>
 
-        {/* 적군 유닛 목록 */}
-        <div className="bnav-heading bnav-heading--enemy">💀 적군</div>
-        {enemyUnits.map((u) => <UnitCard key={u.id} u={u} />)}
-      </aside>
+        <div className="btm-divider" />
+
+        <div className="btm-section">
+          <span className="btm-sec-label">적군</span>
+          <div className="btm-cards-row">
+            {enemyUnits.map((u) => <UnitBottomCard key={u.id} u={u} />)}
+          </div>
+        </div>
+
+        <div className="btm-divider" />
+
+        <div className="btm-section">
+          <span className="btm-sec-label">지형</span>
+          <div className="btm-cards-row">
+            {Object.values(TERRAIN_TYPES).map((t) => (
+              <TerrainBottomCard key={t.id} t={t} />
+            ))}
+          </div>
+        </div>
+
+      </div>
 
       {/* ── 도망 모달 ── */}
       {fleeModal && (
         <div className="btl-modal-bg" onClick={() => !fleeModal.result && setFleeModal(null)}>
-          <div className="btl-modal holo-panel" onClick={(e) => e.stopPropagation()}>
+          <div className="btl-modal" onClick={(e) => e.stopPropagation()}>
             {!fleeModal.result ? (
               <>
                 <div className="btl-modal-title">🚀 도주 시도</div>
@@ -311,7 +360,7 @@ export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
       {/* ── 협상 모달 ── */}
       {negotiateModal && (
         <div className="btl-modal-bg" onClick={() => negotiateModal.step === 'choose' && setNegotiateModal(null)}>
-          <div className="btl-modal holo-panel" onClick={(e) => e.stopPropagation()}>
+          <div className="btl-modal" onClick={(e) => e.stopPropagation()}>
             {negotiateModal.step === 'choose' ? (
               <>
                 <div className="btl-modal-title">🤝 협상 시도</div>
@@ -319,8 +368,7 @@ export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
                   제안을 선택하세요. <span className="btl-modal-note-inline">제안한 자원은 성공 여부와 관계없이 소모됩니다. (설득 제외)</span>
                 </p>
                 <div className="btl-modal-options">
-                  {/* 크레딧 지불 */}
-                  <div className="btl-option holo-panel holo-panel--tight">
+                  <div className="btl-option">
                     <div className="btl-option-info">
                       <span className="btl-option-name">💰 스텔라크레딧 지불</span>
                       <span className="btl-option-cost">소모: {payAmount} SC (보유: {wallet.sc ?? 0})</span>
@@ -333,8 +381,7 @@ export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
                     >선택</button>
                   </div>
 
-                  {/* 외교적 설득 */}
-                  <div className="btl-option holo-panel holo-panel--tight">
+                  <div className="btl-option">
                     <div className="btl-option-info">
                       <span className="btl-option-name">🎙 외교적 설득</span>
                       <span className="btl-option-cost">소모 없음 · 실패해도 자원 손실 없음</span>
@@ -346,14 +393,11 @@ export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
                     >선택</button>
                   </div>
 
-                  {/* 함선 포기 */}
                   {sacrificeEntry ? (
-                    <div className="btl-option holo-panel holo-panel--tight">
+                    <div className="btl-option">
                       <div className="btl-option-info">
                         <span className="btl-option-name">🚀 함선 양도</span>
-                        <span className="btl-option-cost">
-                          "{sacrificeShipName}" 영구 포기 (성공 여부 무관)
-                        </span>
+                        <span className="btl-option-cost">"{sacrificeShipName}" 영구 포기 (성공 여부 무관)</span>
                       </div>
                       <span className="btl-option-chance" style={{ color: '#7dffb0' }}>{sacrificeChance}%</span>
                       <button
@@ -362,7 +406,7 @@ export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
                       >선택</button>
                     </div>
                   ) : (
-                    <div className="btl-option btl-option--disabled holo-panel holo-panel--tight">
+                    <div className="btl-option btl-option--disabled">
                       <div className="btl-option-info">
                         <span className="btl-option-name">🚀 함선 양도</span>
                         <span className="btl-option-cost">함선이 1척뿐이라 불가</span>

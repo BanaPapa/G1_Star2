@@ -300,7 +300,7 @@ function genSystemBosses(systems, conqueredNodeIds = []) {
     .filter(Boolean)
 }
 
-export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
+export default function StrategyMapScreen({ onEnterBattle, onGameOver, onManagePlanet }) {
   // ─── 스토어 ───
   const systems          = useDataStore((s) => s.data?.systems?.systems)
   const enemyDefs        = useDataStore((s) => s.data?.enemies?.enemies)
@@ -679,6 +679,11 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
   useEffect(() => {
     const STEP = 1.5
     function onKey(e) {
+      // Enter: 이벤트 모달 닫기
+      if (e.key === 'Enter') {
+        if (eventModalRef.current) { e.preventDefault(); setEventModal(null) }
+        return
+      }
       if (e.code === 'Space' || e.key === ' ') {
         e.preventDefault()
         // Space: 자동 이동/정찰 모드 취소
@@ -1717,6 +1722,14 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver }) {
 
             {harvestMsg && <p className="map-info-harvest">{harvestMsg}</p>}
 
+            {(status === 'current' || status === 'conquered') && onManagePlanet && (
+              <button
+                className="map-action-btn map-action-btn--planet"
+                onClick={() => onManagePlanet(selected.id)}
+              >
+                🏗️ 행성 관리
+              </button>
+            )}
             {status === 'current'   && <p className="map-info-hint">현재 함대가 머무르고 있는 노드입니다.</p>}
             {status === 'locked'    && <p className="map-info-hint">🔒 연결된 인접 별계를 정복해야 이 항로가 열립니다.</p>}
             {status === 'conquered' && (

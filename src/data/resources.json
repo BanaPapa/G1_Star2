@@ -4,6 +4,8 @@
     { "id": "sc", "name": "스텔라크레딧", "role": "통화(구매·수리·월급)",    "source": ["전투 보상", "판매"],            "icon": "res_sc", "start": 400 },
     { "id": "ti", "name": "티타늄",       "role": "기본 제작 금속",          "source": ["채굴장", "소행성", "전투"],     "icon": "res_ti", "start": 60 },
     { "id": "ec", "name": "에너지크리스탈", "role": "에너지·연구 연료",        "source": ["채굴", "특별 이벤트"],          "icon": "res_ec", "start": 50 },
-    { "id": "dm", "name": "다크매터",     "role": "희귀 고급 제작·전직",      "source": ["s5 광산", "보스", "상인"],      "icon": "res_dm", "start": 0 }
+    { "id": "dm", "name": "다크매터",     "role": "희귀 고급 제작·전직",      "source": ["s5 광산", "보스", "상인"],      "icon": "res_dm", "start": 0 },
+    { "id": "nc", "name": "나노카본",     "role": "고급 건물·장비 제작 소재",  "source": ["건물 생산", "특수 행성"],         "icon": "res_nc", "start": 0 },
+    { "id": "qd", "name": "퀀텀데이터",  "role": "최상위 연구·건물 업그레이드", "source": ["아웃포스트 Lv5", "이벤트"],      "icon": "res_qd", "start": 0 }
   ]
 }

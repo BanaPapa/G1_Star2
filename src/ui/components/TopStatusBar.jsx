@@ -5,15 +5,16 @@ import { useFleetStore } from '../../state/useFleetStore'
 
 // 좌측 메뉴(성단 맵·함대 편성·정비 허브·저장설정)를 압축한 드롭다운 항목
 const NAV_ITEMS = [
-  { key: 'map',   label: '🌌 성단 맵' },
-  { key: 'fleet', label: '🚀 함대 편성' },
-  { key: 'hub',   label: '🔧 정비 허브' },
-  { key: 'save',  label: '💾 저장/설정' },
+  { key: 'map',    label: '🌌 성단 맵' },
+  { key: 'fleet',  label: '🚀 함대 편성' },
+  { key: 'hub',    label: '🔧 정비 허브' },
+  { key: 'planet', label: '🏗️ 행성 관리' },
+  { key: 'save',   label: '💾 저장/설정' },
 ]
 
 // Endless Space 2 스타일 상단 한 줄 상태바 — 자원·턴·함대 생존 수를 항상 노출하고,
 // 기존 좌측 내비게이션은 햄버거 토글로 펼치는 드롭다운에 압축한다.
-export default function TopStatusBar({ view, onNavigate, inBattle }) {
+export default function TopStatusBar({ view, onNavigate, onManagePlanet, inBattle }) {
   const [navOpen, setNavOpen] = useState(false)
   const conqueredNodeIds = useProgressStore((s) => s.conqueredNodeIds)
   const roster = useFleetStore((s) => s.roster)
@@ -51,7 +52,14 @@ export default function TopStatusBar({ view, onNavigate, inBattle }) {
               <button
                 key={item.key}
                 className={`app-topbar-drawer-btn${view === item.key ? ' active' : ''}`}
-                onClick={() => { onNavigate(item.key); setNavOpen(false) }}
+                onClick={() => {
+                  if (item.key === 'planet' && onManagePlanet) {
+                    onManagePlanet()
+                  } else {
+                    onNavigate(item.key)
+                  }
+                  setNavOpen(false)
+                }}
                 disabled={inBattle}
               >
                 {item.label}

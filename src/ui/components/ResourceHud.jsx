@@ -1,7 +1,7 @@
 import { useResourceStore } from '../../state/useResourceStore'
 import { useDataStore } from '../../state/useDataStore'
 
-const RESOURCE_ICONS = { sc: '💰', ti: '🔩', ec: '💎', dm: '🌑' }
+const RESOURCE_ICONS = { sc: '💰', ti: '🔩', ec: '💎', dm: '🌑', nc: '🧬', qd: '📡' }
 
 export default function ResourceHud({ sidebar = false, compact = false }) {
   const wallet = useResourceStore((s) => s.wallet)
