@@ -140,3 +140,21 @@ export function formatBuildingCost(cost) {
     .map(([k, v]) => `${COST_LABELS[k] ?? k} ${v}`)
     .join(' + ')
 }
+
+// config.overrides.buildings[id]를 base 정의에 deep-merge해 반환.
+// override가 없으면 BUILDINGS[id]를 그대로 반환(참조 공유 — 수정 금지).
+export function getEffectiveBuildingDef(id, config) {
+  const base = BUILDINGS[id]
+  if (!base) return null
+  const ov = config?.overrides?.buildings?.[id]
+  if (!ov || Object.keys(ov).length === 0) return base
+  const merged = { ...base }
+  for (const [key, val] of Object.entries(ov)) {
+    if (val !== null && typeof val === 'object' && !Array.isArray(val) && typeof base[key] === 'object') {
+      merged[key] = { ...base[key], ...val }
+    } else {
+      merged[key] = val
+    }
+  }
+  return merged
+}

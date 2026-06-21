@@ -18,27 +18,35 @@ export function manhattanDistance(a, b) {
   return Math.abs(a.x - b.x) + Math.abs(a.y - b.y)
 }
 
-// start에서 mov 칸 이내에 도달 가능한 칸들을 BFS로 구한다.
+// start에서 mov 이동력 이내에 도달 가능한 칸들을 다익스트라로 구한다.
 // isPassable(x, y)가 false인 칸은 통과·정지 모두 불가 (start 자신은 결과에서 제외).
-export function computeMovementRange(start, mov, isPassable) {
-  const visited = new Map([[cellKey(start.x, start.y), 0]])
-  let frontier = [start]
+// getCost(x, y): 해당 칸에 진입할 때 소모되는 이동력 (기본 1). 지형 AP 비용 적용 시 사용.
+export function computeMovementRange(start, mov, isPassable, getCost = () => 1) {
+  const startKey = cellKey(start.x, start.y)
+  const dist = new Map([[startKey, 0]])
+  // [costSoFar, x, y] 우선순위 큐 (배열 정렬로 구현)
+  const pq = [{ cost: 0, x: start.x, y: start.y }]
 
-  for (let step = 1; step <= mov && frontier.length > 0; step += 1) {
-    const next = []
-    for (const { x, y } of frontier) {
-      for (const n of neighborsOf(x, y)) {
-        const key = cellKey(n.x, n.y)
-        if (visited.has(key) || !isPassable(n.x, n.y)) continue
-        visited.set(key, step)
-        next.push(n)
+  while (pq.length > 0) {
+    pq.sort((a, b) => a.cost - b.cost)
+    const { cost, x, y } = pq.shift()
+
+    if (cost > (dist.get(cellKey(x, y)) ?? Infinity)) continue
+
+    for (const n of neighborsOf(x, y)) {
+      if (!isPassable(n.x, n.y)) continue
+      const newCost = cost + getCost(n.x, n.y)
+      if (newCost > mov) continue
+      const key = cellKey(n.x, n.y)
+      if (newCost < (dist.get(key) ?? Infinity)) {
+        dist.set(key, newCost)
+        pq.push({ cost: newCost, x: n.x, y: n.y })
       }
     }
-    frontier = next
   }
 
-  visited.delete(cellKey(start.x, start.y))
-  return [...visited.entries()].map(([key, cost]) => {
+  dist.delete(startKey)
+  return [...dist.entries()].map(([key, cost]) => {
     const [x, y] = key.split(',').map(Number)
     return { x, y, cost }
   })

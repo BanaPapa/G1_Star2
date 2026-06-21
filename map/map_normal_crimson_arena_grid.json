@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "id": "map_crimson_arena_grid",
+  "name": "Crimson Arena",
+  "background": "/__maps/file/Crimson%20Arena.png",
+  "imageSize": {
+    "width": 1672,
+    "height": 941
+  },
+  "grid": {
+    "type": "isometric",
+    "cols": 12,
+    "rows": 10,
+    "corners": {
+      "top": {
+        "x": 843.6475246177754,
+        "y": 37.09542024445645
+      },
+      "right": {
+        "x": 1651.223524617776,
+        "y": 469.9554202444565
+      },
+      "bottom": {
+        "x": 861.2035246177754,
+        "y": 893.4054202444565
+      },
+      "left": {
+        "x": 53.62752461777535,
+        "y": 460.5454202444564
+      }
+    }
+  },
+  "tiles": {
+    "default": "playable",
+    "overrides": {
+      "1,6": "spawn_player",
+      "2,6": "spawn_player",
+      "3,6": "spawn_player",
+      "1,7": "spawn_player",
+      "2,7": "spawn_player",
+      "3,7": "spawn_player",
+      "1,8": "void",
+      "2,8": "spawn_player",
+      "3,8": "spawn_player",
+      "8,1": "spawn_enemy",
+      "9,1": "void",
+      "8,2": "spawn_enemy",
+      "9,2": "spawn_enemy",
+      "8,3": "spawn_enemy",
+      "9,3": "spawn_enemy",
+      "7,1": "spawn_enemy",
+      "7,2": "spawn_enemy",
+      "7,3": "spawn_enemy",
+      "1,0": "void",
+      "2,0": "void",
+      "3,0": "void",
+      "4,0": "void",
+      "5,0": "void",
+      "6,0": "void",
+      "7,0": "void",
+      "8,0": "void",
+      "9,0": "void",
+      "10,0": "void",
+      "11,0": "void",
+      "11,1": "void",
+      "11,2": "void",
+      "11,3": "void",
+      "11,4": "void",
+      "11,5": "void",
+      "11,6": "void",
+      "11,7": "void",
+      "11,8": "void",
+      "11,9": "void",
+      "0,0": "void",
+      "0,1": "void",
+      "0,2": "void",
+      "0,3": "playable",
+      "0,4": "void",
+      "0,5": "void",
+      "0,6": "void",
+      "0,7": "void",
+      "0,8": "void",
+      "0,9": "void",
+      "1,9": "void",
+      "2,9": "void",
+      "3,9": "void",
+      "4,9": "playable",
+      "5,9": "playable",
+      "6,9": "playable",
+      "7,9": "playable",
+      "8,9": "void",
+      "9,9": "void",
+      "10,9": "void",
+      "1,1": "void",
+      "10,1": "spawn_enemy",
+      "10,8": "void",
+      "10,2": "spawn_enemy",
+      "10,3": "spawn_enemy"
+    }
+  },
+  "spawnZones": {
+    "player": [
+      {
+        "x": 1,
+        "y": 6
+      },
+      {
+        "x": 2,
+        "y": 6
+      },
+      {
+        "x": 3,
+        "y": 6
+      },
+      {
+        "x": 1,
+        "y": 7
+      },
+      {
+        "x": 2,
+        "y": 7
+      },
+      {
+        "x": 3,
+        "y": 7
+      },
+      {
+        "x": 2,
+        "y": 8
+      },
+      {
+        "x": 3,
+        "y": 8
+      }
+    ],
+    "enemy": [
+      {
+        "x": 8,
+        "y": 1
+      },
+      {
+        "x": 8,
+        "y": 2
+      },
+      {
+        "x": 9,
+        "y": 2
+      },
+      {
+        "x": 8,
+        "y": 3
+      },
+      {
+        "x": 9,
+        "y": 3
+      },
+      {
+        "x": 7,
+        "y": 1
+      },
+      {
+        "x": 7,
+        "y": 2
+      },
+      {
+        "x": 7,
+        "y": 3
+      },
+      {
+        "x": 10,
+        "y": 1
+      },
+      {
+        "x": 10,
+        "y": 2
+      },
+      {
+        "x": 10,
+        "y": 3
+      }
+    ],
+    "neutral": [],
+    "boss": []
+  },
+  "objects": [],
+  "metadata": {
+    "biome": "space_platform",
+    "difficulty": "standard"
+  }
+}

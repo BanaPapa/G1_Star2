@@ -145,40 +145,111 @@
   gap: 6px;
   z-index: 10;
 }
-.btl-act-btn {
+/* ── 미니맵(키맵) ── */
+.btl-minimap {
+  position: absolute;
+  top: 52px;
+  right: 10px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  z-index: 10;
+}
+.btl-minimap-frame {
+  position: relative;
+  width: 100%;
+  border: 1px solid rgba(120,150,220,0.5);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #05070f;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+.btl-minimap-img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0.85; }
+.btl-minimap-img--blank { background: linear-gradient(135deg, #0c1430, #1a1040); }
+.btl-minimap-view {
+  position: absolute;
+  border: 2px solid #ffd166;
+  background: rgba(255,209,102,0.12);
+  box-shadow: 0 0 8px rgba(255,209,102,0.5);
+  pointer-events: none;
+}
+.btl-minimap-toggle {
   font-family: var(--mono);
   font-size: 11px;
   font-weight: bold;
-  padding: 5px 10px;
+  padding: 5px 8px;
+  color: #aED6ff;
+  background: rgba(20,32,66,0.92);
+  border: 1px solid rgba(120,150,220,0.5);
   border-radius: 6px;
-  border: 1px solid rgba(255,255,255,0.15);
-  background: rgba(6,10,28,0.88);
-  color: var(--dim);
   cursor: pointer;
-  transition: all 0.15s;
-  backdrop-filter: blur(4px);
-  white-space: nowrap;
 }
-.btl-act-btn:hover:not(:disabled) {
-  border-color: rgba(255,255,255,0.35);
-  background: rgba(255,255,255,0.1);
-  color: var(--text);
+.btl-minimap-toggle:hover { background: rgba(40,60,110,0.95); color: #e6f0ff; }
+
+/* ── 좌측 플로팅 액션 버튼(호버 시 펼침) ── */
+.btl-fab-col { position: absolute; top: 58px; left: 10px; display: flex; flex-direction: column; gap: 8px; z-index: 12; }
+.btl-fab {
+  display: flex; align-items: center; overflow: hidden; height: 46px; width: 46px; padding: 0; cursor: pointer;
+  background: rgba(10,16,34,0.92); border: 1px solid var(--fab, #355a8c); border-radius: 10px; color: var(--fab, #cdd8f4);
+  font-family: var(--mono); transition: width 0.18s ease, background 0.18s ease;
 }
-.btl-act-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-.btl-act-btn--on { color: #7dffb0; border-color: rgba(125,255,176,0.5); background: rgba(125,255,176,0.1); }
-.btl-act-btn--flee { color: #4fb8ff; border-color: rgba(79,184,255,0.35); }
-.btl-act-btn--flee:hover:not(:disabled) { background: rgba(79,184,255,0.1); }
-.btl-act-btn--negotiate { color: #ffd166; border-color: rgba(255,209,102,0.35); }
-.btl-act-btn--negotiate:hover:not(:disabled) { background: rgba(255,209,102,0.08); }
-.btl-act-btn--endturn { color: #ff7043; border-color: rgba(255,112,67,0.5); }
-.btl-act-btn--endturn:hover:not(:disabled) { background: rgba(255,112,67,0.1); }
+.btl-fab:hover:not(:disabled) { width: 256px; background: rgba(20,32,66,0.97); }
+.btl-fab:disabled { opacity: 0.4; cursor: not-allowed; }
+.btl-fab--on { background: rgba(125,255,176,0.16); }
+.btl-fab-emoji { flex: 0 0 46px; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; font-size: 21px; }
+.btl-fab-info { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; text-align: left; opacity: 0; transition: opacity 0.18s ease; padding-right: 12px; }
+.btl-fab:hover .btl-fab-info { opacity: 1; }
+.btl-fab-info b { font-size: 13px; white-space: nowrap; }
+.btl-fab-info small { font-size: 11px; color: #9ab0e6; line-height: 1.2; white-space: normal; max-width: 195px; }
+
+/* ── 하단 함선 카드덱 ── */
+/* 중앙선 기준 좌(아군)/우(적군). 안쪽 기준선 = 중앙~화면끝 거리의 약 20% 지점(화면 40%/60%). */
+.btl-decks { position: absolute; left: 0; right: 0; bottom: 0; height: 200px; pointer-events: none; z-index: 8; }
+.btl-deck { position: absolute; bottom: 8px; height: 184px; pointer-events: none; width: 0; }
+.btl-deck--ally  { right: 60%; } /* 안쪽(약한 카드) 기준선 = 화면 좌측 40% 지점 */
+.btl-deck--enemy { left: 60%; }  /* 안쪽(약한 카드) 기준선 = 화면 우측 60% 지점 */
+.btl-card {
+  position: absolute; bottom: 0; width: 128px; height: 176px; pointer-events: auto; cursor: pointer;
+  background: linear-gradient(180deg, #0f1830, #0a0f20); border: 1px solid #2a3a5e; border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.5); padding: 6px; display: flex; flex-direction: column; gap: 4px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transform: translateY(calc(100% - 50px)); /* 평소엔 상단(이름)만 노출 */
+}
+.btl-card--ally { border-color: #2f6a60; }
+.btl-card--enemy { border-color: #6a2f3a; }
+.btl-card--raised { transform: translateY(-6px); } /* 호버/행동 중이면 카드 전체가 올라옴 */
+.btl-card--ally.btl-card--raised { border-color: #3ad6c4; box-shadow: 0 14px 30px rgba(58,214,196,0.4); }
+.btl-card--enemy.btl-card--raised { border-color: #e23b4e; box-shadow: 0 14px 30px rgba(226,59,78,0.4); }
+.btl-card--dead { opacity: 0.4; filter: grayscale(1); }
+.btl-card-head {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; height: 44px; flex: 0 0 auto;
+  background: rgba(0,0,0,0.32); border-radius: 5px;
+}
+.btl-card-emoji { font-size: 20px; line-height: 1; }
+.btl-card-name {
+  font-family: var(--mono); font-size: 12px; font-weight: 600; color: #e6ecff;
+  text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.btl-card-body { display: flex; flex-direction: column; gap: 3px; flex: 1 1 auto; min-height: 0; }
+.btl-card-ace { font-size: 10px; color: #ffd166; text-align: center; }
+.btl-card-hpbar, .btl-card-shbar { height: 6px; background: #1a2440; border-radius: 3px; overflow: hidden; }
+.btl-card-hpfill, .btl-card-shfill { height: 100%; }
+.btl-card-shfill { background: #4fb8ff; }
+.btl-card-stats { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: #aeb9dd; margin-top: 2px; }
+.btl-card-stats--sub { color: #7f8fc4; font-size: 10px; }
 
 /* ── 하단 카드 바 ── */
 .battle-bottom-bar {
   height: 90px;
   min-height: 90px;
-  width: 100%;
-  background: rgba(6,10,28,0.97);
+  /* 전투맵 위에 떠 있는 플로팅 바 — 캔버스가 상단 제외 전체 영역을 쓰도록 absolute로 띄운다. */
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(6,10,28,0.92);
   border-top: 1px solid var(--line);
   display: flex;
   align-items: center;
@@ -186,42 +257,7 @@
   gap: 0;
   flex-shrink: 0;
   overflow: visible;
-  position: relative;
   z-index: 5;
-}
-.btm-section {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.btm-sec-label {
-  font-family: var(--mono);
-  font-size: 9px;
-  font-weight: bold;
-  color: var(--dim);
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  line-height: 1;
-}
-.btm-cards-row {
-  display: flex;
-  gap: 5px;
-  align-items: center;
-}
-.btm-divider {
-  width: 1px;
-  height: 60px;
-  background: var(--line);
-  margin: 0 12px;
-  flex-shrink: 0;
-}
-.btm-loading {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--dim);
 }
 
 /* ── 카드 (유닛 / 지형) ── */
@@ -241,40 +277,6 @@
   transition: border-color 0.15s, background 0.15s, transform 0.15s;
   flex-shrink: 0;
 }
-.btm-card:hover {
-  transform: translateY(-6px);
-  border-color: rgba(79,184,255,0.5);
-  background: rgba(79,184,255,0.07);
-  z-index: 50;
-}
-.btm-card--dead {
-  opacity: 0.32;
-  filter: grayscale(1);
-}
-.btm-card--terrain:hover {
-  border-color: rgba(255,209,102,0.45);
-  background: rgba(255,209,102,0.05);
-}
-.btm-card-sprite {
-  font-size: 24px;
-  line-height: 1;
-}
-.btm-card-glyph {
-  font-size: 22px;
-  line-height: 1;
-  color: var(--text);
-}
-.btm-card-uname, .btm-card-tname {
-  font-family: var(--mono);
-  font-size: 8px;
-  color: var(--dim);
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 64px;
-  padding: 0 2px;
-}
 
 /* ── 호버 팝업 ── */
 .btm-popup {
@@ -293,66 +295,6 @@
   flex-direction: column;
   gap: 8px;
   pointer-events: none;
-}
-.btm-popup--ally  { border-color: rgba(58,214,196,0.55); }
-.btm-popup--enemy { border-color: rgba(226,59,78,0.55); }
-.btm-popup--terrain { border-color: rgba(255,209,102,0.4); width: 230px; }
-.btm-popup-name {
-  font-family: var(--mono);
-  font-size: 13px;
-  font-weight: bold;
-  color: var(--text);
-}
-.btm-popup-ace {
-  font-family: var(--kr);
-  font-size: 11px;
-  color: var(--dim);
-  margin-top: -4px;
-}
-.btm-popup-bars { display: flex; flex-direction: column; gap: 5px; }
-.btm-popup-bar-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.btm-popup-bar-lbl {
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: bold;
-  color: var(--dim);
-  width: 18px;
-  flex-shrink: 0;
-}
-.btm-popup-bar-track {
-  flex: 1;
-  height: 6px;
-  border-radius: 3px;
-  background: rgba(255,255,255,0.08);
-  overflow: hidden;
-}
-.btm-popup-bar-fill {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.3s;
-}
-.btm-popup-bar-val {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--dim);
-  width: 48px;
-  text-align: right;
-  flex-shrink: 0;
-}
-.btm-popup-effect {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: #ffd166;
-}
-.btm-popup-desc {
-  font-family: var(--kr);
-  font-size: 11px;
-  color: var(--dim);
-  line-height: 1.4;
 }
 
 /* ── 전투 사이드패널 (좌=아군 / 우=적군+조작) ── */

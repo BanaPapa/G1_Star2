@@ -9,6 +9,7 @@ import ShipStatsTab from './tabs/ShipStatsTab'
 import WeaponStatsTab from './tabs/WeaponStatsTab'
 import OverrideTab from './tabs/OverrideTab'
 import DebugExportTab from './tabs/DebugExportTab'
+import BattleMapEditorTab from './tabs/BattleMapEditorTab'
 import PriorityResolver from './PriorityResolver'
 import {
   COMBAT_RULES_SCHEMA, TERRAIN_RULES_SCHEMA, ATTACK_RULES_SCHEMA, DAMAGE_RULES_SCHEMA,
@@ -31,11 +32,13 @@ const TABS = [
   { id: 'resource', label: 'Resource Settings' },
   { id: 'enemy',    label: 'Enemy Scaling' },
   { id: 'priority', label: 'Priority Resolver' },
+  { id: 'mapeditor',label: 'Battle Map Editor' },
   { id: 'debug',    label: 'Debug / Export' },
 ]
 
-export default function SystemControlRoom({ onClose, inBattle }) {
-  const [tab, setTab] = useState('combat')
+export default function SystemControlRoom({ onClose, inBattle, initialTab = 'combat' }) {
+  const [tab, setTab] = useState(initialTab)
+  const [navCollapsed, setNavCollapsed] = useState(false)
   const dirty = useGameConfigStore((s) => s.dirty)
   const pendingScope = useGameConfigStore((s) => s.pendingScope)
   const save = useGameConfigStore((s) => s.save)
@@ -62,38 +65,52 @@ export default function SystemControlRoom({ onClose, inBattle }) {
       case 'resource': return <OverrideTab title="자원 설정" desc="resources.json 위에 override (이름/코드/생산량/드랍률)." overrideKey="resources" sourceData={data?.resources} sourceLabel="resources.json" />
       case 'enemy':    return <OverrideTab title="적 스케일링" desc="적 티어/보스 보정/전투력 스케일링 override." overrideKey="enemyScaling" sourceData={data?.enemies} sourceLabel="enemies.json" />
       case 'priority': return <PriorityResolver />
+      case 'mapeditor':return <BattleMapEditorTab />
       case 'debug':    return <DebugExportTab />
       default:         return null
     }
   }
 
   return (
-    <div className="scr-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
+    <div className="scr-overlay">
       <div className="scr-panel" role="dialog" aria-label="System Control Room">
         {/* 헤더 + 액션바 */}
         <header className="scr-header">
+          <button
+            className="scr-btn scr-nav-toggle"
+            onClick={() => setNavCollapsed((c) => !c)}
+            title={navCollapsed ? '메뉴 펼치기' : '메뉴 접기'}
+          >{navCollapsed ? '☰' : '◀'}</button>
           <div className="scr-title">
             <span className="scr-title-main">⚙ System Control Room</span>
             <span className="scr-title-sub">개발자 설정 관제실 · 전투 v1.0</span>
           </div>
           <div className="scr-actions">
-            <span className={`scr-scope${pendingScope === 'next' ? ' scr-scope--next' : ''}`}>
-              적용 범위: {pendingScope === 'next' ? '다음 전투' : '현재 전투'}
-            </span>
-            <button className={`scr-btn${dirty ? ' scr-btn--dirty' : ''}`} onClick={save} title="localStorage 저장">
-              💾 Save{dirty ? ' *' : ''}
-            </button>
-            <button className="scr-btn" onClick={() => exportJson()}>⬇ Export</button>
-            <button className="scr-btn" onClick={applyToCurrentBattle} disabled={!inBattle} title={inBattle ? '' : '전투 중에만'}>현재 전투 반영</button>
-            <button className="scr-btn" onClick={applyNextBattleOnly}>다음 전투만</button>
-            <button className="scr-btn scr-btn--danger" onClick={() => { if (window.confirm('기본값으로 초기화할까요?')) resetAll() }}>↺ Reset</button>
+            {/* Battle Map Editor는 자체 저장/Export를 쓰므로(게임 config 저장과 무관) 헤더 버튼을 숨긴다 */}
+            {tab !== 'mapeditor' && (
+              <>
+                <span className={`scr-scope${pendingScope === 'next' ? ' scr-scope--next' : ''}`}>
+                  적용 범위: {pendingScope === 'next' ? '다음 전투' : '현재 전투'}
+                </span>
+                <button className={`scr-btn${dirty ? ' scr-btn--dirty' : ''}`} onClick={save} title="localStorage 저장">
+                  💾 Save{dirty ? ' *' : ''}
+                </button>
+                <button className="scr-btn" onClick={() => exportJson()}>⬇ Export</button>
+                <button className="scr-btn" onClick={applyToCurrentBattle} disabled={!inBattle} title={inBattle ? '' : '전투 중에만'}>현재 전투 반영</button>
+                <button className="scr-btn" onClick={applyNextBattleOnly}>다음 전투만</button>
+                <button className="scr-btn scr-btn--danger" onClick={() => { if (window.confirm('기본값으로 초기화할까요?')) resetAll() }}>↺ Reset</button>
+              </>
+            )}
+            {tab === 'mapeditor' && (
+              <span className="scr-scope">맵 저장은 좌측 패널에서 (게임 config와 별개)</span>
+            )}
             <button className="scr-btn scr-btn--close" onClick={onClose} title="닫기 (Esc)">✕</button>
           </div>
         </header>
 
         <div className="scr-body">
-          {/* 탭 내비 */}
-          <nav className="scr-tabs">
+          {/* 탭 내비 (접기 가능) */}
+          <nav className={`scr-tabs${navCollapsed ? ' scr-tabs--collapsed' : ''}`}>
             {TABS.map((t) => (
               <button
                 key={t.id}

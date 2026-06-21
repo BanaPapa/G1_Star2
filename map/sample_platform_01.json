@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "sample_platform_01",
+  "name": "샘플 플랫폼 01",
+  "background": "",
+  "imageSize": { "width": 2560, "height": 1440 },
+  "grid": {
+    "type": "isometric",
+    "cols": 16,
+    "rows": 12,
+    "corners": {
+      "top": { "x": 1280, "y": 144 },
+      "right": { "x": 2355, "y": 720 },
+      "bottom": { "x": 1280, "y": 1296 },
+      "left": { "x": 205, "y": 720 }
+    }
+  },
+  "tiles": {
+    "default": "playable",
+    "overrides": {
+      "2,5": "spawn_player", "2,6": "spawn_player", "3,5": "spawn_player",
+      "13,5": "spawn_enemy", "13,6": "spawn_enemy", "12,6": "spawn_enemy",
+      "7,3": "blocked", "8,3": "blocked", "7,8": "blocked", "8,8": "blocked",
+      "0,0": "void", "15,0": "void", "0,11": "void", "15,11": "void"
+    }
+  },
+  "spawnZones": {
+    "player": [{ "x": 2, "y": 5 }, { "x": 2, "y": 6 }, { "x": 3, "y": 5 }],
+    "enemy": [{ "x": 13, "y": 5 }, { "x": 13, "y": 6 }, { "x": 12, "y": 6 }],
+    "neutral": [],
+    "boss": []
+  },
+  "objects": [],
+  "metadata": { "biome": "space_platform", "difficulty": "standard" }
+}

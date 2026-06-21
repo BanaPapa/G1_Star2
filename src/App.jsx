@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useDataStore } from './state/useDataStore'
 import { useSettingsStore } from './state/useSettingsStore'
+import { useMapStore } from './state/useMapStore'
 import { soundManager } from './core/soundManager'
 import LoadingScreen from './ui/screens/LoadingScreen'
 import TitleScreen from './ui/screens/TitleScreen'
@@ -37,11 +38,30 @@ function App() {
   const [activeNodeId, setActiveNodeId] = useState(null)
   const [planetNodeId, setPlanetNodeId] = useState(null)
   const [devRoomOpen, setDevRoomOpen] = useState(false)
+  const [devRoomTab, setDevRoomTab] = useState('combat')
+  const [mockBattle, setMockBattle] = useState(false)
+  const [battleCategory, setBattleCategory] = useState(null)
+  const viewRef = useRef(view)
+  useEffect(() => { viewRef.current = view }, [view])
 
   function navigate(next) {
     setPrevView(view)
     setView(next)
   }
+
+  // 에디터 "모의 전투" — testBattleMap이 설정되면(스토어 구독) 관제실을 닫고 테스트 전투로 진입.
+  useEffect(() => useMapStore.subscribe((state, prev) => {
+    // mockNonce가 바뀌면(=모의 전투 버튼을 눌렀으면) 같은 맵이어도 항상 재진입한다.
+    if (!state.testBattleMap || state.mockNonce === prev.mockNonce) return
+    const sys = useDataStore.getState().data?.systems?.systems ?? []
+    const node = sys.find((s) => s.role !== 'home') ?? sys[0]
+    setDevRoomOpen(false)
+    setMockBattle(true)
+    setBattleCategory(null)
+    setActiveNodeId(node?.id ?? null)
+    setPrevView(viewRef.current)
+    setView('battle')
+  }), [viewRef])
 
   useEffect(() => { init() }, [init])
 
@@ -79,13 +99,24 @@ function App() {
   function handleSettings()  { navigate('save') }
   function handleGameOver()  { navigate('gameover') }
 
-  function handleEnterBattle(nodeId) {
+  function handleEnterBattle(nodeId, category = null) {
     setActiveNodeId(nodeId)
+    setBattleCategory(category)
+    setMockBattle(false)
     navigate('battle')
   }
 
   function handleExitBattle() {
     setActiveNodeId(null)
+    if (mockBattle) {
+      // 모의 전투는 테스트 — 끝나면 메인맵이 아니라 에디터(관제실)로 복귀한다.
+      setMockBattle(false)
+      useMapStore.getState().clearTestBattleMap()
+      setView(prevView ?? 'map')
+      setDevRoomTab('mapeditor')
+      setDevRoomOpen(true)
+      return
+    }
     navigate('map')
   }
 
@@ -137,7 +168,7 @@ function App() {
             )}
 
             {view === 'battle' && (
-              <BattleScreen nodeId={activeNodeId} onExit={handleExitBattle} onEnding={handleEnding} onGameOver={handleGameOver} />
+              <BattleScreen nodeId={activeNodeId} mock={mockBattle} battleCategory={battleCategory} onExit={handleExitBattle} onEnding={handleEnding} onGameOver={handleGameOver} />
             )}
 
             {view === 'ending' && <EndingScreen onRestart={() => window.location.reload()} />}
@@ -166,7 +197,7 @@ function App() {
 
       {/* 개발자 설정 관제실 — F9 / 백틱(`) / ⚙ 버튼으로 토글. 어느 화면에서나 접근 가능. */}
       {devRoomOpen && (
-        <SystemControlRoom onClose={() => setDevRoomOpen(false)} inBattle={inBattle} />
+        <SystemControlRoom onClose={() => setDevRoomOpen(false)} inBattle={inBattle} initialTab={devRoomTab} />
       )}
     </>
   )

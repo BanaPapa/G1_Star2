@@ -22,7 +22,9 @@ function freshEntry({ instanceId, shipId, aceId }) {
     xp: 0,
     statGrowth: { hp: 0, atk: 0, def: 0, acc: 0, eva: 0 },
     promoted: false,
-    equipment: { weapon: null, module: null },
+    equipment: { weapon: null, weapon2: null, module: null },
+    currentShield: null,  // null = 최대치(전투 시작 시 초기화). number = 이전 전투 종료 시 남은 방어막.
+    isCaptured: false,    // true = 투항 포획 함선
   }
 }
 
@@ -55,6 +57,22 @@ export const useFleetStore = create((set, get) => ({
 
   removeFromRoster: (instanceId) => {
     set((state) => ({ roster: state.roster.filter((e) => e.instanceId !== instanceId) }))
+  },
+
+  // 전투 종료 시 방어막 이월값 저장 (승리·도주 시 호출).
+  saveShields: (shieldMap) => {
+    set((state) => ({
+      roster: state.roster.map((e) =>
+        shieldMap[e.instanceId] !== undefined ? { ...e, currentShield: shieldMap[e.instanceId] } : e,
+      ),
+    }))
+  },
+
+  // 투항 포획 함선 추가 — buyShip과 달리 비용 없이 레벨 1로 편성에 추가.
+  addCapturedShip: ({ instanceId, shipId }) => {
+    const entry = freshEntry({ instanceId, shipId, aceId: null })
+    entry.isCaptured = true
+    set((state) => ({ roster: [...state.roster, entry] }))
   },
 
   // 전투 승리 보상 — instanceId 유닛에 XP를 가산하고 필요한 만큼 레벨업까지 처리한다.
@@ -107,14 +125,18 @@ export const useFleetStore = create((set, get) => ({
   },
 
   // 함대 전체에서 해당 아이템을 장착 중인 수 — "보유 수량보다 많이 장착할 수 없다" 판정에 쓰인다.
-  equippedCount: (itemId) => get().roster.filter((e) => e.equipment.weapon === itemId || e.equipment.module === itemId).length,
+  equippedCount: (itemId) => get().roster.filter((e) =>
+    e.equipment.weapon === itemId || e.equipment.weapon2 === itemId || e.equipment.module === itemId
+  ).length,
 
   // 장착 가능 여부 — slot 일치 + 함선 클래스 적합성(fit) + 여분 보유(같은 아이템을 이미 장착 중인
   // 다른 함선이 있어도, 보유 수량이 더 있다면 추가로 장착할 수 있다).
+  // weapon2 슬롯은 무기 아이템(item.slot === 'weapon')을 장착할 수 있다.
   canEquip: (itemId, instanceId, slot) => {
     const entry = get().roster.find((e) => e.instanceId === instanceId)
     const item = getItemById(itemId)
-    if (!entry || !item || item.slot !== slot) return false
+    const effectiveSlot = slot === 'weapon2' ? 'weapon' : slot
+    if (!entry || !item || item.slot !== effectiveSlot) return false
     if (!fitsClass(item, entry.shipId)) return false
     if (entry.equipment[slot] === itemId) return false // 이미 장착 중
 

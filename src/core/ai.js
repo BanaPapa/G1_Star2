@@ -35,17 +35,20 @@ export function pickTarget(attacker, candidates, counterMultiplierTable) {
 }
 
 export function inAttackRange(unit, target) {
-  const [minRng, maxRng] = unit.ship.rng
+  const [minRng, baseMaxRng] = unit.ship.rng
+  const rangeBonus = unit.weaponRangeBonus ?? 0
+  const maxRng = Math.max(minRng, baseMaxRng + rangeBonus)
   const distance = manhattanDistance({ x: unit.gridX, y: unit.gridY }, { x: target.gridX, y: target.gridY })
   return distance >= minRng && distance <= maxRng
 }
 
 // target을 공격하기 위해 이동할 칸을 고른다. 반환값이 현재 위치와 같으면 "이동 불필요/불가".
-export function planApproach(unit, target, isPassable) {
+// getCost(x, y): 지형 이동 비용 함수 (없으면 균등 1).
+export function planApproach(unit, target, isPassable, getCost = () => 1) {
   const here = { x: unit.gridX, y: unit.gridY, cost: 0 }
   // 한 칸 이동에 AP 1을 소모하므로, 이번 행동에서 갈 수 있는 거리는 MOV와 남은 AP 중 더 작은 쪽이다.
   const moveRange = Math.min(unit.ship.mov, unit.ap)
-  const reachable = [here, ...computeMovementRange(here, moveRange, isPassable)]
+  const reachable = [here, ...computeMovementRange(here, moveRange, isPassable, getCost)]
   const [minRng, maxRng] = unit.ship.rng
   const targetPos = { x: target.gridX, y: target.gridY }
 

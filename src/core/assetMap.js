@@ -6,6 +6,12 @@ const ASSET_BASE = '/assets/'
 
 // 키 접두사를 검사하는 순서가 중요하다 — 더 구체적인 규칙을 먼저 둔다.
 const EMOJI_RULES = [
+  // hull_ 방향별 스프라이트 — PNG가 없을 때 이모지로 폴백
+  [/^hull_gunship/, '🛸'],
+  [/^hull_frigate/, '🚀'],
+  [/^hull_cruiser/, '🚢'],
+  [/^hull_/, '✈️'],
+
   [/^unit_gunship/, '🛸'],
   [/^unit_frigate/, '🚀'],
   [/^unit_cruiser/, '🚢'],

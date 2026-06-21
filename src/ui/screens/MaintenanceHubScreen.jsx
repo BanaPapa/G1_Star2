@@ -4,6 +4,7 @@ import { useResourceStore } from '../../state/useResourceStore'
 import { useResearchStore } from '../../state/useResearchStore'
 import { useFleetStore } from '../../state/useFleetStore'
 import { useDevelopmentStore } from '../../state/useDevelopmentStore'
+import { useGameConfigStore } from '../../state/useGameConfigStore'
 import AssetImage from '../components/AssetImage'
 import './MaintenanceHubScreen.css'
 
@@ -302,15 +303,34 @@ export default function MaintenanceHubScreen() {
   const ships = useDataStore((s) => s.data?.ships?.ships)
   const wallet = useResourceStore((s) => s.wallet)
 
+  const researchOverride = useGameConfigStore((s) => s.config.overrides?.research) ?? {}
+  const resourcesOverride = useGameConfigStore((s) => s.config.overrides?.resources) ?? {}
+
   if (!research || !items || !shops || !resources || !ships) return null
 
-  const resourcesById = new Map(resources.map((r) => [r.id, r]))
+  // override.research[id] = { cost, prereq, ... } — shallow-merge onto each node.
+  const effectiveResearch = Object.keys(researchOverride).length === 0
+    ? research
+    : research.map((node) => {
+        const ov = researchOverride[node.id]
+        return ov ? { ...node, ...ov } : node
+      })
+
+  // override.resources[id] = { name, icon, ... } — shallow-merge metadata only.
+  const effectiveResources = Object.keys(resourcesOverride).length === 0
+    ? resources
+    : resources.map((r) => {
+        const ov = resourcesOverride[r.id]
+        return ov ? { ...r, ...ov } : r
+      })
+
+  const resourcesById = new Map(effectiveResources.map((r) => [r.id, r]))
   const shipsById = new Map(ships.map((s) => [s.id, s]))
   const itemsById = new Map(['weapons', 'modules', 'consumables', 'uniques'].flatMap((cat) => items[cat] ?? []).map((i) => [i.id, i]))
 
   return (
     <div className="hub-screen">
-      <ResourceBar resources={resources} wallet={wallet} />
+      <ResourceBar resources={effectiveResources} wallet={wallet} />
 
       <div className="hub-tabs">
         {TABS.map((t) => (
@@ -321,11 +341,11 @@ export default function MaintenanceHubScreen() {
       </div>
 
       {tab === 'research' && (
-        <ResearchTab research={research} synergies={synergies} resourcesById={resourcesById} itemsById={itemsById} shipsById={shipsById} />
+        <ResearchTab research={effectiveResearch} synergies={synergies} resourcesById={resourcesById} itemsById={itemsById} shipsById={shipsById} />
       )}
       {tab === 'shop' && <ShopTab shops={shops} itemsById={itemsById} />}
       {tab === 'craft' && (
-        <CraftTab recipes={items.recipes ?? []} research={research} itemsById={itemsById} resourcesById={resourcesById} />
+        <CraftTab recipes={items.recipes ?? []} research={effectiveResearch} itemsById={itemsById} resourcesById={resourcesById} />
       )}
     </div>
   )

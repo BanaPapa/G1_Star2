@@ -1,0 +1,264 @@
+/* Battle Map Editor 레이아웃 — 관제실 탭 내부 3분할(좌 패널 / 중앙 캔버스 / 우 패널) */
+/* 메뉴는 왼쪽 한 열(위/아래로 분할)에 모으고, 캔버스가 오른쪽 전체를 차지해 작업공간을 최대화한다. */
+.bme {
+  height: 100%;
+  min-height: 560px;
+  font-family: 'Share Tech Mono', monospace;
+  color: #cdd8f4;
+}
+
+/* 작업영역 전체 = 캔버스 + 모든 플로팅 패널의 기준 컨테이너(position: relative) */
+.bme-center { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; }
+
+.bme-sec {
+  background: #121a30;
+  border: 1px solid #25304e;
+  border-radius: 6px;
+  padding: 8px;
+}
+.bme-sec-title {
+  font-size: 14px;
+  color: #7f8fc4;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+/* 접을 수 있는 섹션 헤더 */
+.bme-sec-head {
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; user-select: none; margin-bottom: 6px;
+}
+.bme-sec-head .bme-sec-title { margin-bottom: 0; }
+.bme-sec-head:hover .bme-sec-title { color: #aebbe6; }
+.bme-sec-extra { display: flex; align-items: center; }
+.bme-sec-body { display: flex; flex-direction: column; gap: 0; }
+
+.bme-current { font-size: 13px; color: #cdd8f4; margin-bottom: 6px; }
+.bme-current b { color: #defff7; }
+.bme-btn--load { background: #1d3350; border-color: #355a8c; color: #bcd6ff; }
+.bme-btn--load:hover { background: #25406a; }
+.bme-btn--accent { background: #112824; border-color: #3f9a8c; color: #7dffe0; }
+.bme-btn--accent:hover { background: #163530; }
+
+.bme-maplist { width: 100%; background: #0c1326; color: #cdd8f4; border: 1px solid #25304e; border-radius: 4px; font-family: inherit; font-size: 14px; }
+
+.bme-row { display: flex; gap: 4px; margin-top: 6px; }
+.bme-field { display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: #8fa3d6; margin-top: 6px; }
+.bme-field--sm { flex: 1; }
+.bme-field input, .bme-field select, .bme-mini-sel {
+  background: #0c1326; color: #cdd8f4; border: 1px solid #25304e; border-radius: 4px;
+  padding: 4px 6px; font-family: inherit; font-size: 14px;
+}
+.bme-file {
+  display: block; margin-top: 6px; font-size: 13px; color: #8fa3d6;
+  background: #0c1326; border: 1px dashed #34406a; border-radius: 4px; padding: 6px; cursor: pointer; text-align: center;
+}
+.bme-res-row { display: flex; gap: 8px; margin-top: 4px; }
+.bme-res-row label { flex: 1; display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8fa3d6; }
+.bme-res-row input { width: 100%; }
+.bme-res-presets { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.bme-res-preset {
+  background: #142042; color: #aebbe6; border: 1px solid #2c3a60; border-radius: 4px;
+  padding: 4px 8px; font-family: inherit; font-size: 12px; cursor: pointer;
+}
+.bme-res-preset:hover { background: #1d2c54; color: #e6ecff; }
+.bme-file input { display: none; }
+
+.bme-btn {
+  flex: 1; background: #1b2747; color: #cdd8f4; border: 1px solid #2f3d62; border-radius: 4px;
+  padding: 6px 8px; font-family: inherit; font-size: 14px; cursor: pointer;
+}
+.bme-btn:hover { background: #243463; }
+.bme-btn--wide { width: 100%; margin-top: 6px; }
+.bme-btn--danger { border-color: #5a2230; color: #ff9aa8; }
+.bme-btn--danger:hover { background: #3a1820; }
+.bme-btn--save.bme-btn--dirty { border-color: #b8902f; color: #ffd166; }
+
+.bme-presets { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+.bme-chip { background: #1b2747; color: #9ab0e6; border: 1px solid #2f3d62; border-radius: 10px; padding: 2px 8px; font-size: 13px; cursor: pointer; }
+.bme-chip:hover { background: #243463; }
+
+/* 2중 툴바 — 두 줄로 모든 도구 노출(스크롤 없음) */
+.bme-toolbar { display: flex; flex-direction: column; gap: 6px; padding: 6px 8px; background: #121a30; border: 1px solid #25304e; border-radius: 6px; margin-bottom: 6px; }
+.bme-toolbar-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.bme-modes { display: flex; gap: 4px; }
+.bme-mode { background: #1b2747; color: #9ab0e6; border: 1px solid #2f3d62; border-radius: 4px; padding: 6px 10px; font-family: inherit; font-size: 14px; cursor: pointer; }
+.bme-mode--active { background: #2c6f64; color: #defff7; border-color: #3f9a8c; }
+.bme-toolgroup { display: flex; align-items: center; gap: 3px; padding-left: 8px; border-left: 1px solid #25304e; }
+.bme-tg-label { font-size: 12px; color: #6b7aa8; margin-right: 2px; }
+.bme-tbtn { background: #1b2747; color: #cdd8f4; border: 1px solid #2f3d62; border-radius: 4px; padding: 4px 6px; font-family: inherit; font-size: 13px; cursor: pointer; }
+.bme-tbtn:hover { background: #243463; }
+/* 이모지 아이콘 버튼 — 2배 크게(눈에 잘 띄도록) */
+.bme-tbtn--ico { font-size: 26px; line-height: 1; padding: 2px 9px; }
+
+
+/* 불러오기 모달 — 섹션 구분 */
+.bme-picker-tabs { display: flex; gap: 6px; padding: 8px 14px 0; flex-wrap: wrap; }
+.bme-picker-tab {
+  font-family: inherit; font-size: 13px; padding: 6px 14px; cursor: pointer;
+  background: #131d38; color: #9fb0dd; border: 1px solid #28355a; border-bottom: none;
+  border-radius: 6px 6px 0 0;
+}
+.bme-picker-tab:hover { background: #1b2747; color: #d6e2ff; }
+.bme-picker-tab--on { background: #2c6f64; color: #defff7; border-color: #3f9a8c; font-weight: bold; }
+.bme-picker-tabn { opacity: 0.7; font-size: 11px; }
+.bme-picker-body { flex: 1; overflow-y: auto; padding: 8px 14px 14px; border-top: 1px solid #28355a; }
+.bme-picker-section { font-size: 13px; color: #7f8fc4; margin: 12px 2px 8px; text-transform: none; border-bottom: 1px solid #1f2a44; padding-bottom: 4px; }
+.bme-picker-body .bme-picker-grid { overflow: visible; padding: 0; }
+.bme-tbtn--on { background: #2c6f64; color: #defff7; border-color: #3f9a8c; }
+.bme-tbtn--run { background: rgba(200,80,224,0.16); color: #e9b6ff; border-color: rgba(200,80,224,0.55); font-weight: bold; }
+.bme-tbtn--run:hover { background: rgba(200,80,224,0.3); }
+.bme-tbtn--save { background: rgba(63,154,140,0.18); color: #9af0e2; border-color: rgba(63,154,140,0.6); font-weight: bold; }
+.bme-tbtn--save:hover { background: rgba(63,154,140,0.32); }
+.bme-tbtn--apply { background: rgba(255,209,102,0.16); color: #ffd98a; border-color: rgba(255,209,102,0.55); font-weight: bold; }
+.bme-tbtn--apply:hover { background: rgba(255,209,102,0.3); }
+.bme-tg-sep { width: 1px; align-self: stretch; margin: 2px 4px; background: #2f3d62; }
+
+/* ── 맵 적용(전투 배정) 모달 — 3단 드래그 ── */
+.bme-apply {
+  width: 86vw; height: 62vh; max-height: 92vh;
+  display: flex; flex-direction: column;
+  background: #0e1426; border: 1px solid #2f3d62; border-radius: 10px;
+  box-shadow: 0 0 60px rgba(255,209,102,0.12); overflow: hidden;
+}
+.bme-apply-cols { flex: 1; display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 10px; padding: 12px; overflow: hidden; }
+.bme-apply-col { display: flex; flex-direction: column; background: #0a0f1f; border: 1px solid #232f4e; border-radius: 8px; overflow: hidden; }
+.bme-apply-coltitle { padding: 8px 10px; font-size: 13px; color: #aeb9dd; border-bottom: 1px solid #232f4e; background: #111a30; }
+.bme-apply-coltitle small { color: #6b7aa8; }
+.bme-apply-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.bme-apply-item {
+  display: flex; align-items: center; gap: 8px; padding: 5px 8px; cursor: grab;
+  background: #16213c; border: 1px solid #2a3a5e; border-radius: 6px; color: #cdd8f4; font-size: 13px;
+}
+.bme-apply-item:hover { background: #1d2c50; }
+.bme-apply-item--dim { opacity: 0.5; cursor: default; }
+.bme-apply-thumb { width: 40px; height: 24px; object-fit: cover; border-radius: 3px; background: #05070f; flex: none; }
+.bme-apply-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bme-apply-types { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+.bme-apply-type { flex: 1; display: flex; flex-direction: column; background: #0a0f1f; border: 1px dashed #3a4a72; border-radius: 8px; min-height: 64px; }
+.bme-apply-typetitle { padding: 6px 10px; font-size: 13px; font-weight: bold; color: #ffd98a; border-bottom: 1px solid #232f4e; }
+.bme-apply-typelist { flex: 1; padding: 6px; display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
+.bme-apply-typelist .bme-apply-item { flex: 0 0 auto; }
+.bme-apply-typelist .bme-note { width: 100%; text-align: center; opacity: 0.5; }
+
+/* ── 테스트할 맵 선택 모달 ── */
+.bme-test { width: 560px; max-width: 92vw; max-height: 80vh; display: flex; flex-direction: column;
+  background: #0e1426; border: 1px solid #2f3d62; border-radius: 10px; box-shadow: 0 0 60px rgba(200,80,224,0.14); overflow: hidden; }
+.bme-test-body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.bme-test-cur { text-align: left; padding: 12px 14px; font-family: inherit; font-size: 14px; cursor: pointer;
+  background: rgba(200,80,224,0.16); color: #e9b6ff; border: 1px solid rgba(200,80,224,0.55); border-radius: 8px; }
+.bme-test-cur:hover { background: rgba(200,80,224,0.3); }
+.bme-test-cur b { color: #fff; }
+.bme-test-sec { font-size: 13px; color: #8fa3d6; margin-top: 6px; border-top: 1px solid #232f4e; padding-top: 8px; }
+.bme-test-grp { display: flex; flex-direction: column; gap: 4px; }
+.bme-test-grptitle { font-size: 12px; color: #ffd98a; }
+.bme-test-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.bme-test-item { display: flex; align-items: center; gap: 8px; padding: 5px 8px; cursor: pointer;
+  background: #16213c; border: 1px solid #2a3a5e; border-radius: 6px; color: #cdd8f4; font-size: 13px; }
+.bme-test-item:hover { background: #1d2c50; }
+.bme-color { width: 26px; height: 22px; padding: 0; border: 1px solid #2f3d62; border-radius: 4px; background: #0c1326; cursor: pointer; }
+.bme-mini-sel { font-size: 13px; }
+.bme-toggle { font-size: 13px; color: #8fa3d6; display: flex; align-items: center; gap: 3px; cursor: pointer; }
+
+/* 캔버스 */
+.bme-canvas-wrap { position: relative; flex: 1; min-height: 360px; background: #0a0e1c; border: 1px solid #25304e; border-radius: 6px; overflow: hidden; }
+.bme-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.bme-hint { position: absolute; top: 6px; left: 8px; right: 8px; font-size: 13px; color: #8fa3d6; background: rgba(10,14,28,0.7); padding: 4px 8px; border-radius: 4px; pointer-events: none; }
+
+/* 브러시 */
+.bme-brushes { display: flex; flex-direction: column; gap: 4px; }
+.bme-brush { display: flex; align-items: center; gap: 8px; background: #1b2747; color: #cdd8f4; border: 1px solid #2f3d62; border-radius: 4px; padding: 5px 8px; font-family: inherit; font-size: 14px; cursor: pointer; text-align: left; }
+.bme-brush--active { border-color: #4fb8ff; background: #1f3050; }
+.bme-brush-sw { width: 14px; height: 14px; border-radius: 3px; border: 1px solid #0a0e1c; flex-shrink: 0; }
+
+/* 오브젝트 팔레트 */
+.bme-obj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.bme-obj-item { display: flex; flex-direction: column; align-items: center; gap: 2px; background: #1b2747; border: 1px solid #2f3d62; border-radius: 4px; padding: 6px 4px; cursor: pointer; color: #cdd8f4; }
+.bme-obj-item--armed { border-color: #ffd166; background: #2a2a18; }
+.bme-obj-emoji { font-size: 22px; }
+.bme-obj-name { font-size: 11px; color: #8fa3d6; }
+.bme-objprop { font-size: 14px; margin: 4px 0; }
+
+.bme-note { font-size: 12px; color: #6b7aa8; margin-top: 6px; line-height: 1.4; }
+
+
+
+/* ── 맵 불러오기 모달 (80vw, 16:9) ── */
+.bme-picker-overlay {
+  position: fixed; inset: 0; z-index: 9500;
+  background: rgba(2, 4, 14, 0.72); backdrop-filter: blur(2px);
+  display: flex; align-items: center; justify-content: center;
+}
+.bme-picker {
+  width: 80vw; height: 45vw; max-height: 92vh;
+  display: flex; flex-direction: column;
+  background: #0e1426; border: 1px solid #2f3d62; border-radius: 10px;
+  box-shadow: 0 0 60px rgba(58,214,196,0.12); overflow: hidden;
+}
+.bme-picker-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid #25304e;
+  background: linear-gradient(180deg, rgba(58,214,196,0.06), transparent);
+}
+.bme-picker-title { font-size: 15px; color: #3ad6c4; }
+.bme-picker-grid {
+  flex: 1; overflow-y: auto; padding: 14px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; align-content: start;
+}
+.bme-picker-card {
+  display: flex; flex-direction: column; gap: 4px;
+  background: #141c30; border: 1px solid #2f3d62; border-radius: 8px;
+  padding: 8px; cursor: pointer; color: #cdd8f4; text-align: left;
+  transition: border-color 0.12s, background 0.12s;
+}
+.bme-picker-card:hover { border-color: #4fb8ff; background: #1a2540; }
+.bme-picker-card--current { border-color: #3ad6c4; }
+.bme-thumb-canvas { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 4px; background: #0a0e1c; display: block; }
+.bme-picker-name { font-size: 14px; color: #defff7; }
+.bme-picker-meta { font-size: 12px; color: #7f8fc4; }
+
+/* 툴바 그룹 첫 항목은 좌측 구분선 제거 */
+.bme-toolgroup--first { border-left: none; padding-left: 0; }
+/* 강조 파일 업로드(이미지로 새 맵) */
+.bme-file--accent { border-color: #3f9a8c; color: #7dffe0; background: #112824; margin-top: 8px; }
+.bme-file--accent:hover { background: #163530; }
+
+/* ── 플로팅 팔레트(포토샵식) ── */
+.bme-fp {
+  position: absolute; z-index: 40; width: 234px; max-height: 70%;
+  display: flex; flex-direction: column;
+  background: rgba(16,22,46,0.96); border: 1px solid #355a8c; border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+}
+.bme-fp-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 8px; cursor: move; user-select: none;
+  background: linear-gradient(180deg, rgba(79,184,255,0.16), rgba(79,184,255,0.04));
+  border-bottom: 1px solid #25304e; border-radius: 8px 8px 0 0;
+}
+.bme-fp-title { font-size: 13px; color: #bcd6ff; flex: 1; }
+.bme-fp-x { background: none; border: none; color: #7f8fc4; cursor: pointer; font-size: 13px; padding: 0 2px; }
+.bme-fp-x:hover { color: #ff9aa8; }
+.bme-fp-fold { background: none; border: none; color: #7f8fc4; cursor: pointer; font-size: 13px; padding: 0 4px 0 0; }
+.bme-fp-fold:hover { color: #bcd6ff; }
+.bme-fp-body { padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.bme-fp-block { border-top: 1px solid #1f2a44; padding-top: 6px; display: flex; flex-direction: column; }
+.bme-fp-block:first-child { border-top: none; padding-top: 0; }
+
+/* ── 캔버스 4변 줄 추가/삭제 버튼 — 각 경계선(대각선)을 따라 배치(left/top·--erot은 JS가 설정) ── */
+.bme-edge { position: absolute; z-index: 30; display: flex; flex-direction: row; gap: 6px; pointer-events: none; transform: translate(-50%, -50%) rotate(var(--erot, 0deg)); }
+/* 컨테이너는 변 각도로 회전하지만 버튼 글리프는 역회전해 똑바로 유지 */
+.bme-edge .bme-edge-btn { transform: rotate(calc(-1 * var(--erot, 0deg))); }
+.bme-edge-btn {
+  pointer-events: auto;
+  width: 34px; height: 34px; font-size: 20px; line-height: 1;
+  background: rgba(28,40,71,0.85); color: #9ad0ff; border: 1px solid #3f5e96; border-radius: 8px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.bme-edge-btn:hover { background: rgba(45,72,128,0.95); color: #defff7; }
+.bme-edge-btn--minus { color: #ff9aa8; border-color: #6a3a44; }
+.bme-edge-btn--minus:hover { background: rgba(58,24,32,0.95); }

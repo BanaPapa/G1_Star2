@@ -342,6 +342,7 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver, onManageP
   const eventModalRef = useRef(null)
   // battlePendingRef: 전투 진입 대기 여부를 키 입력 핸들러에서 참조 (deps 없이)
   const battlePendingRef = useRef(null)
+  const pendingCategoryRef = useRef('space_normal') // battlePending 전투의 카테고리
   // summaryBattleRef: 근접 조우 useEffect에서 stale closure 없이 최신값 읽기 위한 ref
   const summaryBattleRef = useRef(summaryBattle)
   // 함대 자동 이동용 refs
@@ -602,7 +603,7 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver, onManageP
   useEffect(() => {
     if (!battlePending) return
     const t = setTimeout(() => {
-      onEnterBattle(battlePending)
+      onEnterBattle(battlePending, pendingCategoryRef.current)
       setBattlePending(null)
     }, 600)
     return () => clearTimeout(t)
@@ -628,6 +629,7 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver, onManageP
           handleSummaryBattle(hit.nodeRef, false)
         } else {
           showAlert('⚔️ 적 함대 발견! 전투 개시!')
+          pendingCategoryRef.current = hit.tier === 'elite' ? 'space_elite' : 'space_normal'
           setBattlePending(hit.nodeRef)
         }
         return
@@ -645,6 +647,7 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver, onManageP
         } else {
           const node = systems.find(s => s.id === bossHit.nodeRef)
           showAlert(`👹 ${node?.name ?? '별계'} 수호자와 조우! 정복 전투 개시!`)
+          pendingCategoryRef.current = 'planet_boss'
           setBattlePending(bossHit.nodeRef)
         }
         return
@@ -1193,14 +1196,15 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver, onManageP
   }
 
   function handleEnterNode(node) {
+    const cat = node.miniboss ? 'planet_boss' : 'planet_normal'
     if (!eventsData?.eventWeights) {
       if (summaryBattle) { handleSummaryBattle(node.id, true); return }
-      onEnterBattle(node.id); return
+      onEnterBattle(node.id, cat); return
     }
     const type = pickEventType(eventsData.eventWeights)
     if (type === 'battle') {
       if (summaryBattle) { handleSummaryBattle(node.id, true); return }
-      onEnterBattle(node.id); return
+      onEnterBattle(node.id, cat); return
     }
     if (type === 'resource') {
       const { resourceId, resourceName, amount } = buildResourceEvent(resources ?? [])

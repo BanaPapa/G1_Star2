@@ -2,7 +2,7 @@ import { useFleetStore } from '../../state/useFleetStore'
 import AssetImage from './AssetImage'
 
 const STAT_LABELS = { hp: 'HP', atk: 'ATK', def: 'DEF', acc: 'ACC', eva: 'EVA', mov: 'MOV' }
-const SLOT_LABELS = { weapon: '⚔️ 무기', module: '🧩 모듈' }
+const SLOT_LABELS = { weapon: '⚔️ 무기1', weapon2: '⚔️ 무기2', module: '🧩 모듈' }
 
 function formatMods(mods) {
   const parts = Object.entries(mods ?? {})

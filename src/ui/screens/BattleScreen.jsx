@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Phaser from 'phaser'
 import BattleScene from '../../game/scenes/BattleScene'
 import { useDataStore }     from '../../state/useDataStore'
@@ -7,95 +7,84 @@ import { useBattleStore }   from '../../state/useBattleStore'
 import { useFleetStore }    from '../../state/useFleetStore'
 import { useResourceStore } from '../../state/useResourceStore'
 import { useResearchStore } from '../../state/useResearchStore'
-import { TERRAIN_TYPES }    from '../../game/systems/terrain'
 import { getBattlefieldSizeByTier, getPlayerWeaponTier } from '../../core/combatMath'
+import { calculateRetreatChance, calculateNegotiationChance } from '../../core/combatMath/flagship'
 import { useGameConfigStore } from '../../state/useGameConfigStore'
+import { useMapStore, pickCategoryMap } from '../../state/useMapStore'
 
-// ── 모듈 레벨 헬퍼 ──
-const tpColor = (tp) => tp >= 100 ? '#ffd166' : tp >= 50 ? '#4fb8ff' : '#6b7aa8'
+// 함선 전투력(카드덱 정렬 기준) — 화력 비중을 크게, 기함은 최상위.
+function shipStrength(u) {
+  return (u.atk ?? 0) * 6 + (u.maxHp ?? 0) + (u.maxShield ?? 0) + (u.isFlagship ? 100000 : 0)
+}
 
-// ── 하단 유닛 카드 ──
-function UnitBottomCard({ u }) {
-  const [hov, setHov] = useState(false)
-  const hpPct = u.maxHp > 0 ? Math.max(0, (u.hp / u.maxHp) * 100) : 0
-  const shPct = u.maxShield > 0 ? Math.max(0, (u.shield / u.maxShield) * 100) : 0
-  const apPct = u.maxAp > 0 ? Math.max(0, (u.ap / u.maxAp) * 100) : 0
-  const tpPct = Math.min(100, Math.round(u.tp))
-  const isAlly = u.side === 'ally'
+// ── 좌측 플로팅 액션 버튼 (호버 시 이름·설명 펼침) ──
+function BtlFab({ emoji, label, desc, color, onClick, disabled, active }) {
   return (
-    <div
-      className={`btm-card btm-card--unit${u.dead ? ' btm-card--dead' : ''}`}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-    >
-      <span className="btm-card-sprite">{u.sprite}</span>
-      <span className="btm-card-uname">{u.name}</span>
-      {hov && (
-        <div className={`btm-popup${isAlly ? ' btm-popup--ally' : ' btm-popup--enemy'}`}>
-          <div className="btm-popup-name">{u.name}</div>
-          {u.aceName && <div className="btm-popup-ace">{u.aceName}</div>}
-          <div className="btm-popup-bars">
-            <div className="btm-popup-bar-row">
-              <span className="btm-popup-bar-lbl">HP</span>
-              <div className="btm-popup-bar-track">
-                <div className="btm-popup-bar-fill" style={{ width: hpPct + '%', background: isAlly ? '#3ad6c4' : '#e23b4e' }} />
-              </div>
-              <span className="btm-popup-bar-val">{u.hp}/{u.maxHp}</span>
-            </div>
-            {u.maxShield > 0 && (
-              <div className="btm-popup-bar-row">
-                <span className="btm-popup-bar-lbl">SH</span>
-                <div className="btm-popup-bar-track">
-                  <div className="btm-popup-bar-fill" style={{ width: shPct + '%', background: '#3ad6c4' }} />
-                </div>
-                <span className="btm-popup-bar-val">{u.shield}/{u.maxShield}</span>
-              </div>
-            )}
-            <div className="btm-popup-bar-row">
-              <span className="btm-popup-bar-lbl">AP</span>
-              <div className="btm-popup-bar-track">
-                <div className="btm-popup-bar-fill" style={{ width: apPct + '%', background: '#ffd166' }} />
-              </div>
-              <span className="btm-popup-bar-val">{u.ap}/{u.maxAp}</span>
-            </div>
-            <div className="btm-popup-bar-row">
-              <span className="btm-popup-bar-lbl">TP</span>
-              <div className="btm-popup-bar-track">
-                <div className="btm-popup-bar-fill" style={{ width: tpPct + '%', background: tpColor(u.tp) }} />
-              </div>
-              <span className="btm-popup-bar-val" style={{ color: tpColor(u.tp) }}>{tpPct}%</span>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    <button className={`btl-fab${active ? ' btl-fab--on' : ''}`} style={{ '--fab': color }}
+      onClick={onClick} disabled={disabled}>
+      <span className="btl-fab-emoji">{emoji}</span>
+      <span className="btl-fab-info">
+        <b>{label}</b>
+        <small>{desc}</small>
+      </span>
+    </button>
   )
 }
 
-// ── 하단 지형 카드 ──
-function TerrainBottomCard({ t }) {
+// ── 하단 함선 카드 (카드덱 스타일) ──
+// 평소엔 이름이 적힌 상단만 보이고, 호버/행동 중이면 카드 전체가 올라온다.
+// index 0 = 가장 강함(가장 바깥쪽). 안쪽(중앙) 기준선에서 약함→강함 순으로 바깥에 깔린다.
+function ShipCard({ u, side, index, count, active }) {
   const [hov, setHov] = useState(false)
+  const raised = hov || active
+  const isAlly = side === 'ally'
+  const hpPct = u.maxHp > 0 ? Math.max(0, (u.hp / u.maxHp) * 100) : 0
+  const shPct = u.maxShield > 0 ? Math.max(0, (u.shield / u.maxShield) * 100) : 0
+  const STEP = 92 // 카드 간 가로 간격(겹침 줄임)
+  // 안쪽(중앙 기준선)에 가장 약한 카드, 강한 카드일수록 바깥(화면 끝)으로.
+  // distFromInner: 안쪽 기준선에서 바깥으로의 거리. 가장 약한 카드(가장 큰 index) = 0.
+  const distFromInner = (count - 1 - index) * STEP
+  const pos = isAlly ? { right: distFromInner } : { left: distFromInner }
+  // 바깥(강한) 카드가 위로 오게 z-index. 올라온 카드는 최상위.
+  const z = raised ? 500 : (count - index)
   return (
     <div
-      className="btm-card btm-card--terrain"
+      className={`btl-card btl-card--${side}${raised ? ' btl-card--raised' : ''}${u.dead ? ' btl-card--dead' : ''}`}
+      style={{ ...pos, zIndex: z }}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
     >
-      <span className="btm-card-glyph">{t.glyph || '·'}</span>
-      <span className="btm-card-tname">{t.label}</span>
-      {hov && (
-        <div className="btm-popup btm-popup--terrain">
-          <div className="btm-popup-name">{t.label}</div>
-          {t.effect && <div className="btm-popup-effect">{t.effect}</div>}
-          <div className="btm-popup-desc">{t.desc}</div>
+      {/* 카드 상단 — 평소에 보이는 부분(이름) */}
+      <div className="btl-card-head">
+        <span className="btl-card-emoji">{u.sprite}{u.isFlagship ? '👑' : ''}</span>
+        <span className="btl-card-name">{u.name}</span>
+      </div>
+      {/* 카드 본문 — 카드가 올라왔을 때 드러나는 부분 */}
+      <div className="btl-card-body">
+        {u.aceName && <div className="btl-card-ace">{u.aceName}</div>}
+        <div className="btl-card-hpbar">
+          <div className="btl-card-hpfill" style={{ width: hpPct + '%', background: isAlly ? '#3ad6c4' : '#e23b4e' }} />
         </div>
-      )}
+        {u.maxShield > 0 && (
+          <div className="btl-card-shbar">
+            <div className="btl-card-shfill" style={{ width: shPct + '%' }} />
+          </div>
+        )}
+        <div className="btl-card-stats">
+          <span title="체력">🛡 {u.hp}/{u.maxHp}</span>
+          <span title="화력">⚔ {u.atk}</span>
+        </div>
+        <div className="btl-card-stats btl-card-stats--sub">
+          <span title="행동력">AP {u.ap}/{u.maxAp}</span>
+          <span title="기동성">MOV {u.mov}</span>
+        </div>
+      </div>
     </div>
   )
 }
 
 // ── 메인 컴포넌트 ──
-export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
+export default function BattleScreen({ nodeId, mock = false, battleCategory = null, onExit, onEnding, onGameOver }) {
   const containerRef  = useRef(null)
   const gameRef       = useRef(null)
   const onExitRef     = useRef(onExit)
@@ -123,14 +112,41 @@ export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
   const weaponTier = getPlayerWeaponTier(unlockedResearch, gameConfig)
   const { width: gridCols, height: gridRows } = getBattlefieldSizeByTier(weaponTier, gameConfig)
 
+  // Battle Map Editor에서 활성 맵으로 지정한 mapDefinition이 있으면 전투에 사용한다.
+  // node.battleMapId가 우선, 없으면 전역 activeMapId(에디터의 "전투에서 미리보기").
+  const activeMapId = useMapStore((s) => s.activeMapId)
+  const battleMaps  = useMapStore((s) => s.maps)
+  const nodeMaps    = useMapStore((s) => s.nodeMaps)
+  const testBattleMap = useMapStore((s) => s.testBattleMap)
+
   // ── 전투 스토어 ──
-  const units       = useBattleStore((s) => s.units)
-  const autoBattle  = useBattleStore((s) => s.autoBattle)
-  const playerPhase = useBattleStore((s) => s.playerPhase)
+  const units                   = useBattleStore((s) => s.units)
+  const autoBattle              = useBattleStore((s) => s.autoBattle)
+  const playerPhase             = useBattleStore((s) => s.playerPhase)
+  const playerFlagshipDestroyed = useBattleStore((s) => s.playerFlagshipDestroyed)
+  const activeUnitId            = useBattleStore((s) => s.activeUnitId)
 
   const allies     = units.filter((u) => u.side === 'ally')
   const enemyUnits = units.filter((u) => u.side === 'enemy')
   const node       = systems?.find((s) => s.id === nodeId) ?? null
+
+  // 카드덱 정렬 — 강한 함선이 바깥쪽(아군=좌측끝, 적군=우측끝). index 0 = 가장 강함.
+  const allyDeck  = [...allies].sort((a, b) => shipStrength(b) - shipStrength(a))
+  const enemyDeck = [...enemyUnits].sort((a, b) => shipStrength(b) - shipStrength(a))
+
+  // 이 전투에 실제로 쓰이는 mapDefinition(미니맵·카메라 토글 UI에서도 사용).
+  const resolvedMapDef = useMemo(() => {
+    const assignedMapId = node?.battleMapId || nodeMaps?.[node?.id]
+    return testBattleMap
+      || pickCategoryMap(battleCategory)
+      || (assignedMapId && battleMaps[assignedMapId])
+      || (activeMapId && battleMaps[activeMapId])
+      || null
+  }, [testBattleMap, battleCategory, node, nodeMaps, battleMaps, activeMapId])
+
+  // 카메라 조감↔전투뷰 토글 + 미니맵
+  const [camOverview, setCamOverview] = useState(true)
+  const minimapViewRef = useRef(null)
 
   // ── 도망/협상 모달 ──
   const [fleeModal,      setFleeModal]      = useState(null)
@@ -173,13 +189,18 @@ export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
       height: h,
       backgroundColor: '#0a0e27',
     })
+    // 우선순위: 모의 전투 맵 → 카테고리 할당(랜덤) → 노드 정적 battleMapId → 노드 할당(레거시) → 전역 미리보기
+    const mapDefinition = resolvedMapDef
+
     game.scene.add('BattleScene', BattleScene, true, {
       ships, combatRules, skills, aces, enemies, items, node,
-      gridCols, gridRows,
-      onVictory:  (clearedNode) => conquer(clearedNode.id),
+      gridCols, gridRows, mapDefinition, mock,
+      // 모의 전투는 테스트용 — 점령(진행도)에 반영하지 않고 그대로 종료한다.
+      onVictory:  (clearedNode) => { if (mock) { onExitRef.current?.() } else { conquer(clearedNode.id) } },
       onExit:     () => onExitRef.current?.(),
       onEnding:   () => onEndingRef.current?.(),
-      onGameOver: () => onGameOverRef.current?.(),
+      // 모의 전투는 패배해도 실제 게임오버 화면으로 가지 않고 에디터로 복귀한다.
+      onGameOver: () => { if (mock) { onExitRef.current?.() } else { onGameOverRef.current?.() } },
     })
     gameRef.current = game
     return () => { game.destroy(true); gameRef.current = null }
@@ -187,34 +208,64 @@ export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
 
   const getScene = () => gameRef.current?.scene?.getScene('BattleScene')
 
-  // ── 도망 계산 ──
+  // ── 미니맵 뷰포트 사각형 + 조감/전투뷰 상태를 매 프레임 갱신 ──
+  useEffect(() => {
+    if (!resolvedMapDef) return
+    let raf
+    const tick = () => {
+      const info = gameRef.current?.scene?.getScene('BattleScene')?.getCameraInfo?.()
+      const el = minimapViewRef.current
+      if (info && el && info.mapW > 0 && info.mapH > 0) {
+        el.style.left   = `${Math.max(0, (info.x / info.mapW) * 100)}%`
+        el.style.top    = `${Math.max(0, (info.y / info.mapH) * 100)}%`
+        el.style.width  = `${Math.min(100, (info.w / info.mapW) * 100)}%`
+        el.style.height = `${Math.min(100, (info.h / info.mapH) * 100)}%`
+        setCamOverview((prev) => (prev === info.overview ? prev : info.overview))
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [resolvedMapDef])
+
+  // ── 도망·협상 계산 (기함 기준) ──
   const aliveAllies  = allies.filter(u => !u.dead)
   const aliveEnemies = enemyUnits.filter(u => !u.dead)
-  const allyMov  = aliveAllies.length  ? aliveAllies.reduce((s, u)  => s + (u.mov || 3), 0) / aliveAllies.length  : 3
-  const enemyMov = aliveEnemies.length ? aliveEnemies.reduce((s, u) => s + (u.mov || 3), 0) / aliveEnemies.length : 3
-  const fleePct = Math.round(Math.min(80, Math.max(20, allyMov / (allyMov + enemyMov) * 100)))
 
-  function handleFleeOpen() {
-    setFleeModal({ chance: fleePct })
-  }
-  function handleFleeAttempt() {
-    if (Math.random() * 100 < fleePct) {
-      getScene()?.executeFlee()
-      setFleeModal({ result: 'ok', chance: fleePct })
-    } else {
-      setFleeModal({ result: 'fail', chance: fleePct })
-    }
-  }
+  const playerFlagshipUnit = aliveAllies.find(u => u.isFlagship)
+  const enemyFlagshipUnit  = aliveEnemies.find(u => u.isFlagship)
 
-  // ── 협상 계산 ──
-  const allyAtk  = aliveAllies.reduce((s, u)  => s + (u.atk || 1), 0)
+  const totalEnemyMaxHp  = aliveEnemies.reduce((s, u) => s + (u.maxHp || u.hp || 1), 0)
+  const totalEnemyHp     = aliveEnemies.reduce((s, u) => s + u.hp, 0)
+  const enemyDamageRatio = totalEnemyMaxHp > 0 ? 1 - (totalEnemyHp / totalEnemyMaxHp) : 0
+  const enemyFlagshipHpRatio = enemyFlagshipUnit
+    ? (enemyFlagshipUnit.hp / (enemyFlagshipUnit.maxHp || enemyFlagshipUnit.hp || 1))
+    : 1
+
+  const fleePct = (playerFlagshipUnit && enemyFlagshipUnit)
+    ? calculateRetreatChance(playerFlagshipUnit, enemyFlagshipUnit, { enemyDamageRatio }, gameConfig)
+    : 40
+
+  const baseNegChance = (playerFlagshipUnit && enemyFlagshipUnit)
+    ? calculateNegotiationChance(
+        playerFlagshipUnit,
+        enemyFlagshipUnit,
+        {
+          enemyTotalHpRatio: totalEnemyMaxHp > 0 ? totalEnemyHp / totalEnemyMaxHp : 1,
+          enemyFlagshipHpRatio,
+          researchUnlocked: unlockedResearch,
+        },
+        gameConfig
+      )
+    : 25
+
+  const persuadeChance = Math.round(baseNegChance)
+  const payChance      = Math.round(Math.min(85, baseNegChance + 20))
+  const sacrificeChance = Math.round(Math.min(90, baseNegChance + 35))
+
   const enemyAtk = aliveEnemies.reduce((s, u) => s + (u.atk || 1), 0)
   const enemyHp  = aliveEnemies.reduce((s, u) => s + u.hp, 0)
-  const powerRatio = allyAtk / Math.max(1, allyAtk + enemyAtk)
-
-  const payAmount   = Math.max(200, Math.round((enemyAtk * 12 + enemyHp * 0.4)))
-  const payChance   = Math.round(Math.min(68, Math.max(30, 32 + powerRatio * 36)))
-  const persuadeChance = Math.round(Math.min(38, Math.max(10, 10 + powerRatio * 28)))
+  const payAmount = Math.max(200, Math.round((enemyAtk * 12 + enemyHp * 0.4)))
 
   const sacrificeEntry = roster.length > 1
     ? [...roster].sort((a, b) => (a.level ?? 1) - (b.level ?? 1))[0]
@@ -222,7 +273,19 @@ export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
   const sacrificeShipName = sacrificeEntry
     ? (ships?.find(s => s.id === sacrificeEntry.shipId)?.name ?? sacrificeEntry.shipId)
     : null
-  const sacrificeChance = Math.round(Math.min(82, Math.max(52, 55 + powerRatio * 27)))
+
+  function handleFleeOpen() {
+    setFleeModal({ chance: fleePct })
+  }
+  function handleFleeAttempt() {
+    if (Math.random() * 100 < fleePct) {
+      getScene()?.setPendingFlee()
+      setFleeModal({ result: 'ok', chance: fleePct })
+    } else {
+      getScene()?.penalizeFlagshipAp()
+      setFleeModal({ result: 'fail', chance: fleePct })
+    }
+  }
 
   function handleNegotiateAttempt(type) {
     const roll   = Math.random() * 100
@@ -243,21 +306,24 @@ export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
     }
 
     const success = roll < chance
-    if (success) getScene()?.executeFlee()
+    if (success) getScene()?.setPendingFlee()
+    else getScene()?.penalizeFlagshipAp()
     setNegotiateModal({
       step: 'result',
       success,
       costDesc,
       shipLost,
       message: success
-        ? '협상 성공! 적이 조건을 수락했습니다. 철수합니다.'
+        ? '협상 성공! 적이 조건을 수락했습니다. 다음 턴 시작 시 철수합니다.'
         : shipLost
-          ? '협상 실패. 함선을 잃었지만 적은 조건을 거부했습니다. 전투를 계속합니다.'
-          : `협상 실패. ${costDesc ? costDesc + '을(를) 잃었습니다. ' : ''}전투를 계속합니다.`,
+          ? '협상 실패. 함선을 잃었지만 적은 조건을 거부했습니다. 기함 행동 불가, 전투를 계속합니다.'
+          : `협상 실패. 기함 행동 불가, 전투를 계속합니다.`,
     })
   }
 
-  const canAct = playerPhase && !autoBattle
+  const canAct    = playerPhase && !autoBattle
+  const canFlee   = canAct && !playerFlagshipDestroyed
+  const canNegotiate = canAct && !playerFlagshipDestroyed
 
   return (
     <div className="battle-layout">
@@ -266,73 +332,52 @@ export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
       <div className="battle-screen" ref={containerRef} />
 
       {/* ── 우측 상단 조작 버튼 오버레이 ── */}
-      <div className="btl-action-overlay">
-        <button
-          className={`btl-act-btn${autoBattle ? ' btl-act-btn--on' : ''}`}
-          onClick={() => useBattleStore.getState().setAutoBattle(!autoBattle)}
-          title="아군 유닛도 AI 자동 행동"
-        >
-          🤖 자동{autoBattle ? ' ON' : ' OFF'}
-        </button>
-        <button
-          className="btl-act-btn btl-act-btn--flee"
-          onClick={handleFleeOpen}
-          disabled={!canAct}
-          title={`도주 성공률 ${fleePct}%`}
-        >
-          🚀 도망 ({fleePct}%)
-        </button>
-        <button
-          className="btl-act-btn btl-act-btn--negotiate"
-          onClick={() => setNegotiateModal({ step: 'choose' })}
-          disabled={!canAct}
-          title="자원·함선을 제안해 협상"
-        >
-          🤝 협상
-        </button>
-        <button
-          className="btl-act-btn btl-act-btn--endturn"
-          onClick={() => getScene()?.endPlayerPhase()}
-          disabled={!canAct}
-          title="턴 종료 (스페이스)"
-        >
-          ⏭ 턴종료
-        </button>
+      {/* ── 좌측 플로팅 액션 이모지 (호버 시 이름·설명 펼침) ── */}
+      <div className="btl-fab-col">
+        {mock && (
+          <BtlFab emoji="🧪" label="테스트 종료" desc="모의 전투를 즉시 끝내고 에디터로 돌아갑니다."
+            color="#c850e0" onClick={() => onExitRef.current?.()} />
+        )}
+        <BtlFab emoji="🤖" label={`자동 전투 ${autoBattle ? 'ON' : 'OFF'}`} desc="아군(및 적) 유닛이 AI로 자동 전투합니다."
+          color="#7dffb0" active={autoBattle} onClick={() => useBattleStore.getState().setAutoBattle(!autoBattle)} />
+        <BtlFab emoji="🚀" label={`도망 (${fleePct}%)`} desc={playerFlagshipDestroyed ? '기함 격파 — 도주 불가' : '기동력을 비교해 전선에서 이탈합니다. 실패해도 피해는 없습니다.'}
+          color="#4fb8ff" disabled={!canFlee} onClick={handleFleeOpen} />
+        <BtlFab emoji="🤝" label="협상" desc={playerFlagshipDestroyed ? '기함 격파 — 협상 불가' : '자원·함선을 제안해 적과 협상합니다.'}
+          color="#ffd166" disabled={!canNegotiate} onClick={() => setNegotiateModal({ step: 'choose' })} />
+        <BtlFab emoji="⏭" label="턴 종료" desc="이번 턴을 마칩니다. (스페이스바)"
+          color="#ff7043" disabled={!canAct} onClick={() => getScene()?.endCurrentPhase()} />
       </div>
 
-      {/* ── 하단 카드 바 ── */}
-      <div className="battle-bottom-bar">
-
-        <div className="btm-section">
-          <span className="btm-sec-label">아군</span>
-          <div className="btm-cards-row">
-            {allies.length === 0 && units.length === 0
-              ? <span className="btm-loading">로딩 중…</span>
-              : allies.map((u) => <UnitBottomCard key={u.id} u={u} />)
-            }
+      {/* ── 미니맵(키맵) + 조감↔전투뷰 토글 — 에디터 맵에서만 ── */}
+      {resolvedMapDef && (
+        <div className="btl-minimap">
+          <div className="btl-minimap-frame" style={{ aspectRatio: `${resolvedMapDef.imageSize?.width ?? 16} / ${resolvedMapDef.imageSize?.height ?? 9}` }}>
+            {resolvedMapDef.background
+              ? <img src={resolvedMapDef.background} alt="키맵" className="btl-minimap-img" draggable={false} />
+              : <div className="btl-minimap-img btl-minimap-img--blank" />}
+            <div ref={minimapViewRef} className="btl-minimap-view" />
           </div>
+          <button className="btl-minimap-toggle" onClick={() => getScene()?.toggleCameraOverview()}
+            title="전체 지도 조감 ↔ 전투뷰 전환">
+            {camOverview ? '🔍 전투뷰로' : '🗺 전체지도 보기'}
+          </button>
         </div>
+      )}
 
-        <div className="btm-divider" />
-
-        <div className="btm-section">
-          <span className="btm-sec-label">적군</span>
-          <div className="btm-cards-row">
-            {enemyUnits.map((u) => <UnitBottomCard key={u.id} u={u} />)}
-          </div>
+      {/* ── 하단 플로팅 함선 카드덱 — 중앙 기준 좌(아군)/우(적군), 강한 함선이 바깥쪽, 카드덱처럼 중첩 ── */}
+      <div className="btl-decks">
+        <div className="btl-deck btl-deck--ally">
+          {allyDeck.map((u, i) => (
+            <ShipCard key={u.id} u={u} side="ally" index={i} count={allyDeck.length}
+              active={activeUnitId === u.id} />
+          ))}
         </div>
-
-        <div className="btm-divider" />
-
-        <div className="btm-section">
-          <span className="btm-sec-label">지형</span>
-          <div className="btm-cards-row">
-            {Object.values(TERRAIN_TYPES).map((t) => (
-              <TerrainBottomCard key={t.id} t={t} />
-            ))}
-          </div>
+        <div className="btl-deck btl-deck--enemy">
+          {enemyDeck.map((u, i) => (
+            <ShipCard key={u.id} u={u} side="enemy" index={i} count={enemyDeck.length}
+              active={activeUnitId === u.id} />
+          ))}
         </div>
-
       </div>
 
       {/* ── 도망 모달 ── */}
@@ -354,8 +399,11 @@ export default function BattleScreen({ nodeId, onExit, onEnding, onGameOver }) {
               </>
             ) : fleeModal.result === 'ok' ? (
               <>
-                <div className="btl-modal-title" style={{ color: '#3ad6c4' }}>✅ 도주 성공!</div>
-                <p className="btl-modal-desc">전선에서 이탈했습니다.</p>
+                <div className="btl-modal-title" style={{ color: '#3ad6c4' }}>✅ 도주 신청 완료!</div>
+                <p className="btl-modal-desc">다음 턴 시작 시 전선에서 이탈합니다.</p>
+                <div className="btl-modal-btns">
+                  <button className="btl-btn btl-btn--cancel" onClick={() => setFleeModal(null)}>확인</button>
+                </div>
               </>
             ) : (
               <>

@@ -5,7 +5,7 @@
   "ships": [
     {
       "id": "gunship", "name": "건십", "hp": 42, "atk": 24, "def": 6, "shield": 20, "maxShield": 20, "armor": 6, "armorDurability": 40, "maxArmorDurability": 40, "acc": 78, "eva": 42, "mov": 4, "rng": [1, 2], "ap": 4, "tpPerTurn": 2, "cost": 200,
-      "role": "소형 화력지원·견제", "unlock": "start", "sprite": "unit_gunship_ally",
+      "role": "소형 화력지원·견제", "unlock": "start", "sprite": "unit_gunship_ally", "hull": "hull_gunship",
       "growth": { "xpToNextLevel": { "base": 50, "perLevel": 15 }, "perLevelGain": { "hp": [2, 3], "atk": [1, 2], "def": [0, 1], "acc": [1, 2], "eva": [1, 2] } },
       "promotion": { "requireLevel": 5, "name": "교란기", "statBonus": { "hp": 15, "atk": 6, "def": 2, "acc": 8, "eva": 8 }, "unlockSkill": "phantom_lance" }
     },

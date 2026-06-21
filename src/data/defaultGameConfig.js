@@ -123,6 +123,7 @@ export const DEFAULT_GAME_CONFIG = {
     overwatch: {
       consumeAllRemainingAp: true,
       maxTriggersPerTurn: 1,
+      duration: 1,                  // 경계 태세 지속 턴 수. 1 = 발동 턴만. 2+ = 다음 턴까지 유지.
       damageMultiplier: 0.7,        // 반격 피해 = 통상 70%
       // 사용 AP별 경계 효과 (요청서 17장). accuracyPenalty는 반격 명중 보정.
       rulesByAp: {
@@ -266,6 +267,13 @@ export const DEFAULT_GAME_CONFIG = {
     dreadnought: {
       maxPerBattle: 1,
       editableInConfig: true,
+    },
+
+    // 투항 보상 (요청서 22장) — 격파 시 일정 확률로 함선 자체를 포획.
+    surrender: {
+      enabled: true,
+      baseChance: 20,         // % — 일반 적이 격파될 때 투항할 기본 확률
+      bossCanSurrender: false, // boss 역할 적은 투항하지 않음
     },
 
     // 임시 승패 조건 (요청서 35장) — 임무 타입별 확장 가능.

@@ -171,13 +171,14 @@ export default function FleetScreen() {
               const eligible = canPromote(baseShip, entry)
 
               return (
-                <article className={`fleet-card holo-panel${ship.promoted ? ' holo-panel--gold fleet-card--promoted' : ''}`} key={entry.instanceId}>
+                <article className={`fleet-card holo-panel${ship.promoted ? ' holo-panel--gold fleet-card--promoted' : ''}${entry.isCaptured ? ' fleet-card--captured' : ''}`} key={entry.instanceId}>
                   <header className="fleet-card-head">
                     <AssetImage assetKey={baseShip.sprite} alt={ship.name} className="fleet-card-icon holo-badge" />
                     <div>
                       <h3 className="fleet-card-name">
                         {ship.name} <span className="fleet-card-level">Lv.{ship.level}</span>
                         {ship.promoted && <span className="holo-pill holo-pill--gold">전직 완료</span>}
+                        {entry.isCaptured && <span className="holo-pill holo-pill--cyan">🏳 포획</span>}
                       </h3>
                       <p className="fleet-card-role">
                         {baseShip.role}
@@ -213,6 +214,7 @@ export default function FleetScreen() {
 
                   <div className="equip-slots">
                     <EquipSlot entry={entry} slot="weapon" itemsById={itemsById} ownedItems={ownedItems} />
+                    <EquipSlot entry={entry} slot="weapon2" itemsById={itemsById} ownedItems={ownedItems} />
                     <EquipSlot entry={entry} slot="module" itemsById={itemsById} ownedItems={ownedItems} />
                   </div>
 

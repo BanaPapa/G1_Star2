@@ -3,7 +3,8 @@ import { useProgressStore } from '../../state/useProgressStore'
 import { useResourceStore } from '../../state/useResourceStore'
 import { useBuildingStore } from '../../state/useBuildingStore'
 import { useDataStore } from '../../state/useDataStore'
-import { BUILDINGS, HOME_BUILDINGS, formatBuildingCost } from '../../data/buildings'
+import { HOME_BUILDINGS, formatBuildingCost, getEffectiveBuildingDef } from '../../data/buildings'
+import { useGameConfigStore } from '../../state/useGameConfigStore'
 import './PlanetManagementScreen.css'
 
 const RESOURCE_ICONS = { sc: '💰', ti: '🔩', ec: '💎', dm: '🌑', nc: '🧬', qd: '📡' }
@@ -31,7 +32,8 @@ function CostRow({ cost, wallet, uniqueRes }) {
 }
 
 function BuildingCard({ nodeId, buildingId }) {
-  const def = BUILDINGS[buildingId]
+  const config = useGameConfigStore((s) => s.config)
+  const def = getEffectiveBuildingDef(buildingId, config)
   const level = useBuildingStore((s) => s.getLevel(nodeId, buildingId))
   const upgrade = useBuildingStore((s) => s.upgrade)
   const getUniqueResource = useBuildingStore((s) => s.getUniqueResource)
