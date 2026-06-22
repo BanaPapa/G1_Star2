@@ -117,48 +117,161 @@
 .bme-tbtn--apply:hover { background: rgba(255,209,102,0.3); }
 .bme-tg-sep { width: 1px; align-self: stretch; margin: 2px 4px; background: #2f3d62; }
 
-/* ── 맵 적용(전투 배정) 모달 — 3단 드래그 ── */
-.bme-apply {
-  width: 86vw; height: 62vh; max-height: 92vh;
-  display: flex; flex-direction: column;
-  background: #0e1426; border: 1px solid #2f3d62; border-radius: 10px;
-  box-shadow: 0 0 60px rgba(255,209,102,0.12); overflow: hidden;
-}
-.bme-apply-cols { flex: 1; display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 10px; padding: 12px; overflow: hidden; }
-.bme-apply-col { display: flex; flex-direction: column; background: #0a0f1f; border: 1px solid #232f4e; border-radius: 8px; overflow: hidden; }
-.bme-apply-coltitle { padding: 8px 10px; font-size: 13px; color: #aeb9dd; border-bottom: 1px solid #232f4e; background: #111a30; }
-.bme-apply-coltitle small { color: #6b7aa8; }
-.bme-apply-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
-.bme-apply-item {
-  display: flex; align-items: center; gap: 8px; padding: 5px 8px; cursor: grab;
-  background: #16213c; border: 1px solid #2a3a5e; border-radius: 6px; color: #cdd8f4; font-size: 13px;
-}
-.bme-apply-item:hover { background: #1d2c50; }
-.bme-apply-item--dim { opacity: 0.5; cursor: default; }
+/* 테스트 모달 등에서 공용으로 쓰는 작은 썸네일/이름 */
 .bme-apply-thumb { width: 40px; height: 24px; object-fit: cover; border-radius: 3px; background: #05070f; flex: none; }
 .bme-apply-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bme-apply-types { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
-.bme-apply-type { flex: 1; display: flex; flex-direction: column; background: #0a0f1f; border: 1px dashed #3a4a72; border-radius: 8px; min-height: 64px; }
-.bme-apply-typetitle { padding: 6px 10px; font-size: 13px; font-weight: bold; color: #ffd98a; border-bottom: 1px solid #232f4e; }
-.bme-apply-typelist { flex: 1; padding: 6px; display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
-.bme-apply-typelist .bme-apply-item { flex: 0 0 auto; }
-.bme-apply-typelist .bme-note { width: 100%; text-align: center; opacity: 0.5; }
+
+/* ── 맵 적용(전투 배정) 모달 — 2열: 좌(분류 탭 + 카드) · 우(전투 유형) ── */
+.bme-apply2 {
+  width: 88vw; height: 78vh; max-height: 92vh;
+  display: flex; flex-direction: column;
+  background: #0e1426; border: 1px solid #2f3d62; border-radius: 12px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(58,214,196,0.06); overflow: hidden;
+}
+.bme-apply2-hint {
+  display: flex; align-items: center; gap: 10px; padding: 9px 14px;
+  background: rgba(255,170,60,0.10); border-bottom: 1px solid rgba(255,170,60,0.25);
+  color: #ffcf8a; font-size: 13px;
+}
+.bme-apply2-hint span { flex: 1; }
+.bme-apply2-body { flex: 1; display: grid; grid-template-columns: 1.7fr 1fr; gap: 12px; padding: 12px; overflow: hidden; }
+
+/* 좌측 */
+.bme-apply2-left { display: flex; flex-direction: column; min-width: 0; background: #0a0f1f; border: 1px solid #1f2a44; border-radius: 10px; overflow: hidden; }
+.bme-apply2-tabs { display: flex; gap: 6px; padding: 10px 10px 8px; flex-wrap: wrap; border-bottom: 1px solid #1f2a44; }
+.bme-apply2-tab {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px;
+  background: #131d34; color: #97a6cf; border: 1px solid #28365a; border-radius: 16px;
+  font-family: inherit; font-size: 13px; cursor: pointer; transition: all .12s;
+}
+.bme-apply2-tab:hover { background: #1b2747; color: #d6e2ff; }
+.bme-apply2-tab--on { background: #2c6f64; color: #defff7; border-color: #3f9a8c; font-weight: 600; }
+.bme-apply2-tabn { font-size: 11px; opacity: 0.75; }
+.bme-apply2-grid {
+  flex: 1; overflow-y: auto; padding: 12px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; align-content: start;
+}
+
+/* 맵 카드 */
+.bme-mapcard {
+  position: relative; display: flex; flex-direction: column; gap: 6px;
+  background: #141c30; border: 1px solid #2a3a5e; border-radius: 9px; padding: 8px;
+  color: #cdd8f4; text-align: left; transition: transform .1s, border-color .12s, box-shadow .12s;
+}
+.bme-mapcard-thumb { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden; background: #05070f; }
+.bme-mapcard-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bme-mapcard-lock { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; background: rgba(4,7,16,0.55); }
+.bme-mapcard-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.bme-mapcard-name { font-size: 13px; color: #e6ecff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bme-mapcard-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.bme-tag { font-size: 10px; padding: 1px 7px; border-radius: 10px; line-height: 1.5; }
+.bme-tag--cls { background: #1c2748; color: #9fb0d8; border: 1px solid #2f3d62; }
+.bme-tag--assigned { background: rgba(255,209,102,0.14); color: #ffd98a; border: 1px solid rgba(255,209,102,0.4); }
+.bme-mapcard-flag {
+  font-size: 11px; text-align: center; padding: 3px 0; border-radius: 6px;
+  background: #1a2238; color: #6b7aa8; border: 1px solid #28365a;
+}
+.bme-mapcard-flag--ok { background: rgba(78,224,160,0.12); color: #7dffc4; border-color: rgba(78,224,160,0.4); }
+
+/* 적용 가능 카드 — 글로우 + 좌측 막대바 + 숨쉬는 강조 */
+.bme-mapcard--ready { cursor: grab; border-color: #2f9a7e; box-shadow: 0 0 0 1px rgba(78,224,160,0.15); }
+.bme-mapcard--ready::before {
+  content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 3px;
+  background: linear-gradient(180deg, #4fe0a0, #2f9a7e); box-shadow: 0 0 8px rgba(78,224,160,0.7);
+  animation: bme-ready-pulse 1.8s ease-in-out infinite;
+}
+.bme-mapcard--ready:hover { transform: translateY(-2px); border-color: #4fe0a0; box-shadow: 0 6px 18px rgba(0,0,0,0.4), 0 0 0 1px rgba(78,224,160,0.35); }
+.bme-mapcard--ready:active { cursor: grabbing; }
+@keyframes bme-ready-pulse { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }
+
+/* 미구현(그리드 없음) 카드 — 흐리게, 클릭 시 안내 */
+.bme-mapcard--locked { cursor: pointer; opacity: 0.62; filter: saturate(0.6); }
+.bme-mapcard--locked:hover { opacity: 0.85; border-color: #3a4a72; }
+
+.bme-mapcard--assigned { border-color: rgba(255,209,102,0.45); }
+
+/* 우측 전투 유형 슬롯 */
+.bme-apply2-types { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.bme-apply2-type { flex: 1; min-height: 80px; display: flex; flex-direction: column; background: #0a0f1f; border: 1px dashed #3a4a72; border-radius: 10px; }
+.bme-apply2-type:hover { border-color: #4f6aa0; }
+.bme-apply2-typetitle { padding: 8px 12px; font-size: 13px; font-weight: 600; color: #ffd98a; border-bottom: 1px solid #1f2a44; }
+.bme-apply2-typen { font-size: 11px; color: #6b7aa8; }
+.bme-apply2-typelist { flex: 1; padding: 8px; display: flex; flex-direction: column; gap: 6px; align-content: flex-start; }
+.bme-apply2-drop { margin: auto; font-size: 12px; color: #4a5780; }
+.bme-apply2-chip {
+  display: flex; align-items: center; gap: 8px; padding: 5px 6px 5px 8px; cursor: grab;
+  background: #16213c; border: 1px solid #2a3a5e; border-radius: 7px; color: #cdd8f4; font-size: 13px;
+}
+.bme-apply2-chip:hover { background: #1d2c50; }
+.bme-apply2-chipimg { width: 40px; height: 24px; object-fit: cover; border-radius: 3px; background: #05070f; flex: none; }
+.bme-apply2-chipname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bme-apply2-unassign { flex: none; background: transparent; border: none; color: #6b7aa8; font-size: 13px; cursor: pointer; padding: 2px 4px; border-radius: 4px; }
+.bme-apply2-unassign:hover { background: rgba(255,90,110,0.15); color: #ff9aa8; }
 
 /* ── 테스트할 맵 선택 모달 ── */
-.bme-test { width: 560px; max-width: 92vw; max-height: 80vh; display: flex; flex-direction: column;
-  background: #0e1426; border: 1px solid #2f3d62; border-radius: 10px; box-shadow: 0 0 60px rgba(200,80,224,0.14); overflow: hidden; }
-.bme-test-body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
-.bme-test-cur { text-align: left; padding: 12px 14px; font-family: inherit; font-size: 14px; cursor: pointer;
-  background: rgba(200,80,224,0.16); color: #e9b6ff; border: 1px solid rgba(200,80,224,0.55); border-radius: 8px; }
-.bme-test-cur:hover { background: rgba(200,80,224,0.3); }
-.bme-test-cur b { color: #fff; }
-.bme-test-sec { font-size: 13px; color: #8fa3d6; margin-top: 6px; border-top: 1px solid #232f4e; padding-top: 8px; }
-.bme-test-grp { display: flex; flex-direction: column; gap: 4px; }
-.bme-test-grptitle { font-size: 12px; color: #ffd98a; }
-.bme-test-list { display: flex; flex-wrap: wrap; gap: 6px; }
-.bme-test-item { display: flex; align-items: center; gap: 8px; padding: 5px 8px; cursor: pointer;
-  background: #16213c; border: 1px solid #2a3a5e; border-radius: 6px; color: #cdd8f4; font-size: 13px; }
-.bme-test-item:hover { background: #1d2c50; }
+.bme-test { width: 640px; max-width: 92vw; max-height: 82vh; display: flex; flex-direction: column;
+  background: #0e1426; border: 1px solid #2f3d62; border-radius: 12px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(200,80,224,0.08); overflow: hidden; }
+.bme-test-body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+
+/* 현재 편집 맵 = 히어로 카드 */
+.bme-test-hero {
+  display: flex; align-items: stretch; gap: 12px; padding: 10px; cursor: pointer; text-align: left;
+  background: linear-gradient(135deg, rgba(200,80,224,0.18), rgba(120,60,200,0.08));
+  border: 1px solid rgba(200,80,224,0.5); border-radius: 10px; font-family: inherit; transition: all .12s;
+}
+.bme-test-hero:hover { border-color: rgba(220,120,240,0.85); box-shadow: 0 6px 20px rgba(160,60,200,0.25); }
+.bme-test-hero-thumb { position: relative; width: 150px; aspect-ratio: 16/9; border-radius: 7px; overflow: hidden; background: #05070f; flex: none; }
+.bme-test-hero-thumb img, .bme-test-hero-ph { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bme-test-hero-info { display: flex; flex-direction: column; justify-content: center; gap: 4px; min-width: 0; }
+.bme-test-hero-tag { font-size: 11px; color: #e9b6ff; }
+.bme-test-hero-name { font-size: 17px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bme-test-hero-meta { font-size: 12px; color: #b89ad0; }
+
+/* 재생 ▶ 오버레이 */
+.bme-test-play {
+  position: absolute; inset: 0; margin: auto; width: 38px; height: 38px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 15px; color: #fff;
+  background: rgba(10,12,24,0.55); border: 1.5px solid rgba(255,255,255,0.7); opacity: 0; transition: opacity .12s;
+}
+.bme-test-hero:hover .bme-test-play, .bme-test-card:hover .bme-test-play { opacity: 1; }
+
+.bme-test-sec { font-size: 12px; letter-spacing: .03em; color: #8fa3d6; text-transform: uppercase; border-top: 1px solid #232f4e; padding-top: 10px; }
+.bme-test-empty { font-size: 13px; color: #6b7aa8; padding: 4px 2px; }
+.bme-test-grp { display: flex; flex-direction: column; gap: 7px; }
+.bme-test-grptitle { font-size: 13px; font-weight: 600; color: #ffd98a; }
+.bme-test-grpn { font-size: 11px; color: #6b7aa8; }
+.bme-test-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.bme-test-card {
+  display: flex; flex-direction: column; gap: 6px; padding: 8px; cursor: pointer; text-align: left;
+  background: #141c30; border: 1px solid #2a3a5e; border-radius: 9px; color: #cdd8f4; font-family: inherit; transition: all .1s;
+}
+.bme-test-card:hover { transform: translateY(-2px); border-color: #4fb8ff; box-shadow: 0 6px 18px rgba(0,0,0,0.4); }
+.bme-test-card-thumb { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 6px; overflow: hidden; background: #05070f; }
+.bme-test-card-thumb img, .bme-test-card-ph { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bme-test-card-name { font-size: 13px; color: #e6ecff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── 중앙 안내 모달 ── */
+.bme-notice-overlay {
+  position: fixed; inset: 0; z-index: 9700;
+  background: rgba(2,4,14,0.6); backdrop-filter: blur(3px);
+  display: flex; align-items: center; justify-content: center;
+}
+.bme-notice {
+  width: 380px; max-width: 90vw; padding: 26px 26px 20px; text-align: center;
+  background: linear-gradient(180deg, #141d33, #0e1426); border: 1px solid #2f3d62; border-radius: 14px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(78,224,160,0.08);
+  animation: bme-notice-pop .16s ease-out;
+}
+@keyframes bme-notice-pop { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.bme-notice-icon { font-size: 38px; line-height: 1; margin-bottom: 10px; }
+.bme-notice-title { font-size: 16px; font-weight: 700; color: #eaf1ff; margin-bottom: 8px; }
+.bme-notice-body { font-size: 13px; color: #9fb0d8; line-height: 1.55; margin-bottom: 18px; }
+.bme-notice-ok {
+  min-width: 120px; padding: 9px 18px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  background: #2c6f64; color: #defff7; border: 1px solid #3f9a8c; border-radius: 8px; transition: background .12s;
+}
+.bme-notice-ok:hover { background: #357f73; }
 .bme-color { width: 26px; height: 22px; padding: 0; border: 1px solid #2f3d62; border-radius: 4px; background: #0c1326; cursor: pointer; }
 .bme-mini-sel { font-size: 13px; }
 .bme-toggle { font-size: 13px; color: #8fa3d6; display: flex; align-items: center; gap: 3px; cursor: pointer; }
@@ -199,11 +312,21 @@
   box-shadow: 0 0 60px rgba(58,214,196,0.12); overflow: hidden;
 }
 .bme-picker-head {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px; border-bottom: 1px solid #25304e;
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 14px; border-bottom: 1px solid #25304e;
   background: linear-gradient(180deg, rgba(58,214,196,0.06), transparent);
 }
-.bme-picker-title { font-size: 15px; color: #3ad6c4; }
+.bme-picker-title { font-size: 15px; color: #3ad6c4; font-weight: 600; flex: none; white-space: nowrap; }
+/* 헤더 부제(설명) — 남는 폭을 채우되 길면 말줄임 */
+.bme-modal-sub { flex: 1; min-width: 0; font-size: 12px; color: #6b7aa8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 모달 닫기 버튼 — 고정폭 컴팩트(기존 .bme-btn의 flex:1로 늘어나던 문제 해결) */
+.bme-modal-x {
+  flex: none; margin-left: auto; background: transparent; border: 1px solid #2f3d62; border-radius: 6px;
+  color: #9fb0d8; padding: 5px 11px; font-family: inherit; font-size: 14px; line-height: 1; cursor: pointer;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.bme-modal-x:hover { background: rgba(255,90,110,0.12); border-color: #5a2230; color: #ff9aa8; }
+.bme-modal-x--sm { padding: 2px 7px; font-size: 12px; margin-left: 0; }
 .bme-picker-grid {
   flex: 1; overflow-y: auto; padding: 14px;
   display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; align-content: start;

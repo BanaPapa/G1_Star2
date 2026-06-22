@@ -70,6 +70,9 @@ export default function BattleMapEditorTab() {
   const [pickerTab, setPickerTab] = useState('normal') // 불러오기 모달 카테고리 탭
   const [mapImages, setMapImages] = useState([]) // map/ 폴더 이미지 목록 [{ name, url }]
   const [applyOpen, setApplyOpen] = useState(false) // 맵 적용(전투 배정) 모달
+  const [applyTab, setApplyTab] = useState('all')   // 적용 모달 좌측 분류 탭(all/normal/special/elite/boss/other)
+  const [applyHint, setApplyHint] = useState(null)  // 적용 모달 안내 배너(미구현 맵 클릭 시)
+  const [notice, setNotice] = useState(null)        // 중앙 안내 모달 { icon, title, body }
   const [testOpen, setTestOpen] = useState(false)   // 테스트할 맵 선택 모달
   const [selection, setSelection] = useState(() => new Set()) // 엑셀식 다중선택된 그리드 "x,y"
   // 플로팅 패널 위치(null이면 기본 배치, 드래그하면 절대좌표) + 열림 상태
@@ -642,8 +645,10 @@ export default function BattleMapEditorTab() {
   // 맵 id는 유형(일반/특수/전략/보스) 접두사를 포함한다(예: map_normal_crimson_arena).
   function createMapFromImage(filename, url) {
     clearSelection()
+    const all = useMapStore.getState().maps
     const id = mapIdFromImage(filename, mapTypeOf(imageBaseName(filename), mapCategories))
-    const existing = useMapStore.getState().maps[id]
+    // 같은 배경 이미지를 쓰는 저장 맵이 있으면 그것을 복원(레거시 _grid id 호환). 없으면 계산 id로.
+    const existing = Object.values(all).find((m) => sameImageUrl(m.background, url)) ?? all[id]
     if (existing) {
       const copy = cloneMap(existing)
       mapRef.current = copy; setMap(copy); setDirty(false)
@@ -669,9 +674,11 @@ export default function BattleMapEditorTab() {
     setMapImages(await listMapImages())
     setPickerOpen(true)
   }
-  // 맵 적용 모달 — 이미지 목록(적용 불가 칸용)을 받아 연다.
+  // 맵 적용 모달 — map/ 폴더 이미지 전체를 받아 분류 탭으로 보여준다.
   async function openApplyModal() {
     setMapImages(await listMapImages())
+    setApplyTab('all')
+    setApplyHint(null)
     setApplyOpen(true)
   }
   function pickImage(img) {
@@ -718,7 +725,11 @@ export default function BattleMapEditorTab() {
     const saved = saveMapStore(cloneMap(mapRef.current))
     mapRef.current = cloneMap(saved); setMap(mapRef.current); setDirty(false)
     saveMapJson(saved.id, saved).then((r) => { if (!r?.ok) console.warn('map/ 파일 저장 실패:', r?.error) })
-    window.alert(`저장 완료 → ${saved.id}\n＂✅ 맵 적용＂에서 전투 유형에 배정할 수 있습니다.`)
+    setNotice({
+      icon: '💾',
+      title: `＂${saved.name}＂ 저장 완료`,
+      body: '이제부터 전투에 사용할 수 있는 맵입니다. ＂✅ 맵 적용＂에서 전투 유형에 배정하세요.',
+    })
   }
   function setField(key, value) {
     applyMap({ ...mapRef.current, [key]: value }, false)
@@ -772,6 +783,7 @@ export default function BattleMapEditorTab() {
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === 'Escape') {
+        if (notice) { e.preventDefault(); e.stopPropagation(); setNotice(null); return }
         if (applyOpen || pickerOpen || testOpen) { e.preventDefault(); e.stopPropagation(); setApplyOpen(false); setPickerOpen(false); setTestOpen(false); return }
         if (selectionRef.current.size) { e.preventDefault(); clearSelection(); return }
       }
@@ -945,8 +957,9 @@ export default function BattleMapEditorTab() {
         <div className="bme-picker-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) setPickerOpen(false) }}>
           <div className="bme-picker">
             <div className="bme-picker-head">
-              <span className="bme-picker-title">📂 맵 불러오기 — 클릭=불러오기 · 우클릭=삭제 · 카드를 다른 탭으로 드래그=유형 변경</span>
-              <button className="bme-btn" onClick={() => setPickerOpen(false)}>✕ 닫기</button>
+              <span className="bme-picker-title">📂 맵 불러오기</span>
+              <span className="bme-modal-sub">클릭=불러오기 · 우클릭=삭제 · 카드를 다른 탭으로 드래그=유형 변경</span>
+              <button className="bme-modal-x" onClick={() => setPickerOpen(false)}>✕</button>
             </div>
             <div className="bme-picker-tabs">
               {TABS.map((t) => (
@@ -964,9 +977,9 @@ export default function BattleMapEditorTab() {
                 {mapImages.length === 0 && <div className="bme-note">map 폴더에 이미지가 없습니다. map 폴더에 배경 이미지를 직접 넣으세요. (개발 서버 필요)</div>}
                 {mapImages.length > 0 && shown.length === 0 && <div className="bme-note">이 유형에 해당하는 맵이 없습니다. 다른 탭의 카드를 여기 탭으로 드래그하세요.</div>}
                 {shown.map((img) => {
-                  const type = mapTypeOf(imageBaseName(img.name), mapCategories)
-                  const id = mapIdFromImage(img.name, type)
-                  const saved = !!maps[id]
+                  // 저장 여부/현재맵 강조는 background URL 매칭(레거시 _grid id 호환).
+                  const savedMap = Object.values(maps).find((m) => sameImageUrl(m.background, img.url))
+                  const id = savedMap ? savedMap.id : mapIdFromImage(img.name, mapTypeOf(imageBaseName(img.name), mapCategories))
                   return (
                     <button key={img.name} className={`bme-picker-card${id === map.id ? ' bme-picker-card--current' : ''}`}
                       draggable
@@ -974,7 +987,7 @@ export default function BattleMapEditorTab() {
                       onClick={() => pickImage(img)}
                       onContextMenu={(e) => { e.preventDefault(); deletePickerImage(img) }}>
                       <img src={img.url} className="bme-thumb-canvas" alt={img.name} loading="lazy" />
-                      <div className="bme-picker-name">{imageBaseName(img.name)}{saved ? ' 💾' : ''}</div>
+                      <div className="bme-picker-name">{imageBaseName(img.name)}{savedMap ? ' 💾' : ''}</div>
                       <div className="bme-picker-meta">{id}</div>
                     </button>
                   )
@@ -986,72 +999,111 @@ export default function BattleMapEditorTab() {
         )
       })()}
 
-      {/* ── 맵 적용(전투 배정) 모달 — 3단: 적용 불가 → 적용 가능 → 전투 유형 ── */}
+      {/* ── 맵 적용(전투 배정) 모달 — 2열: 좌(분류 탭별 전체 맵) → 우(전투 유형 드롭) ── */}
       {applyOpen && (() => {
-        const allMaps = Object.values(maps)
-        const assignedSet = new Set(MAP_TYPES.flatMap((t) => categoryMaps[t.id] ?? []))
-        const applicable = allMaps.filter((m) => !assignedSet.has(m.id)) // 적용 가능(저장됨)·미배정
-        // 적용 불가 = map/ 이미지 중 아직 저장된 맵이 없는 것(불러와 그려서 저장해야 함)
-        const notReady = mapImages.filter((img) => {
-          const id = mapIdFromImage(img.name, mapTypeOf(imageBaseName(img.name), mapCategories))
-          return !maps[id]
+        const clsLabel = (c) => MAP_TYPES.find((t) => t.id === c)?.label ?? '기타'
+        const assignedTypeOf = (id) => MAP_TYPES.find((t) => (categoryMaps[t.id] ?? []).includes(id))?.id ?? null
+        // map/ 폴더 이미지 = 맵 전체 우주. 저장된 그리드 맵 존재 여부로 적용 가능 판정.
+        // 매칭은 background URL 기준(레거시 _grid id 등 id 스킴이 달라도 정확히 연결).
+        const savedList = Object.values(maps)
+        const entries = mapImages.map((img) => {
+          const base = imageBaseName(img.name)
+          const cls = mapTypeOf(base, mapCategories) ?? 'other'
+          const saved = savedList.find((m) => sameImageUrl(m.background, img.url))
+          const id = saved ? saved.id : mapIdFromImage(img.name, cls === 'other' ? null : cls)
+          return { img, base, cls, id, ready: !!saved, assigned: assignedTypeOf(id) }
         })
+        const TABS = [{ id: 'all', label: '전체' }, ...MAP_TYPES, { id: 'other', label: '기타' }]
+        const tabCount = (tid) => tid === 'all' ? entries.length : entries.filter((e) => e.cls === tid).length
+        const readyCount = (tid) => (tid === 'all' ? entries : entries.filter((e) => e.cls === tid)).filter((e) => e.ready).length
+        const shown = applyTab === 'all' ? entries : entries.filter((e) => e.cls === applyTab)
         const onDropTo = (e, type) => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (id) assignMapToType(id, type) }
+        const lockHint = (e) => setApplyHint(`"${e.base}" — 아직 맵 위에 그리드가 없습니다. 카드를 더블클릭하면 편집 화면으로 이동합니다. 그리드를 그리고 💾 저장하면 적용할 수 있어요.`)
+        // 카드 더블클릭 → 해당 이미지를 편집 화면으로 불러온다(모달 닫고 이동).
+        const editImage = (e) => {
+          if (dirty && !window.confirm('저장하지 않은 변경사항이 있습니다. 이 맵을 편집할까요?')) return
+          setApplyOpen(false)
+          createMapFromImage(e.img.name, e.img.url)
+        }
         return (
-          <div className="bme-picker-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) setApplyOpen(false) }}>
-            <div className="bme-apply">
+          <div className="bme-picker-overlay" onMouseDown={(ev) => { if (ev.target === ev.currentTarget) setApplyOpen(false) }}>
+            <div className="bme-apply2">
               <div className="bme-picker-head">
-                <span className="bme-picker-title">✅ 맵 적용 — 적용 가능 맵을 전투 유형으로 드래그하면 배정됩니다 (한 맵=한 유형)</span>
-                <button className="bme-btn" onClick={() => setApplyOpen(false)}>✕ 닫기</button>
+                <span className="bme-picker-title">✅ 맵 적용</span>
+                <span className="bme-modal-sub">적용 가능한 맵을 우측 전투 유형으로 드래그하면 배정됩니다 (한 맵 = 한 유형)</span>
+                <button className="bme-modal-x" onClick={() => setApplyOpen(false)}>✕</button>
               </div>
-              <div className="bme-apply-cols">
-                {/* 1단: 적용 불가 */}
-                <div className="bme-apply-col">
-                  <div className="bme-apply-coltitle">적용 불가 <small>(저장 필요)</small></div>
-                  <div className="bme-apply-list">
-                    {notReady.length === 0 && <div className="bme-note">모든 맵이 저장되어 적용 가능합니다.</div>}
-                    {notReady.map((img) => (
-                      <div key={img.name} className="bme-apply-item bme-apply-item--dim">
-                        <span className="bme-apply-name">{imageBaseName(img.name)}</span>
+              {applyHint && (
+                <div className="bme-apply2-hint">
+                  <span>⚠ {applyHint}</span>
+                  <button className="bme-modal-x bme-modal-x--sm" onClick={() => setApplyHint(null)}>✕</button>
+                </div>
+              )}
+              <div className="bme-apply2-body">
+                {/* 좌: 분류 탭 + 맵 카드 그리드 */}
+                <div className="bme-apply2-left">
+                  <div className="bme-apply2-tabs">
+                    {TABS.map((t) => (
+                      <button key={t.id}
+                        className={`bme-apply2-tab${applyTab === t.id ? ' bme-apply2-tab--on' : ''}`}
+                        onClick={() => setApplyTab(t.id)}>
+                        {t.label}
+                        <span className="bme-apply2-tabn">{readyCount(t.id)}/{tabCount(t.id)}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="bme-apply2-grid">
+                    {shown.length === 0 && <div className="bme-note">이 분류에 맵이 없습니다.</div>}
+                    {shown.map((e) => (
+                      <div key={e.img.name}
+                        className={`bme-mapcard${e.ready ? ' bme-mapcard--ready' : ' bme-mapcard--locked'}${e.assigned ? ' bme-mapcard--assigned' : ''}`}
+                        draggable={e.ready}
+                        onDragStart={e.ready ? (ev) => ev.dataTransfer.setData('text/plain', e.id) : undefined}
+                        onClick={() => { if (!e.ready) lockHint(e) }}
+                        onDoubleClick={() => editImage(e)}
+                        title={e.ready ? '드래그해 전투 유형에 배정 · 더블클릭=편집' : '그리드 미구현 — 더블클릭=편집 화면으로 이동'}>
+                        <div className="bme-mapcard-thumb">
+                          <img src={e.img.url} alt={e.base} loading="lazy" />
+                          {!e.ready && <span className="bme-mapcard-lock">🔒</span>}
+                        </div>
+                        <div className="bme-mapcard-info">
+                          <span className="bme-mapcard-name">{e.base}</span>
+                          <span className="bme-mapcard-tags">
+                            {applyTab === 'all' && <span className="bme-tag bme-tag--cls">{clsLabel(e.cls)}</span>}
+                            {e.assigned && <span className="bme-tag bme-tag--assigned">▶ {clsLabel(e.assigned)}</span>}
+                          </span>
+                        </div>
+                        <span className={`bme-mapcard-flag${e.ready ? ' bme-mapcard-flag--ok' : ''}`}>
+                          {e.ready ? '적용 가능' : '그리드 미구현'}
+                        </span>
                       </div>
                     ))}
                   </div>
                 </div>
-                {/* 2단: 적용 가능(미배정) */}
-                <div className="bme-apply-col"
-                  onDragOver={(e) => e.preventDefault()} onDrop={(e) => onDropTo(e, null)}>
-                  <div className="bme-apply-coltitle">적용 가능 <small>(드래그해 배정)</small></div>
-                  <div className="bme-apply-list">
-                    {applicable.length === 0 && <div className="bme-note">저장된 미배정 맵이 없습니다.</div>}
-                    {applicable.map((m) => (
-                      <div key={m.id} className="bme-apply-item" draggable
-                        onDragStart={(e) => e.dataTransfer.setData('text/plain', m.id)}>
-                        {m.background ? <img src={m.background} className="bme-apply-thumb" alt={m.name} loading="lazy" /> : <div className="bme-apply-thumb" />}
-                        <span className="bme-apply-name">{m.name}</span>
+                {/* 우: 전투 유형 4개(드롭 타깃) */}
+                <div className="bme-apply2-types">
+                  {MAP_TYPES.map((t) => {
+                    const ids = (categoryMaps[t.id] ?? []).filter((id) => maps[id])
+                    return (
+                      <div key={t.id} className="bme-apply2-type"
+                        onDragOver={(ev) => ev.preventDefault()} onDrop={(ev) => onDropTo(ev, t.id)}>
+                        <div className="bme-apply2-typetitle">{t.label} <span className="bme-apply2-typen">{ids.length}</span></div>
+                        <div className="bme-apply2-typelist">
+                          {ids.length === 0 && <div className="bme-apply2-drop">여기로 드래그</div>}
+                          {ids.map((id) => (
+                            <div key={id} className="bme-apply2-chip" draggable
+                              onDragStart={(ev) => ev.dataTransfer.setData('text/plain', id)}
+                              title="다른 유형으로 드래그해 이동">
+                              {maps[id]?.background ? <img src={maps[id].background} className="bme-apply2-chipimg" alt={maps[id]?.name} loading="lazy" /> : <div className="bme-apply2-chipimg" />}
+                              <span className="bme-apply2-chipname">{maps[id]?.name ?? id}</span>
+                              <button className="bme-apply2-unassign" title="배정 해제"
+                                onClick={() => assignMapToType(id, null)}>✕</button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-                {/* 3단: 전투 유형 4개(드롭 타깃) */}
-                <div className="bme-apply-types">
-                  {MAP_TYPES.map((t) => (
-                    <div key={t.id} className="bme-apply-type"
-                      onDragOver={(e) => e.preventDefault()} onDrop={(e) => onDropTo(e, t.id)}>
-                      <div className="bme-apply-typetitle">{t.label}</div>
-                      <div className="bme-apply-typelist">
-                        {(categoryMaps[t.id] ?? []).filter((id) => maps[id]).map((id) => (
-                          <div key={id} className="bme-apply-item" draggable
-                            onDragStart={(e) => e.dataTransfer.setData('text/plain', id)}
-                            title="드래그해 다른 유형으로 이동, 또는 ＂적용 가능＂으로 되돌리기">
-                            {maps[id]?.background ? <img src={maps[id].background} className="bme-apply-thumb" alt={maps[id]?.name} loading="lazy" /> : <div className="bme-apply-thumb" />}
-                            <span className="bme-apply-name">{maps[id]?.name ?? id}</span>
-                          </div>
-                        ))}
-                        {(categoryMaps[t.id] ?? []).filter((id) => maps[id]).length === 0 &&
-                          <div className="bme-note">여기로 드래그</div>}
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             </div>
@@ -1068,22 +1120,33 @@ export default function BattleMapEditorTab() {
             <div className="bme-test">
               <div className="bme-picker-head">
                 <span className="bme-picker-title">🧪 테스트할 맵 선택</span>
-                <button className="bme-btn" onClick={() => setTestOpen(false)}>✕ 닫기</button>
+                <button className="bme-modal-x" onClick={() => setTestOpen(false)}>✕</button>
               </div>
               <div className="bme-test-body">
-                <button className="bme-test-cur" onClick={() => startMockBattle()}>
-                  ✏️ 현재 편집 중인 맵 — <b>{map.name}</b> ({map.grid.rows}×{map.grid.cols})
+                <button className="bme-test-hero" onClick={() => startMockBattle()}>
+                  <div className="bme-test-hero-thumb">
+                    {map.background ? <img src={map.background} alt={map.name} loading="lazy" /> : <div className="bme-test-hero-ph" />}
+                    <span className="bme-test-play">▶</span>
+                  </div>
+                  <div className="bme-test-hero-info">
+                    <span className="bme-test-hero-tag">✏️ 현재 편집 중</span>
+                    <span className="bme-test-hero-name">{map.name}</span>
+                    <span className="bme-test-hero-meta">{map.grid.cols}×{map.grid.rows} 칸 · 클릭해 즉시 모의 전투</span>
+                  </div>
                 </button>
                 <div className="bme-test-sec">적용된 맵으로 테스트</div>
-                {!hasApplied && <div className="bme-note">적용된 맵이 없습니다. ＂✅ 맵 적용＂에서 전투 유형에 배정하세요.</div>}
+                {!hasApplied && <div className="bme-test-empty">아직 적용된 맵이 없습니다. ＂✅ 맵 적용＂에서 전투 유형에 배정하세요.</div>}
                 {applied.map((a) => a.ids.length > 0 && (
                   <div key={a.type.id} className="bme-test-grp">
-                    <div className="bme-test-grptitle">{a.type.label}</div>
-                    <div className="bme-test-list">
+                    <div className="bme-test-grptitle">{a.type.label} <span className="bme-test-grpn">{a.ids.length}</span></div>
+                    <div className="bme-test-grid">
                       {a.ids.map((id) => (
-                        <button key={id} className="bme-test-item" onClick={() => startMockBattle(maps[id])}>
-                          {maps[id]?.background ? <img src={maps[id].background} className="bme-apply-thumb" alt={maps[id]?.name} loading="lazy" /> : <div className="bme-apply-thumb" />}
-                          <span className="bme-apply-name">{maps[id]?.name ?? id}</span>
+                        <button key={id} className="bme-test-card" onClick={() => startMockBattle(maps[id])}>
+                          <div className="bme-test-card-thumb">
+                            {maps[id]?.background ? <img src={maps[id].background} alt={maps[id]?.name} loading="lazy" /> : <div className="bme-test-card-ph" />}
+                            <span className="bme-test-play">▶</span>
+                          </div>
+                          <span className="bme-test-card-name">{maps[id]?.name ?? id}</span>
                         </button>
                       ))}
                     </div>
@@ -1094,6 +1157,18 @@ export default function BattleMapEditorTab() {
           </div>
         )
       })()}
+
+      {/* ── 중앙 안내 모달 (저장 완료 등) ── */}
+      {notice && (
+        <div className="bme-notice-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) setNotice(null) }}>
+          <div className="bme-notice">
+            <div className="bme-notice-icon">{notice.icon ?? '✅'}</div>
+            <div className="bme-notice-title">{notice.title}</div>
+            {notice.body && <div className="bme-notice-body">{notice.body}</div>}
+            <button className="bme-notice-ok" onClick={() => setNotice(null)} autoFocus>확인</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1138,6 +1213,12 @@ function FloatingPanel({ title, pos, onMove, onClose, defaultStyle, children }) 
 // ── 헬퍼 ──
 function inBounds(m, x, y) { return x >= 0 && y >= 0 && x < m.grid.cols && y < m.grid.rows }
 function sameTile(a, b) { return (!a && !b) || (a && b && a.x === b.x && a.y === b.y) }
+// 두 배경 URL이 같은 map/ 이미지를 가리키는지(퍼센트 인코딩 차이 허용). 저장맵 ↔ 이미지 매칭용.
+function sameImageUrl(a, b) {
+  if (!a || !b) return false
+  if (a === b) return true
+  try { return decodeURIComponent(a) === decodeURIComponent(b) } catch { return false }
+}
 // 오브젝트가 점유한 모든 칸 "x,y" Set — 그리드를 가려 "오브젝트만 남은" 표현에 사용.
 function objectFootprintCells(m) {
   const set = new Set()
