@@ -17,6 +17,7 @@ import { deriveSpawnZones, isTileBlocked, isTileVoid, getBlockingObjectCells, ob
 import { getEmojiFallback } from '../../core/assetMap'
 import CutinManager from '../effects/CutinManager'
 import { useBattleStore } from '../../state/useBattleStore'
+import { computeLaserShot } from '../weapons/laserPath'
 
 // COLS/ROWS는 init()에서 gridCols/gridRows로 동적 설정된다 (기본값 20×16)
 let COLS = 20
@@ -253,6 +254,9 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   create() {
+    // 개발 모드 전용 — E2E/헤드리스 QA가 씬을 직접 구동할 수 있는 훅 (프로덕션 빌드 제외)
+    if (import.meta.env.DEV) window.__battleScene = this
+
     // ── 아이소메트릭 타일 크기 계산 ─────────────────────────────────
     // 그리드 시각 폭: (COLS + ROWS - 2) * hw = 20 * hw
     // 그리드 시각 높: (COLS + ROWS) * hh     = 22 * hh  (각 타일 상하 팁 포함)
@@ -940,6 +944,9 @@ export default class BattleScene extends Phaser.Scene {
       event?.stopPropagation()
       if (!this._isDragging) this.handleUnitClick(unit)
     })
+    // 레이저 조준 프리뷰 — 적 유닛 호버 시 빔 경로·피격 순서 미리보기 (Phase 4-1)
+    container.on('pointerover', () => this._onUnitHover(unit))
+    container.on('pointerout', () => this._clearLaserPreview())
 
     this.units.push(unit)
     this.refreshUnitStatusLabel(unit)
@@ -1014,10 +1021,8 @@ export default class BattleScene extends Phaser.Scene {
     if (rEntry?.equipment?.weapon2) {
       const w1 = this._getEquippedWeaponData(attacker, config, 'weapon')
       const w2 = this._getEquippedWeaponData(attacker, config, 'weapon2')
-      const w1MaxRng = Math.max(minRng, baseMaxRng + w1.rangeBonus)
-      const w2MaxRng = Math.max(minRng, baseMaxRng + w2.rangeBonus)
-      const w1Ok = distance >= minRng && distance <= w1MaxRng && attacker.ap >= w1.apCost
-      const w2Ok = distance >= minRng && distance <= w2MaxRng && attacker.ap >= w2.apCost
+      const w1Ok = this._canFire(attacker, enemy, w1).ok
+      const w2Ok = this._canFire(attacker, enemy, w2).ok
       if (w1Ok || w2Ok) {
         this._promptWeaponChoice(attacker, enemy, w1, w2, w1Ok, w2Ok, rEntry)
         return
@@ -1026,6 +1031,13 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     const weaponData = this._getEquippedWeaponData(attacker, config, 'weapon')
+
+    // Laser 계열(Phase 4-1) — 맨해튼 사거리 대신 빔 경로(직선/관통/굴절)로 판정한다.
+    if (weaponData.family === 'laser') {
+      this._tryLaserAttack(attacker, enemy, weaponData, 'weapon')
+      return
+    }
+
     const maxRng = Math.max(minRng, baseMaxRng + (weaponData.rangeBonus ?? 0))
 
     if (distance < minRng || distance > maxRng) {
@@ -1069,7 +1081,7 @@ export default class BattleScene extends Phaser.Scene {
           if (this._isDragging) return
           this.actionChips?.forEach((c) => c.destroy())
           this.actionChips = []
-          this.resolveCombat(attacker, enemy, undefined, slot)
+          this._attackWith(attacker, enemy, slot)
         })
       }
       this.actionChips.push(chip)
@@ -1078,6 +1090,196 @@ export default class BattleScene extends Phaser.Scene {
     addWeaponChip(chipY,      `⚔️ 무기1: ${w1Item?.name ?? '기본'} (AP ${w1.apCost ?? 1}) — 클릭해서 선택`, w1Ok, 'weapon')
     addWeaponChip(chipY + 19, `⚔️ 무기2: ${w2Item?.name ?? '없음'} (AP ${w2.apCost ?? 1}) — 클릭해서 선택`, w2Ok, 'weapon2')
     this.refreshHud(`${attacker.ship.name} → ${enemy.ship.name}: 어떤 무기로 공격하시겠습니까?`)
+  }
+
+  // ── Laser 계열 (Phase 4-1) — 경로 판정은 weapons/laserPath.js 순수 모듈이 담당 ──
+
+  // 이 무기로 지금 대상을 공격할 수 있는가 (듀얼 슬롯 칩 활성 판정 공용)
+  _canFire(attacker, enemy, weaponData) {
+    if (attacker.ap < (weaponData.apCost ?? 1)) return { ok: false }
+    if (weaponData.family === 'laser') {
+      return { ok: this._computeLaserShotFor(attacker, enemy, weaponData).valid }
+    }
+    const distance = manhattanDistance({ x: attacker.gridX, y: attacker.gridY }, { x: enemy.gridX, y: enemy.gridY })
+    const [minRng, baseMaxRng] = attacker.ship.rng
+    const maxRng = Math.max(minRng, baseMaxRng + (weaponData.rangeBonus ?? 0))
+    return { ok: distance >= minRng && distance <= maxRng }
+  }
+
+  // 슬롯의 무기 계열에 따라 공격 방식 라우팅 (듀얼 슬롯 칩에서 호출)
+  _attackWith(attacker, enemy, slot) {
+    const weaponData = this._getEquippedWeaponData(attacker, getGameConfig(), slot)
+    if (weaponData.family === 'laser') {
+      this._tryLaserAttack(attacker, enemy, weaponData, slot)
+    } else {
+      this.resolveCombat(attacker, enemy, undefined, slot)
+    }
+  }
+
+  _laserMults(config) {
+    const c = config?.combat?.weaponEffects?.laser ?? {}
+    return {
+      pierceSecondMult: c.pierceSecondMult ?? 0.5,
+      deflectMults: c.deflectMults ?? [1, 1],
+      phaseMults: c.phaseMults ?? [1, 1, 0.5],
+    }
+  }
+
+  // 빔 차단 판정용 점유 맵 — 유닛(피아) + 통과 불가 지형. 공격자 칸은 제외.
+  _buildLaserOccupancy(attacker) {
+    const occupied = new Map()
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        if (!getTerrain(this.terrain[y][x]).passable) occupied.set(`${x},${y}`, { kind: 'blocked' })
+      }
+    }
+    for (const u of this.units) {
+      if (u === attacker || u.hp <= 0) continue
+      occupied.set(`${u.gridX},${u.gridY}`, { kind: u.side === attacker.side ? 'ally' : 'enemy' })
+    }
+    return occupied
+  }
+
+  _computeLaserShotFor(attacker, enemy, weaponData, config = getGameConfig()) {
+    return computeLaserShot({
+      attacker: { x: attacker.gridX, y: attacker.gridY },
+      target: { x: enemy.gridX, y: enemy.gridY },
+      tier: weaponData.tier || 1,
+      range: weaponData.range ?? 10,
+      cols: COLS,
+      rows: ROWS,
+      occupied: this._buildLaserOccupancy(attacker),
+      mults: this._laserMults(config),
+    })
+  }
+
+  _tryLaserAttack(attacker, enemy, weaponData, slot) {
+    const apCost = weaponData.apCost ?? 1
+    if (attacker.ap < apCost) {
+      this.refreshHud(`${attacker.ship.name} — AP 부족! 이 무기는 ${apCost} AP 필요 (현재 ${attacker.ap} AP)`)
+      return
+    }
+    this._clearLaserPreview()
+    const shot = this._computeLaserShotFor(attacker, enemy, weaponData)
+    if (!shot.valid) {
+      const msg = {
+        not_aligned: weaponData.tier <= 1 ? '상하좌우 직선 위의 적만 조준할 수 있습니다' : '직선(8방향) 위의 적만 조준할 수 있습니다',
+        blocked: '장애물이 빔을 차단합니다',
+        ally_block: '아군이 사선에 있어 발사할 수 없습니다',
+        blocked_by_unit: '다른 유닛이 사선을 막고 있습니다 — 앞의 적을 먼저 조준하세요',
+        out_of_range: '빔 사거리 밖입니다',
+        no_path: '직선으로도, 굴절로도 닿는 경로가 없습니다',
+      }[shot.reason] ?? '조준할 수 없습니다'
+      this.refreshHud(`🔴 ${attacker.ship.name} [레이저] — ${msg}`)
+      return
+    }
+    this.resolveLaserAttack(attacker, shot, weaponData, slot)
+  }
+
+  // 레이저 발사 — AP는 1회만 차감하고, 경로상 피격 대상을 순서대로 해소한다.
+  resolveLaserAttack(attacker, shot, weaponData, slot) {
+    this.clearSelection()
+    this.spendAp(attacker, weaponData.apCost ?? 1)
+    this.focusCameraOnUnit(attacker)
+    this._flashLaserBeam(attacker, shot.path, shot.hits)
+
+    const targets = shot.hits
+      .map((h) => ({ unit: this.units.find((u) => u.gridX === h.x && u.gridY === h.y && u.hp > 0), mult: h.mult }))
+      .filter((t) => t.unit)
+
+    const fireAt = (idx) => {
+      if (idx >= targets.length) return
+      const { unit, mult } = targets[idx]
+      if (!this.units.includes(unit) || unit.hp <= 0) { fireAt(idx + 1); return }
+      this.resolveCombat(attacker, unit, () => fireAt(idx + 1), slot, {
+        damageMultiplier: mult,
+        skipApSpend: true,
+        skipTargetLine: true,
+      })
+    }
+    fireAt(0)
+  }
+
+  // 빔 폴리라인 그리기 (연출·프리뷰 공용) — { g, badges } 반환
+  _drawLaserPolyline(attacker, pathCells, color, hits) {
+    const g = this.add.graphics().setDepth(9)
+    const points = [
+      { x: attacker.container.x, y: attacker.container.y },
+      ...pathCells.map((c) => {
+        const { px, py } = this.cellToWorld(c.x, c.y)
+        return { x: px, y: py }
+      }),
+    ]
+    g.lineStyle(6, color, 0.25)
+    g.beginPath()
+    g.moveTo(points[0].x, points[0].y)
+    for (let i = 1; i < points.length; i++) g.lineTo(points[i].x, points[i].y)
+    g.strokePath()
+    g.lineStyle(2.5, 0xffffff, 0.9)
+    g.beginPath()
+    g.moveTo(points[0].x, points[0].y)
+    for (let i = 1; i < points.length; i++) g.lineTo(points[i].x, points[i].y)
+    g.strokePath()
+
+    const badges = hits.map((h, i) => {
+      const { px, py } = this.cellToWorld(h.x, h.y)
+      return this.add
+        .text(px, py - CELL * 0.6, `${i + 1}${h.mult !== 1 ? ` ×${h.mult}` : ''}`, {
+          fontFamily: 'Share Tech Mono, monospace',
+          fontSize: '15px',
+          fontStyle: 'bold',
+          color: '#9be8ff',
+          stroke: '#00303c',
+          strokeThickness: 4,
+        })
+        .setOrigin(0.5)
+        .setDepth(10)
+    })
+    return { g, badges }
+  }
+
+  // 발사 연출 — 잠깐 번쩍인 뒤 페이드아웃
+  _flashLaserBeam(attacker, pathCells, hits) {
+    if (this.laserFlash) {
+      this.tweens.killTweensOf([this.laserFlash.g, ...this.laserFlash.badges])
+      this.laserFlash.g.destroy()
+      this.laserFlash.badges.forEach((b) => b.destroy())
+    }
+    const drawn = this._drawLaserPolyline(attacker, pathCells, 0x66eaff, hits)
+    this.laserFlash = drawn
+    this.tweens.add({
+      targets: [drawn.g, ...drawn.badges],
+      alpha: 0,
+      duration: 800,
+      delay: 350,
+      onComplete: () => {
+        drawn.g.destroy()
+        drawn.badges.forEach((b) => b.destroy())
+        if (this.laserFlash === drawn) this.laserFlash = null
+      },
+    })
+  }
+
+  // 조준 프리뷰 — 레이저 장착 아군 선택 상태에서 적 위에 호버하면 경로·피격 순서를 미리 보여준다.
+  _onUnitHover(unit) {
+    if (this.busy || this.battleEnded) return
+    const attacker = this.selected
+    if (!attacker || unit.side === attacker.side) return
+    const config = getGameConfig()
+    const weaponData = this._getEquippedWeaponData(attacker, config, 'weapon')
+    if (weaponData.family !== 'laser') return
+    const shot = this._computeLaserShotFor(attacker, unit, weaponData, config)
+    this._clearLaserPreview()
+    if (!shot.valid) return
+    this.laserPreview = this._drawLaserPolyline(attacker, shot.path, 0x66eaff, shot.hits)
+    this.laserPreview.g.setAlpha(0.55)
+  }
+
+  _clearLaserPreview() {
+    if (!this.laserPreview) return
+    this.laserPreview.g.destroy()
+    this.laserPreview.badges.forEach((b) => b.destroy())
+    this.laserPreview = null
   }
 
   handleCellClick(x, y) {
@@ -1496,7 +1698,7 @@ export default class BattleScene extends Phaser.Scene {
   // 적 유닛이나 무기 미장착 시 기본값(apCost:1, rangeBonus:0, pierce:0) 폴백.
   // slot: 'weapon' | 'weapon2' — 어떤 슬롯의 무기를 읽을지 지정 (기본 'weapon').
   _getEquippedWeaponData(unit, config, slot = 'weapon') {
-    const defaults = { apCost: 1, rangeBonus: 0, pierce: 0 }
+    const defaults = { apCost: 1, rangeBonus: 0, pierce: 0, family: null, tier: 0, range: null }
     if (!unit.instanceId) return defaults
     const rEntry = useFleetStore.getState().roster.find((r) => r.instanceId === unit.instanceId)
     const weaponId = rEntry?.equipment?.[slot]
@@ -1508,6 +1710,10 @@ export default class BattleScene extends Phaser.Scene {
       apCost:     ov.apCost     ?? item.apCost     ?? 1,
       rangeBonus: ov.rangeBonus ?? item.rangeBonus ?? 0,
       pierce:     ov.pierce     ?? item.pierce     ?? 0,
+      // 계열 메커니즘용(Phase 4) — family/tier로 판정 분기, range는 절대 사거리(빔 길이 등)
+      family:     ov.family     ?? item.family     ?? null,
+      tier:       ov.tier       ?? item.tier       ?? 0,
+      range:      ov.range      ?? item.range      ?? null,
     }
   }
 
@@ -1910,7 +2116,9 @@ export default class BattleScene extends Phaser.Scene {
   // ----- 전투 -----
   // onComplete: 연출까지 끝난 뒤 호출(적 AI가 다음 행동으로 이어갈 때 사용). 공격은 명중 여부와 무관하게 AP 1을 소모한다.
   // weaponSlot: 'weapon' | 'weapon2' — 어떤 슬롯의 무기를 사용할지 (기본 'weapon').
-  resolveCombat(attacker, defender, onComplete, weaponSlot = 'weapon') {
+  // opts (Phase 4 멀티히트용): damageMultiplier=피격 순서 배율, skipApSpend=AP 차감 생략(호출측이 1회 차감),
+  // skipTargetLine=단일 타겟팅 라인 생략(빔 연출이 대체).
+  resolveCombat(attacker, defender, onComplete, weaponSlot = 'weapon', opts = {}) {
     const defTerrain = getTerrain(this.terrain[defender.gridY][defender.gridX])
 
     // 공격 방향으로 공격자 스프라이트를 전환한다 (hull 스프라이트가 있을 때만).
@@ -1962,13 +2170,13 @@ export default class BattleScene extends Phaser.Scene {
 
     this.clearSelection()
     this.busy = true
-    this.spendAp(attacker, weaponData.apCost ?? 1)
+    if (!opts.skipApSpend) this.spendAp(attacker, weaponData.apCost ?? 1)
 
     // 공격하는 함대 쪽으로 카메라가 따라가며 줌인(전투뷰). 조감 복귀는 토글 버튼으로만.
     this.focusCameraOnUnit(attacker)
 
-    // 타겟팅 라인 — 공격 방향과 명중/회피 색으로 짧게 번쩍임
-    this.flashTargetingLine(attacker, defender, hit ? 0x44ff88 : 0xff6655)
+    // 타겟팅 라인 — 공격 방향과 명중/회피 색으로 짧게 번쩍임 (빔 연출 시 생략)
+    if (!opts.skipTargetLine) this.flashTargetingLine(attacker, defender, hit ? 0x44ff88 : 0xff6655)
 
     const finish = () => {
       this.busy = false
@@ -1985,9 +2193,10 @@ export default class BattleScene extends Phaser.Scene {
     // 피해량 = 상성 배율 × 측면/크리티컬 → Shield → Armor → HP 파이프라인
     const counter = lookupCounterMultiplier(this.combatRules.counterMultiplier, attacker.ship.id, defender.ship.id)
     const owDmgMult   = attacker._overwatchDmgMult ?? 1
+    const extraMult   = opts.damageMultiplier ?? 1
     const finalDamage = calculateDamage(
       { atk: attacker.ship.atk }, null,
-      { counterMultiplier: counter, damageMultiplier: flankMult * critMult * owDmgMult },
+      { counterMultiplier: counter, damageMultiplier: flankMult * critMult * owDmgMult * extraMult },
       config,
     )
     const shieldBefore = defender.shield

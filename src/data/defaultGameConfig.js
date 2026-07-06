@@ -143,6 +143,15 @@ export const DEFAULT_GAME_CONFIG = {
       maxAttacksPerTurnDefault: 1,
     },
 
+    // 무기 계열별 고유 메커니즘 수치 (MASTER_PLAN Phase 4 · weapons_master_plan.md)
+    weaponEffects: {
+      laser: {
+        pierceSecondMult: 0.5,   // T3 관통 빔 — 2번째 피격 배율
+        deflectMults: [1, 1],    // T4 굴절 빔 — [적 굴절점, 타깃] 피격 배율
+        phaseMults: [1, 1, 0.5], // T5 위상 랜스 — 피격 순서별 배율 (최대 3기)
+      },
+    },
+
     damage: {
       armorIsHpLayer: false,
       armorIsDamageReduction: true,
