@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useDataStore } from './state/useDataStore'
 import { useSettingsStore } from './state/useSettingsStore'
 import { useMapStore } from './state/useMapStore'
+import { useSaveStore } from './state/useSaveStore'
 import { soundManager } from './core/soundManager'
 import LoadingScreen from './ui/screens/LoadingScreen'
 import TitleScreen from './ui/screens/TitleScreen'
@@ -30,6 +31,7 @@ function App() {
   const currentKey = useDataStore((s) => s.currentKey)
   const init = useDataStore((s) => s.init)
   const soundVolume = useSettingsStore((s) => s.soundVolume)
+  const loadRev = useSaveStore((s) => s.loadRev)
 
   const [nav, setNav] = useState({ screen: 'title', placeId: null })
   const [prevNav, setPrevNav] = useState(null)
@@ -162,7 +164,9 @@ function App() {
 
           <main className="app-content">
             {nav.screen === 'main' && (
+              // key=loadRev: 세이브 로드 직후 리마운트해 로드된 함대 위치(fleetPos)를 반영
               <StrategyMapScreen
+                key={loadRev}
                 onEnterBattle={handleEnterBattle}
                 onGameOver={handleGameOver}
                 onEnterPlace={handleEnterPlace}

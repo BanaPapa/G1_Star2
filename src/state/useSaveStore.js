@@ -34,6 +34,7 @@ export function getSlotMeta(slot) {
 
 export const useSaveStore = create((set) => ({
   rev: 0, // 저장/삭제 시 증가 → SaveScreen이 구독해 재렌더
+  loadRev: 0, // 로드 시 증가 — App이 StrategyMapScreen의 key로 사용해 로드 직후 리마운트(위치 반영)
 
   save: (slot) => {
     const p = useProgressStore.getState()
@@ -51,6 +52,7 @@ export const useSaveStore = create((set) => ({
         miningDeposits:   p.miningDeposits,
         obtainedHiddens:  p.obtainedHiddens,
         recruitedAces:    p.recruitedAces,
+        fleetPos:         p.fleetPos,
       },
       fleet: {
         roster:     f.roster,
@@ -75,6 +77,7 @@ export const useSaveStore = create((set) => ({
       miningDeposits:   data.progress.miningDeposits   ?? {},
       obtainedHiddens:  data.progress.obtainedHiddens  ?? [],
       recruitedAces:    data.progress.recruitedAces    ?? [],
+      fleetPos:         data.progress.fleetPos         ?? null,
     })
     useFleetStore.setState({
       roster:     data.fleet.roster,
@@ -93,6 +96,7 @@ export const useSaveStore = create((set) => ({
       useBuildingStore.getState().loadState(data.buildings)
     }
 
+    set((s) => ({ loadRev: s.loadRev + 1 }))
     return true
   },
 

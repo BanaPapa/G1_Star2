@@ -357,7 +357,9 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver, onEnterPl
   const eventCooldownRef = useRef(0)
 
   // ─── 게임 상태 ───
-  const [playerPos,     setPlayerPos]     = useState({ ...SYS_POS.s0 })
+  // 함대 좌표 — 전투/장소맵을 다녀오면 이 컴포넌트가 언마운트되므로,
+  // 스토어(useProgressStore.fleetPos)에 보관된 마지막 위치에서 이어서 시작한다.
+  const [playerPos,     setPlayerPos]     = useState(() => useProgressStore.getState().fleetPos ?? { ...SYS_POS.s0 })
   const [mapEnemies,    setMapEnemies]    = useState([])
   const [mapBosses,     setMapBosses]     = useState([])
   const [mapEvents,     setMapEvents]     = useState([])
@@ -373,7 +375,11 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver, onEnterPl
   const [moveTarget,    setMoveTarget]    = useState(null)     // 목적지 별계 id
 
   // playerPos/eventModal → ref 동기화 (인터벌 콜백이 deps 없이 최신 상태 참조)
-  useEffect(() => { playerPosRef.current = playerPos }, [playerPos])
+  // + 스토어 동기화: 화면 전환(언마운트)·저장 시에도 함대 위치가 보존되도록 매 변경마다 기록
+  useEffect(() => {
+    playerPosRef.current = playerPos
+    useProgressStore.getState().setFleetPos(playerPos)
+  }, [playerPos])
   useEffect(() => { eventModalRef.current = eventModal }, [eventModal])
   useEffect(() => { battlePendingRef.current = battlePending }, [battlePending])
   useEffect(() => { summaryBattleRef.current = summaryBattle }, [summaryBattle])

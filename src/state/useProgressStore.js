@@ -12,10 +12,15 @@ export const useProgressStore = create((set, get) => ({
   miningDeposits: {}, // { [nodeId]: remainingDeposit }
   obtainedHiddens: [], // { nodeId } 히든 유니크 획득 완료 노드
   recruitedAces: [],   // 영입된 에이스 id 목록
+  // 함대의 성단맵 좌표(% 단위 {x,y}) — 전투/장소맵을 다녀와도 위치가 유지되도록 스토어에 보관.
+  // null이면 미기록 상태로, StrategyMapScreen이 모항 좌표로 초기화한다.
+  fleetPos: null,
 
   isConquered: (nodeId) => get().conqueredNodeIds.includes(nodeId),
 
   moveTo: (nodeId) => set({ currentNodeId: nodeId }),
+
+  setFleetPos: (pos) => set({ fleetPos: pos }),
 
   conquer: (nodeId) =>
     set((state) => ({
