@@ -86,7 +86,7 @@ function ShipCard({ u, side, index, count, active }) {
           <div className="btl-card-weapons">
             {[u.weapon1, u.weapon2].filter(Boolean).map((w, i) => (
               <div key={i} className="btl-card-weapon" title={`티어 ${w.tier} · AP ${w.apCost}`}>
-                {FAMILY_ICON[w.family] ?? '🗡'} {w.name} <small>T{w.tier}</small>
+                {FAMILY_ICON[w.family] ?? '🗡'} {w.name} <small>T{w.tier}{w.cd > 0 ? ` · ⏳${w.cd}` : ''}</small>
               </div>
             ))}
           </div>

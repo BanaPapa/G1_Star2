@@ -24,6 +24,7 @@ import { computePush, rollDisplace, unitStrength, computeGatherPlacements, event
 import { rollAntimatterHit, pickBlackHoleCells, antimatterDefaults } from '../weapons/antimatterEffects'
 import { familyColor, playHitImpact, playIonBolt, playPlasmaShot, playCannonTracer, playGravityWave, playAntimatterFlash } from '../effects/weaponVfx'
 import { addModifier, sumStat, hasModifier, consumeApEffects, tickTurn, modifierIcons } from '../systems/unitModifiers'
+import { startCooldown, tickCooldowns, cooldownLeft } from '../systems/weaponCooldowns'
 
 // COLS/ROWS는 init()에서 gridCols/gridRows로 동적 설정된다 (기본값 20×16)
 let COLS = 20
@@ -925,6 +926,7 @@ export default class BattleScene extends Phaser.Scene {
       isFlagship: false,
       apDebuff: 0,
       modifiers: [],         // Unit Modifier (Phase 4-0) — 무기 고유 효과 부착 목록 (systems/unitModifiers.js)
+      cooldowns: {},         // 무기 쿨타임 (Phase 4-6) — { weapon: n, weapon2: n } (systems/weaponCooldowns.js)
       weaponRangeBonus: (() => {
         if (placement.side !== 'ally' || !placement.instanceId) return 0
         const rEntry = this.roster.find((r) => r.instanceId === placement.instanceId)
@@ -1028,8 +1030,8 @@ export default class BattleScene extends Phaser.Scene {
     if (rEntry?.equipment?.weapon2) {
       const w1 = this._getEquippedWeaponData(attacker, config, 'weapon')
       const w2 = this._getEquippedWeaponData(attacker, config, 'weapon2')
-      const w1Ok = this._canFire(attacker, enemy, w1).ok
-      const w2Ok = this._canFire(attacker, enemy, w2).ok
+      const w1Ok = this._canFire(attacker, enemy, w1, 'weapon').ok
+      const w2Ok = this._canFire(attacker, enemy, w2, 'weapon2').ok
       if (w1Ok || w2Ok) {
         this._promptWeaponChoice(attacker, enemy, w1, w2, w1Ok, w2Ok, rEntry)
         return
@@ -1038,6 +1040,13 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     const weaponData = this._getEquippedWeaponData(attacker, config, 'weapon')
+
+    // 무기 쿨타임 (Phase 4-6) — 재장전 중이면 발사 불가
+    const cdLeft = this._weaponOnCooldown(attacker, 'weapon')
+    if (cdLeft > 0) {
+      this.refreshHud(`⏳ ${attacker.ship.name} — 무기 재장전 중 (${cdLeft}턴 후 사용 가능)`)
+      return
+    }
 
     // Laser 계열(Phase 4-1) — 맨해튼 사거리 대신 빔 경로(직선/관통/굴절)로 판정한다.
     if (weaponData.family === 'laser') {
@@ -1103,15 +1112,20 @@ export default class BattleScene extends Phaser.Scene {
       this.actionChips.push(chip)
     }
 
-    addWeaponChip(chipY,      `⚔️ 무기1: ${w1Item?.name ?? '기본'} (AP ${w1.apCost ?? 1}) — 클릭해서 선택`, w1Ok, 'weapon')
-    addWeaponChip(chipY + 19, `⚔️ 무기2: ${w2Item?.name ?? '없음'} (AP ${w2.apCost ?? 1}) — 클릭해서 선택`, w2Ok, 'weapon2')
+    const cdTag = (slot) => {
+      const left = this._weaponOnCooldown(attacker, slot)
+      return left > 0 ? ` ⏳재장전 ${left}턴` : ''
+    }
+    addWeaponChip(chipY,      `⚔️ 무기1: ${w1Item?.name ?? '기본'} (AP ${w1.apCost ?? 1})${cdTag('weapon')} — 클릭해서 선택`, w1Ok, 'weapon')
+    addWeaponChip(chipY + 19, `⚔️ 무기2: ${w2Item?.name ?? '없음'} (AP ${w2.apCost ?? 1})${cdTag('weapon2')} — 클릭해서 선택`, w2Ok, 'weapon2')
     this.refreshHud(`${attacker.ship.name} → ${enemy.ship.name}: 어떤 무기로 공격하시겠습니까?`)
   }
 
   // ── Laser 계열 (Phase 4-1) — 경로 판정은 weapons/laserPath.js 순수 모듈이 담당 ──
 
   // 이 무기로 지금 대상을 공격할 수 있는가 (듀얼 슬롯 칩 활성 판정 공용)
-  _canFire(attacker, enemy, weaponData) {
+  _canFire(attacker, enemy, weaponData, slot = 'weapon') {
+    if (this._weaponOnCooldown(attacker, slot) > 0) return { ok: false, reason: 'cooldown' }
     if (attacker.ap < (weaponData.apCost ?? 1)) return { ok: false }
     if (weaponData.family === 'laser') {
       return { ok: this._computeLaserShotFor(attacker, enemy, weaponData).valid }
@@ -1200,6 +1214,7 @@ export default class BattleScene extends Phaser.Scene {
   resolveLaserAttack(attacker, shot, weaponData, slot) {
     this.clearSelection()
     this.spendAp(attacker, weaponData.apCost ?? 1)
+    this._startWeaponCooldown(attacker, weaponData, slot)
     this.focusCameraOnUnit(attacker)
     this._flashLaserBeam(attacker, shot.path, shot.hits)
 
@@ -1450,6 +1465,7 @@ export default class BattleScene extends Phaser.Scene {
     this.clearSelection()
     this.busy = true
     this.spendAp(attacker, weaponData.apCost ?? 1)
+    this._startWeaponCooldown(attacker, weaponData, slot)
     this.focusCameraOnUnit(attacker)
 
     // 중심 명중 판정 — resolveCombat과 동일한 명중식 (guaranteedHit 파생 피해에는 미적용)
@@ -1764,6 +1780,7 @@ export default class BattleScene extends Phaser.Scene {
     this.clearSelection()
     this.busy = true
     this.spendAp(attacker, weaponData.apCost ?? 1)
+    this._startWeaponCooldown(attacker, weaponData, slot)
     this.focusCameraOnUnit(attacker)
 
     const center = { x: target.gridX, y: target.gridY }
@@ -2014,7 +2031,7 @@ export default class BattleScene extends Phaser.Scene {
     const w1 = this._equippedWeaponInfo(unit)
     const w2 = this._equippedWeaponInfo(unit, 'weapon2')
     const weaponPart = (w1 || w2)
-      ? ` · 무기: ${[w1, w2].filter(Boolean).map((w) => `${w.name}(T${w.tier}·AP${w.apCost})`).join(' / ')}`
+      ? ` · 무기: ${[w1, w2].filter(Boolean).map((w) => `${w.name}(T${w.tier}·AP${w.apCost}${w.cd > 0 ? `·⏳${w.cd}` : ''})`).join(' / ')}`
       : (unit.side === 'ally' && unit.instanceId ? ' · 무기: 기본 포 (함대 편성에서 장착 가능)' : '')
     this.refreshHud(
       `선택: ${unit.ship.name} (MOV ${unit.ship.mov} · AP ${unit.ap}/${unit.maxAp}${weaponPart}) — 이동 가능 ${range.length}칸. ` +
@@ -2401,7 +2418,22 @@ export default class BattleScene extends Phaser.Scene {
       range:      ov.range      ?? item.range      ?? null,
       area:       ov.area       ?? item.area       ?? null,
       areaRadius: ov.areaRadius ?? item.areaRadius ?? 0,
+      cooldown:   ov.cooldown   ?? item.cooldown   ?? 0,
     }
+  }
+
+  // ── 무기 쿨타임 (Phase 4-6) — combat.weapon.cooldownEnabled 토글이 켜졌을 때만 동작 ──
+
+  // 해당 슬롯의 남은 재장전 턴 (토글 OFF면 항상 0)
+  _weaponOnCooldown(unit, slot) {
+    if (!getGameConfig()?.combat?.weapon?.cooldownEnabled) return 0
+    return cooldownLeft(unit.cooldowns, slot)
+  }
+
+  // 발사 직후 호출 — 무기의 cooldown 턴만큼 재장전 상태로
+  _startWeaponCooldown(unit, weaponData, slot) {
+    if (!getGameConfig()?.combat?.weapon?.cooldownEnabled) return
+    unit.cooldowns = startCooldown(unit.cooldowns, slot, weaponData?.cooldown ?? 0)
   }
 
   // 장착 무기 표시 정보 (카드덱/HUD용) — 미장착이면 null
@@ -2410,7 +2442,11 @@ export default class BattleScene extends Phaser.Scene {
     const rEntry = useFleetStore.getState().roster.find((r) => r.instanceId === unit.instanceId)
     const weaponId = rEntry?.equipment?.[slot]
     const item = weaponId ? this.itemsById.get(weaponId) : null
-    return item ? { name: item.name, tier: item.tier ?? 0, family: item.family ?? null, apCost: item.apCost ?? 1 } : null
+    if (!item) return null
+    return {
+      name: item.name, tier: item.tier ?? 0, family: item.family ?? null, apCost: item.apCost ?? 1,
+      cd: this._weaponOnCooldown(unit, slot), // 남은 재장전 턴 (쿨타임 토글 OFF면 0)
+    }
   }
 
   // 투항 판정 — boss/플래그십이 아닌 적이 격파될 때 config 확률로 투항.
@@ -2891,7 +2927,10 @@ export default class BattleScene extends Phaser.Scene {
 
     this.clearSelection()
     this.busy = true
-    if (!opts.skipApSpend) this.spendAp(attacker, weaponData.apCost ?? 1)
+    if (!opts.skipApSpend) {
+      this.spendAp(attacker, weaponData.apCost ?? 1)
+      this._startWeaponCooldown(attacker, weaponData, weaponSlot)
+    }
 
     // 공격하는 함대 쪽으로 카메라가 따라가며 줌인(전투뷰). 조감 복귀는 토글 버튼으로만.
     this.focusCameraOnUnit(attacker)
@@ -3501,6 +3540,7 @@ export default class BattleScene extends Phaser.Scene {
       this.updateHpBar(unit)
       this.showFloatingText(unit, `☣ -${dmg}`, '#cc66ff')
     }
+    unit.cooldowns = tickCooldowns(unit.cooldowns) // 무기 재장전 턴 감소 (Phase 4-6)
     unit.aoeFiredThisTurn = false
     // 태세 리셋 — 방어 태세는 발동한 턴에만 유효. 경계 태세는 duration 설정에 따라 다중 턴 유지 가능.
     unit.defenseReduction = 0
