@@ -300,7 +300,7 @@ function genSystemBosses(systems, conqueredNodeIds = []) {
     .filter(Boolean)
 }
 
-export default function StrategyMapScreen({ onEnterBattle, onGameOver, onManagePlanet }) {
+export default function StrategyMapScreen({ onEnterBattle, onGameOver, onEnterPlace }) {
   // ─── 스토어 ───
   const systems          = useDataStore((s) => s.data?.systems?.systems)
   const enemyDefs        = useDataStore((s) => s.data?.enemies?.enemies)
@@ -1726,12 +1726,13 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver, onManageP
 
             {harvestMsg && <p className="map-info-harvest">{harvestMsg}</p>}
 
-            {(status === 'current' || status === 'conquered') && onManagePlanet && (
+            {/* 입항 — 함대가 이 노드에 있고(current) 모항/정복지일 때만 (스펙 §2 도킹 게이트) */}
+            {status === 'current' && (selected.role === 'home' || isConq) && onEnterPlace && (
               <button
                 className="map-action-btn map-action-btn--planet"
-                onClick={() => onManagePlanet(selected.id)}
+                onClick={() => onEnterPlace(selected.id)}
               >
-                🏗️ 행성 관리
+                🛬 입항 — {selected.role === 'home' ? '정거장 내부' : '행성 관리'}
               </button>
             )}
             {status === 'current'   && <p className="map-info-hint">현재 함대가 머무르고 있는 노드입니다.</p>}

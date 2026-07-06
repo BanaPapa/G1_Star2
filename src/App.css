@@ -946,3 +946,20 @@
     font-size: 12px;
   }
 }
+
+/* 전역 오버레이 — 함대 편성/저장·설정 (관제실 z-index 9000보다 아래) */
+.app-overlay {
+  position: fixed; inset: 0; z-index: 900;
+  background: rgba(4, 8, 20, 0.97);
+  display: flex; flex-direction: column;
+}
+.app-overlay-head {
+  display: flex; justify-content: flex-end; padding: 10px 16px 0;
+}
+.app-overlay-close {
+  font-family: var(--mono); font-size: 13px; padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid #445;
+  border-radius: 8px; color: #cdd8f4; cursor: pointer;
+}
+.app-overlay-close:hover { background: rgba(255, 255, 255, 0.12); }
+.app-overlay-body { flex: 1; overflow-y: auto; }
