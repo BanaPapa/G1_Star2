@@ -60,7 +60,7 @@ const KIND_ICON = {
 export function modifierIcons(list) {
   const icons = []
   for (const m of list ?? []) {
-    const icon = KIND_ICON[m.kind]
+    const icon = m.icon ?? KIND_ICON[m.kind] // 부착 시 icon 필드로 계열별 표시 오버라이드 가능 (예: Plasma 🔥)
     if (icon && !icons.includes(icon)) icons.push(icon)
   }
   return icons.join('')

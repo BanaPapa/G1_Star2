@@ -19,6 +19,7 @@ import CutinManager from '../effects/CutinManager'
 import { useBattleStore } from '../../state/useBattleStore'
 import { computeLaserShot } from '../weapons/laserPath'
 import { rollIonHit } from '../weapons/ionEffects'
+import { rollPlasmaHit, computeBlastCells, blastMultsForTier } from '../weapons/plasmaEffects'
 import { addModifier, sumStat, hasModifier, consumeApEffects, tickTurn, modifierIcons } from '../systems/unitModifiers'
 
 // COLS/ROWS는 init()에서 gridCols/gridRows로 동적 설정된다 (기본값 20×16)
@@ -949,7 +950,7 @@ export default class BattleScene extends Phaser.Scene {
     })
     // 레이저 조준 프리뷰 — 적 유닛 호버 시 빔 경로·피격 순서 미리보기 (Phase 4-1)
     container.on('pointerover', () => this._onUnitHover(unit))
-    container.on('pointerout', () => this._clearLaserPreview())
+    container.on('pointerout', () => { this._clearLaserPreview(); this._clearPlasmaPreview() })
 
     this.units.push(unit)
     this.refreshUnitStatusLabel(unit)
@@ -1056,6 +1057,11 @@ export default class BattleScene extends Phaser.Scene {
       return
     }
 
+    // Plasma 광역(T3/T4)은 지점 폭발로 해소 — 그 외에는 단일 대상 전투
+    if (this._isPlasmaBurst(weaponData)) {
+      this.resolvePlasmaBurst(attacker, enemy, weaponData, 'weapon')
+      return
+    }
     this.resolveCombat(attacker, enemy)
   }
 
@@ -1114,6 +1120,8 @@ export default class BattleScene extends Phaser.Scene {
     const weaponData = this._getEquippedWeaponData(attacker, getGameConfig(), slot)
     if (weaponData.family === 'laser') {
       this._tryLaserAttack(attacker, enemy, weaponData, slot)
+    } else if (this._isPlasmaBurst(weaponData)) {
+      this.resolvePlasmaBurst(attacker, enemy, weaponData, slot)
     } else {
       this.resolveCombat(attacker, enemy, undefined, slot)
     }
@@ -1270,6 +1278,17 @@ export default class BattleScene extends Phaser.Scene {
     if (!attacker || unit.side === attacker.side) return
     const config = getGameConfig()
     const weaponData = this._getEquippedWeaponData(attacker, config, 'weapon')
+    // Plasma 광역 — 호버한 적을 중심으로 5×5 폭발 범위 프리뷰
+    if (this._isPlasmaBurst(weaponData)) {
+      this._clearPlasmaPreview()
+      const cells = computeBlastCells({
+        center: { x: unit.gridX, y: unit.gridY },
+        cols: COLS, rows: ROWS,
+        ringMults: blastMultsForTier(weaponData.tier || 3, config?.combat?.weaponEffects?.plasma),
+      })
+      this.plasmaPreview = this._drawBlastOverlay(cells, 0xff7a2a, 0.28)
+      return
+    }
     if (weaponData.family !== 'laser') return
     const shot = this._computeLaserShotFor(attacker, unit, weaponData, config)
     this._clearLaserPreview()
@@ -1285,11 +1304,20 @@ export default class BattleScene extends Phaser.Scene {
     this.laserPreview = null
   }
 
-  // ── Ion 계열 (Phase 4-2) — 판정은 weapons/ionEffects.js, 부착·지속 규칙은 systems/unitModifiers.js ──
+  // ── 무기 계열별 명중 시 효과 (Phase 4) — 판정은 weapons/* 순수 모듈, 부착·지속 규칙은 systems/unitModifiers.js ──
 
   // 보스 예외 레이어 대상 판정 — enemies.json bosses 등재 또는 role='boss'
   _isBossUnit(unit) {
     return this.bossesById.has(unit.ship.id) || unit.baseShip?.role === 'boss'
+  }
+
+  // 계열 라우터 — resolveCombat에서 명중 확정 후 호출. HUD 요약 문자열(또는 null) 반환.
+  _applyWeaponHitEffects(defender, weaponData, config) {
+    if (weaponData.family === 'ion') return this._applyIonHitEffects(defender, weaponData, config)
+    if (weaponData.family === 'plasma' && [1, 2, 5].includes(weaponData.tier)) {
+      return this._applyPlasmaHitEffects(defender, weaponData, config)
+    }
+    return null
   }
 
   // 이온 무기 명중 시 효과 부착. HUD용 요약 문자열(또는 null)을 반환한다.
@@ -1327,6 +1355,202 @@ export default class BattleScene extends Phaser.Scene {
       })
     }
     return labels.join(' · ') || null
+  }
+
+  // ── Plasma 계열 (Phase 4-3) — 멜팅 디버프·아머 붕괴·5×5 폭발·잔열 지대 ──
+
+  // 플라즈마 명중 시 효과 부착 (T1/T2/T5). HUD 요약 문자열(또는 null) 반환.
+  _applyPlasmaHitEffects(defender, weaponData, config) {
+    const roll = rollPlasmaHit({
+      tier: weaponData.tier || 1,
+      isBoss: this._isBossUnit(defender),
+      alreadyMaxHpHit: (defender.modifiers ?? []).some((m) => m.id === 'plasma_maxhp_hit'),
+      cfg: config?.combat?.weaponEffects?.plasma,
+    })
+    for (const mod of roll.modifiers) defender.modifiers = addModifier(defender.modifiers, mod)
+    if (roll.maxHpDamagePct > 0) {
+      const loss = Math.floor(defender.maxHp * roll.maxHpDamagePct / 100)
+      defender.maxHp = Math.max(1, defender.maxHp - loss)
+      defender.hp = Math.min(defender.hp, defender.maxHp)
+      this.updateHpBar(defender)
+    }
+    this.refreshUnitStatusLabel(defender)
+
+    const labels = roll.events
+      .map((e) => ({
+        melt: `🔥 방어 ${e.defPct}%${e.atkPct ? ` · 공격 ${e.atkPct}%` : ''}${e.permanent ? ' (영구)' : ''}`,
+        annihilate: `☢ 아머 붕괴 · 최대HP -${e.maxHpDamagePct}%`,
+        annihilate_boss: `☢ 최대HP -${e.maxHpDamagePct}% (보스 저항)`,
+        annihilate_resist: '☢ 저항 — 이미 적용됨',
+      })[e.type] ?? null)
+      .filter(Boolean)
+
+    if (labels.length > 0) {
+      this.time.delayedCall(450, () => {
+        if (this.units.includes(defender)) this.showFloatingText(defender, labels[0], '#ff9a3d')
+      })
+    }
+    return labels.join(' · ') || null
+  }
+
+  // T3/T4 광역 여부 — area 태그 기준 (데이터 주도)
+  _isPlasmaBurst(weaponData) {
+    return weaponData.family === 'plasma' && weaponData.area === 'burst5x5'
+  }
+
+  // 지점 폭발 해소 — 중심 명중 판정 1회(빗나가면 전체 불발), 명중 시 5×5 링 배율로 피아 무차별 피해.
+  resolvePlasmaBurst(attacker, target, weaponData, slot) {
+    const config = getGameConfig()
+    this._clearPlasmaPreview()
+    this.clearSelection()
+    this.busy = true
+    this.spendAp(attacker, weaponData.apCost ?? 1)
+    this.focusCameraOnUnit(attacker)
+
+    // 중심 명중 판정 — resolveCombat과 동일한 명중식 (guaranteedHit 파생 피해에는 미적용)
+    const defTerrain = getTerrain(this.terrain[target.gridY][target.gridX])
+    const atkState = getDamageState(attacker.maxHp > 0 ? attacker.hp / attacker.maxHp : 1, config)
+    const defState = getDamageState(target.maxHp > 0 ? target.hp / target.maxHp : 1, config)
+    const flagAcc = this.flagshipAccPenalty ?? { ally: 0, enemy: 0 }
+    const hitRes = calculateHitChance(
+      { acc: attacker.ship.acc + (attacker.side === 'ally' ? (flagAcc.ally ?? 0) : (flagAcc.enemy ?? 0)) + sumStat(attacker.modifiers, 'accMod') },
+      { eva: target.ship.eva },
+      null,
+      {
+        terrainAccMod: defTerrain.accMod,
+        damageStateAccMod: atkState.accMod,
+        evasionContext: { terrainEvaMod: defTerrain.evaMod + this._coverEvaBonus(target.gridX, target.gridY), damageStateEvaMod: defState.evaMod + sumStat(target.modifiers, 'evaMod') },
+      },
+      config,
+    )
+    if (Math.random() * 100 >= hitRes.hitChance) {
+      this._dodgeUnit(target, attacker)
+      this.showFloatingText(target, '회피!', MISS_TEXT_COLOR, () => { this.busy = false })
+      this.refreshHud(`${attacker.ship.name} → ${target.ship.name} : 폭발 조준 빗나감! (명중률 ${hitRes.hitChance}%)`)
+      return
+    }
+
+    // 폭발 범위 — 배율 링 계산 + 연출
+    const plasmaCfg = config?.combat?.weaponEffects?.plasma
+    const cells = computeBlastCells({
+      center: { x: target.gridX, y: target.gridY },
+      cols: COLS, rows: ROWS,
+      ringMults: blastMultsForTier(weaponData.tier || 3, plasmaCfg),
+    })
+    this._flashBlastArea(cells)
+
+    // 범위 내 모든 유닛(피아 무차별, 공격자 포함)을 링 배율로 순차 해소
+    const cellMult = new Map(cells.map((c) => [`${c.x},${c.y}`, c.mult]))
+    const victims = this.units
+      .filter((u) => u.hp > 0 && cellMult.has(`${u.gridX},${u.gridY}`))
+      .map((u) => ({ unit: u, mult: cellMult.get(`${u.gridX},${u.gridY}`) }))
+
+    const isHellfire = (weaponData.tier || 3) >= 4
+    const fireAt = (idx) => {
+      if (idx >= victims.length) {
+        // T4 — 잔열 지대 생성 (기존 residual_heat 필드효과 연결)
+        if (isHellfire) this._createHeatZone(cells, config)
+        this.busy = false
+        this.refreshHud(
+          `${attacker.ship.name} [플라즈마] 폭발! 범위 내 ${victims.length}기 피격${isHellfire ? ' · 잔열 지대 생성' : ''} (명중률 ${hitRes.hitChance}%)`,
+        )
+        return
+      }
+      const { unit, mult } = victims[idx]
+      if (!this.units.includes(unit) || unit.hp <= 0 || mult <= 0) { fireAt(idx + 1); return }
+      this.resolveCombat(attacker, unit, () => fireAt(idx + 1), slot, {
+        damageMultiplier: mult,
+        guaranteedHit: true,
+        skipApSpend: true,
+        skipTargetLine: true,
+      })
+    }
+    fireAt(0)
+  }
+
+  // 폭발/프리뷰 공용 — 셀 다이아몬드 오버레이 그리기 ({ g } 반환)
+  _drawBlastOverlay(cells, color, alpha) {
+    const g = this.add.graphics().setDepth(3)
+    for (const c of cells) {
+      if (c.mult <= 0) continue
+      const h = 0.45
+      const pts = [
+        this.cellToWorld(c.x - h, c.y - h),
+        this.cellToWorld(c.x + h, c.y - h),
+        this.cellToWorld(c.x + h, c.y + h),
+        this.cellToWorld(c.x - h, c.y + h),
+      ]
+      g.fillStyle(color, alpha * (0.5 + 0.5 * c.mult))
+      g.beginPath()
+      g.moveTo(pts[0].px, pts[0].py)
+      for (let i = 1; i < 4; i++) g.lineTo(pts[i].px, pts[i].py)
+      g.closePath()
+      g.fillPath()
+    }
+    return { g }
+  }
+
+  _flashBlastArea(cells) {
+    const drawn = this._drawBlastOverlay(cells, 0xff7a2a, 0.5)
+    this.tweens.add({
+      targets: drawn.g, alpha: 0, duration: 900, delay: 250, ease: 'Cubic.easeOut',
+      onComplete: () => drawn.g.destroy(),
+    })
+  }
+
+  _clearPlasmaPreview() {
+    if (!this.plasmaPreview) return
+    this.plasmaPreview.g.destroy()
+    this.plasmaPreview = null
+  }
+
+  // ── 잔열 지대 (T4) — this.terrain을 residual_heat로 임시 전환, 만료 시 원복 ──
+
+  _createHeatZone(blastCells, config) {
+    const turns = config?.combat?.weaponEffects?.plasma?.heatZoneTurns ?? 1
+    const zone = { cells: [], expiresTurn: this.turnNumber + turns }
+    for (const c of blastCells) {
+      const cur = this.terrain[c.y][c.x]
+      const t = getTerrain(cur)
+      if (!t.passable || t.fieldEffectType) continue // 통과 불가·기존 필드효과 칸은 덮지 않음
+      zone.cells.push({ x: c.x, y: c.y, prevType: cur })
+      this.terrain[c.y][c.x] = 'residual_heat'
+      this._repaintTerrainTile(c.x, c.y)
+    }
+    if (zone.cells.length > 0) {
+      if (!this.heatZones) this.heatZones = []
+      this.heatZones.push(zone)
+    }
+  }
+
+  // 플레이어 턴 시작 시(주기 피해 이전) 만료 잔열을 원복한다.
+  _expireHeatZones() {
+    if (!this.heatZones?.length) return
+    const keep = []
+    for (const zone of this.heatZones) {
+      if (this.turnNumber > zone.expiresTurn) {
+        for (const c of zone.cells) {
+          this.terrain[c.y][c.x] = c.prevType
+          this._repaintTerrainTile(c.x, c.y)
+        }
+      } else {
+        keep.push(zone)
+      }
+    }
+    this.heatZones = keep
+  }
+
+  // 지형 타입 변경 후 타일 시각을 갱신한다 (하이라이트 중이면 색만 저장).
+  _repaintTerrainTile(x, y) {
+    const g = this.cellRects?.[y]?.[x]
+    if (!g) return
+    const terrain = getTerrain(this.terrain[y][x])
+    const baseAlpha = terrain.id === 'void' ? 0.06 : (terrain.passable ? TILE_FILL_ALPHA : TILE_BLOCK_ALPHA)
+    g.setData('baseColor', terrain.color)
+    g.setData('baseAlpha', baseAlpha)
+    if (!this.highlighted.has(`${x},${y}`)) {
+      this._redrawTile(g, x, y, terrain.color, baseAlpha, GRID_LINE_ALPHA)
+    }
   }
 
   handleCellClick(x, y) {
@@ -1745,7 +1969,7 @@ export default class BattleScene extends Phaser.Scene {
   // 적 유닛이나 무기 미장착 시 기본값(apCost:1, rangeBonus:0, pierce:0) 폴백.
   // slot: 'weapon' | 'weapon2' — 어떤 슬롯의 무기를 읽을지 지정 (기본 'weapon').
   _getEquippedWeaponData(unit, config, slot = 'weapon') {
-    const defaults = { apCost: 1, rangeBonus: 0, pierce: 0, family: null, tier: 0, range: null }
+    const defaults = { apCost: 1, rangeBonus: 0, pierce: 0, family: null, tier: 0, range: null, area: null, areaRadius: 0 }
     if (!unit.instanceId) return defaults
     const rEntry = useFleetStore.getState().roster.find((r) => r.instanceId === unit.instanceId)
     const weaponId = rEntry?.equipment?.[slot]
@@ -1757,10 +1981,12 @@ export default class BattleScene extends Phaser.Scene {
       apCost:     ov.apCost     ?? item.apCost     ?? 1,
       rangeBonus: ov.rangeBonus ?? item.rangeBonus ?? 0,
       pierce:     ov.pierce     ?? item.pierce     ?? 0,
-      // 계열 메커니즘용(Phase 4) — family/tier로 판정 분기, range는 절대 사거리(빔 길이 등)
+      // 계열 메커니즘용(Phase 4) — family/tier로 판정 분기, range는 절대 사거리(빔 길이 등), area는 광역 형태
       family:     ov.family     ?? item.family     ?? null,
       tier:       ov.tier       ?? item.tier       ?? 0,
       range:      ov.range      ?? item.range      ?? null,
+      area:       ov.area       ?? item.area       ?? null,
+      areaRadius: ov.areaRadius ?? item.areaRadius ?? 0,
     }
   }
 
@@ -2218,7 +2444,8 @@ export default class BattleScene extends Phaser.Scene {
       config,
     )
     const chancePct = hitRes.hitChance
-    const hit = Math.random() * 100 < chancePct
+    // guaranteedHit: 광역 폭발 등 중심 명중 판정이 이미 끝난 파생 피해 (회피 불가)
+    const hit = opts.guaranteedHit === true || Math.random() * 100 < chancePct
 
     const weaponData = this._getEquippedWeaponData(attacker, config, weaponSlot)
 
@@ -2248,17 +2475,25 @@ export default class BattleScene extends Phaser.Scene {
     const counter = lookupCounterMultiplier(this.combatRules.counterMultiplier, attacker.ship.id, defender.ship.id)
     const owDmgMult   = attacker._overwatchDmgMult ?? 1
     const extraMult   = opts.damageMultiplier ?? 1
+    // Unit Modifier 공격력/방어력 % 보정 (Plasma 멜팅 등) + 잔열 지대 위 방어력 감소(환경성 — 벗어나면 해제)
+    const modAtkPct = sumStat(attacker.modifiers, 'atkPct')
+    const effAtk = Math.max(1, Math.round(attacker.ship.atk * (1 + modAtkPct / 100)))
+    const onHeatZone = getTerrain(this.terrain[defender.gridY][defender.gridX]).id === 'residual_heat'
+    const heatPct = onHeatZone ? (config?.combat?.weaponEffects?.plasma?.heatZoneArmorPct ?? -50) : 0
+    const modDefPct = Math.max(-100, sumStat(defender.modifiers, 'defPct') + heatPct)
+    const effArmor = Math.max(0, Math.round((defender.armor ?? 0) * (1 + modDefPct / 100)))
     const finalDamage = calculateDamage(
-      { atk: attacker.ship.atk }, null,
+      { atk: effAtk }, null,
       { counterMultiplier: counter, damageMultiplier: flankMult * critMult * owDmgMult * extraMult },
       config,
     )
     const shieldBefore = defender.shield
     const pipe = resolveDamagePipeline(
       {
-        defender: { shield: defender.shield, armor: defender.armor, armorDurability: defender.armorDurability, hp: defender.hp },
+        defender: { shield: defender.shield, armor: effArmor, armorDurability: defender.armorDurability, hp: defender.hp },
         finalDamage,
-        shieldPierce: weaponData.pierce ?? 0,
+        // 아이템 pierce는 %(0~100) — 파이프라인은 0~1 비율을 기대 (예전엔 pierce≥1이 전부 100% 우회되던 버그)
+        shieldPierce: (weaponData.pierce ?? 0) / 100,
         defenseReduction: defender.defenseReduction ?? 0,
       },
       config,
@@ -2269,10 +2504,8 @@ export default class BattleScene extends Phaser.Scene {
     this.updateHpBar(defender)
     this.updateShieldBar(defender)
 
-    // Ion 계열(Phase 4-2) — 명중 시 시스템 교란 효과 부착 (판정: weapons/ionEffects.js)
-    const ionSummary = !pipe.destroyed && weaponData.family === 'ion'
-      ? this._applyIonHitEffects(defender, weaponData, config)
-      : null
+    // 계열별 명중 시 효과 부착 (Ion 교란 / Plasma 멜팅·붕괴 — 판정은 weapons/* 순수 모듈)
+    const ionSummary = !pipe.destroyed ? this._applyWeaponHitEffects(defender, weaponData, config) : null
     const ionPart = ionSummary ? ` ⚡ ${ionSummary}` : ''
 
     const shieldAbsorbed = Math.max(0, Math.round(shieldBefore - pipe.shieldAfter))
@@ -2907,6 +3140,7 @@ export default class BattleScene extends Phaser.Scene {
     useBattleStore.getState().setPlayerPhase(true)
     this.allyQueue = this.units.filter((u) => u.side === 'ally')
     for (const unit of this.allyQueue) this.refillAp(unit)
+    this._expireHeatZones() // 만료된 잔열 지대 원복 (주기 피해 판정 이전)
     if (this.turnNumber > 1) this.applyPeriodicTerrainDamage()
     this.refreshHud()
     this.syncUnitsToStore()

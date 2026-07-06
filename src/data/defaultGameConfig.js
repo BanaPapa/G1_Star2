@@ -157,6 +157,18 @@ export const DEFAULT_GAME_CONFIG = {
         iffScrambler:    { turns: 1, bossFallback: { accMod: -20, evaMod: -20, turns: 1 } }, // T4 — 보스는 디버프로 약화
         systemCollapse:  { accMod: -70, evaMod: -70, turns: 1, shieldNullifyChance: 0.6, stunChanceOnNullify: 0.25 }, // T5
       },
+      plasma: {
+        armorMelter: { defPct: -30, turns: 1, permanentChance: 0.15 },              // T1 — 방어력 약화 (낮은 확률 전투 종료까지)
+        coreMelter:  { defPct: -30, atkPct: -30, turns: 1, permanentChance: 0.15 }, // T2 — 방어/공격 약화
+        burstMults:    [1.0, 0.8, 0.6],  // T3 5×5 폭발 — [중심, 1칸, 2칸] 배율 (아군도 피해)
+        hellfireMults: [1.2, 1.0, 0.8],  // T4 강화 폭발
+        heatZoneTurns: 1,                // T4 잔열 지속 턴 (다음 턴까지)
+        heatZoneArmorPct: -50,           // 잔열 위 방어력 감소 — 환경성, 벗어나면 해제
+        annihilator: {                   // T5 — 쉴드 무시는 pierce 데이터로, 아래는 부가 효과
+          maxHpStrongChance: 0.25, maxHpNormalPct: 30, maxHpStrongPct: 50,
+          boss: { defPct: -50, defChance: 0.7, maxHpNormalPct: 10, maxHpStrongPct: 20, maxHpStrongChance: 0.25 },
+        },
+      },
       // 보스 예외 공통 레이어 (weapons_master_plan §8 — 그대로 적용 금지 규칙의 변환값)
       bossExceptions: {
         stunConvertsToApDrain: 1,  // 스턴 → AP -1
