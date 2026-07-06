@@ -38,8 +38,8 @@ export default function DebugExportTab() {
 
   // 테스트 지급 — 연구/상점 없이 무기 메커니즘(Phase 4)을 직접 체험하기 위한 개발용 지름길.
   // 지급 + 현재 함대에 데모 로드아웃 자동 장착까지 한 번에 (모의 전투에 바로 반영).
-  // 데모 로드아웃은 구현 완료된 계열(Laser/Ion/Plasma)의 대표 무기를 함선 순서대로 배정한다.
-  const DEMO_LOADOUT = ['wpn_laser_pierce', 'wpn_ap_disruptor', 'wpn_plasma_burst', 'wpn_laser_deflection', 'wpn_shield_nullifier', 'wpn_hellfire_burst']
+  // 데모 로드아웃은 5계열 대표 무기를 함선 순서대로 배정한다 (레이저 관통/이온 교란/플라즈마 폭발/중력 밀치기/반물질 블랙홀…).
+  const DEMO_LOADOUT = ['wpn_laser_pierce', 'wpn_ap_disruptor', 'wpn_plasma_burst', 'wpn_graviton_ram', 'wpn_micro_singularity', 'wpn_gravity_collapse', 'wpn_total_annihilation']
 
   function grantAllWeapons() {
     const items = useDataStore.getState().data?.items
