@@ -37,13 +37,30 @@ export default function DebugExportTab() {
   }
 
   // 테스트 지급 — 연구/상점 없이 무기 메커니즘(Phase 4)을 직접 체험하기 위한 개발용 지름길.
-  // 지급만 하고 장착은 전역 메뉴 '함대 편성'에서 직접 한다 (실제 장착 UI 검증 겸용).
+  // 지급 + 현재 함대에 데모 로드아웃 자동 장착까지 한 번에 (모의 전투에 바로 반영).
+  // 데모 로드아웃은 구현 완료된 계열(Laser/Ion/Plasma)의 대표 무기를 함선 순서대로 배정한다.
+  const DEMO_LOADOUT = ['wpn_laser_pierce', 'wpn_ap_disruptor', 'wpn_plasma_burst', 'wpn_laser_deflection', 'wpn_shield_nullifier', 'wpn_hellfire_burst']
+
   function grantAllWeapons() {
     const items = useDataStore.getState().data?.items
     const weapons = items?.weapons ?? []
-    const addItem = useFleetStore.getState().addItem
-    for (const w of weapons) addItem(w.id, 1)
-    setMsg({ ok: true, text: `무기 ${weapons.length}종 지급 완료 — 함대 편성에서 장착 후 관제실 에디터의 🧪 테스트로 모의 전투를 여세요.` })
+    const fleet = useFleetStore.getState()
+    for (const w of weapons) fleet.addItem(w.id, 1)
+    // 미장착 함선에만 데모 무기 배정 (직접 장착한 무기는 존중)
+    const equipped = []
+    fleet.roster.forEach((entry, i) => {
+      if (entry.equipment.weapon) return
+      const weaponId = DEMO_LOADOUT[i % DEMO_LOADOUT.length]
+      fleet.equip(entry.instanceId, 'weapon', weaponId)
+      const item = weapons.find((w) => w.id === weaponId)
+      equipped.push(item?.name ?? weaponId)
+    })
+    setMsg({
+      ok: true,
+      text: `무기 ${weapons.length}종 지급 완료` +
+        (equipped.length ? ` + 데모 장착: ${equipped.join(', ')}` : ' (전 함선 이미 장착됨 — 변경은 함대 편성에서)') +
+        ' — 에디터 탭 🧪 테스트로 모의 전투를 여세요.',
+    })
   }
 
   function grantResources() {
@@ -77,9 +94,9 @@ export default function DebugExportTab() {
         {msg && <p className={`scr-msg${msg.ok ? ' scr-msg--ok' : ' scr-msg--err'}`}>{msg.text}</p>}
       </Section>
 
-      <Section title="테스트 지급 (개발용)" desc="연구/상점 없이 무기 계열 메커니즘을 바로 체험 — 지급 후 [함대 편성]에서 장착 → 에디터 탭 [🧪 테스트]로 모의 전투">
+      <Section title="테스트 지급 (개발용)" desc="연구/상점 없이 무기 계열 메커니즘을 바로 체험 — 지급+데모 장착 후 에디터 탭 [🧪 테스트]로 모의 전투. 무기 교체는 [함대 편성]에서">
         <div className="scr-btn-row">
-          <button className="scr-btn" onClick={grantAllWeapons}>🗡 무기 25종 전부 지급</button>
+          <button className="scr-btn" onClick={grantAllWeapons}>🗡 무기 25종 지급 + 데모 장착</button>
           <button className="scr-btn" onClick={grantResources}>💰 자원 지급 (+SC 10,000 외)</button>
         </div>
       </Section>
