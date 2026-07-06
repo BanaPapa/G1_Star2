@@ -1,7 +1,10 @@
-// Debug / Export 탭 — JSON 내보내기/불러오기/초기화/검증 + 현재 config 원본 보기.
+// Debug / Export 탭 — JSON 내보내기/불러오기/초기화/검증 + 테스트 지급 + 현재 config 원본 보기.
 import { useRef, useState } from 'react'
 import { useGameConfigStore } from '../../../state/useGameConfigStore'
 import { useBattleStore } from '../../../state/useBattleStore'
+import { useFleetStore } from '../../../state/useFleetStore'
+import { useResourceStore } from '../../../state/useResourceStore'
+import { useDataStore } from '../../../state/useDataStore'
 import { Section } from '../controls'
 
 const RESULT_LABELS = { victory: '🏆 승리', defeat: '💥 패배', flee: '🚀 도주' }
@@ -33,6 +36,21 @@ export default function DebugExportTab() {
     e.target.value = ''
   }
 
+  // 테스트 지급 — 연구/상점 없이 무기 메커니즘(Phase 4)을 직접 체험하기 위한 개발용 지름길.
+  // 지급만 하고 장착은 전역 메뉴 '함대 편성'에서 직접 한다 (실제 장착 UI 검증 겸용).
+  function grantAllWeapons() {
+    const items = useDataStore.getState().data?.items
+    const weapons = items?.weapons ?? []
+    const addItem = useFleetStore.getState().addItem
+    for (const w of weapons) addItem(w.id, 1)
+    setMsg({ ok: true, text: `무기 ${weapons.length}종 지급 완료 — 함대 편성에서 장착 후 관제실 에디터의 🧪 테스트로 모의 전투를 여세요.` })
+  }
+
+  function grantResources() {
+    useResourceStore.getState().earn({ sc: 10000, ti: 5000, ec: 5000, dm: 2000, nc: 2000, qd: 1000 })
+    setMsg({ ok: true, text: '자원 지급 완료 (SC 10,000 외).' })
+  }
+
   function validate() {
     const issues = []
     const acc = config?.combat?.accuracy ?? {}
@@ -57,6 +75,13 @@ export default function DebugExportTab() {
           <input ref={fileRef} type="file" accept="application/json,.json" style={{ display: 'none' }} onChange={onPickFile} />
         </div>
         {msg && <p className={`scr-msg${msg.ok ? ' scr-msg--ok' : ' scr-msg--err'}`}>{msg.text}</p>}
+      </Section>
+
+      <Section title="테스트 지급 (개발용)" desc="연구/상점 없이 무기 계열 메커니즘을 바로 체험 — 지급 후 [함대 편성]에서 장착 → 에디터 탭 [🧪 테스트]로 모의 전투">
+        <div className="scr-btn-row">
+          <button className="scr-btn" onClick={grantAllWeapons}>🗡 무기 25종 전부 지급</button>
+          <button className="scr-btn" onClick={grantResources}>💰 자원 지급 (+SC 10,000 외)</button>
+        </div>
       </Section>
 
       <Section title="현재 config (읽기 전용)" desc="localStorage 키: 7star_dev_config">
