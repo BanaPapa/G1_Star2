@@ -17,6 +17,9 @@ function shipStrength(u) {
   return (u.atk ?? 0) * 6 + (u.maxHp ?? 0) + (u.maxShield ?? 0) + (u.isFlagship ? 100000 : 0)
 }
 
+// 무기 계열 아이콘 — 카드/HUD에서 장착 무기를 한눈에 구분
+const FAMILY_ICON = { laser: '🔦', ion: '⚡', plasma: '🔥', gravity: '🌀', antimatter: '🕳️' }
+
 // ── 좌측 플로팅 액션 버튼 (호버 시 이름·설명 펼침) ──
 function BtlFab({ emoji, label, desc, color, onClick, disabled, active }) {
   return (
@@ -78,6 +81,20 @@ function ShipCard({ u, side, index, count, active }) {
           <span title="행동력">AP {u.ap}/{u.maxAp}</span>
           <span title="기동성">MOV {u.mov}</span>
         </div>
+        {/* 장착 무기 — 아군은 미장착도 안내 (함대 편성 유도) */}
+        {(u.weapon1 || u.weapon2) ? (
+          <div className="btl-card-weapons">
+            {[u.weapon1, u.weapon2].filter(Boolean).map((w, i) => (
+              <div key={i} className="btl-card-weapon" title={`티어 ${w.tier} · AP ${w.apCost}`}>
+                {FAMILY_ICON[w.family] ?? '🗡'} {w.name} <small>T{w.tier}</small>
+              </div>
+            ))}
+          </div>
+        ) : (isAlly && (
+          <div className="btl-card-weapons">
+            <div className="btl-card-weapon btl-card-weapon--none">🗡 기본 포 — 함대 편성에서 장착</div>
+          </div>
+        ))}
       </div>
     </div>
   )

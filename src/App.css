@@ -239,6 +239,10 @@
 .btl-card-shfill { background: #4fb8ff; }
 .btl-card-stats { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: #aeb9dd; margin-top: 2px; }
 .btl-card-stats--sub { color: #7f8fc4; font-size: 10px; }
+.btl-card-weapons { margin-top: 3px; border-top: 1px solid rgba(127,143,196,0.25); padding-top: 3px; }
+.btl-card-weapon { font-family: var(--mono); font-size: 10px; color: #ffd166; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btl-card-weapon small { color: #7f8fc4; }
+.btl-card-weapon--none { color: #667; }
 
 /* ── 하단 카드 바 ── */
 .battle-bottom-bar {

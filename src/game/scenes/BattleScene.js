@@ -1603,9 +1603,14 @@ export default class BattleScene extends Phaser.Scene {
 
     this.drawSelectionIndicator(unit)
     this.refreshActionMenu()
+    const w1 = this._equippedWeaponInfo(unit)
+    const w2 = this._equippedWeaponInfo(unit, 'weapon2')
+    const weaponPart = (w1 || w2)
+      ? ` · 무기: ${[w1, w2].filter(Boolean).map((w) => `${w.name}(T${w.tier}·AP${w.apCost})`).join(' / ')}`
+      : (unit.side === 'ally' && unit.instanceId ? ' · 무기: 기본 포 (함대 편성에서 장착 가능)' : '')
     this.refreshHud(
-      `선택: ${unit.ship.name} (MOV ${unit.ship.mov} · AP ${unit.ap}/${unit.maxAp}) — 이동 가능 ${range.length}칸. ` +
-        `칸을 클릭하면 이동(AP -1), 사거리 안의 적을 클릭하면 공격(AP -1)합니다.`,
+      `선택: ${unit.ship.name} (MOV ${unit.ship.mov} · AP ${unit.ap}/${unit.maxAp}${weaponPart}) — 이동 가능 ${range.length}칸. ` +
+        `칸을 클릭하면 이동(AP -1), 사거리 안의 적을 클릭하면 공격합니다.`,
     )
   }
 
@@ -1988,6 +1993,15 @@ export default class BattleScene extends Phaser.Scene {
       area:       ov.area       ?? item.area       ?? null,
       areaRadius: ov.areaRadius ?? item.areaRadius ?? 0,
     }
+  }
+
+  // 장착 무기 표시 정보 (카드덱/HUD용) — 미장착이면 null
+  _equippedWeaponInfo(unit, slot = 'weapon') {
+    if (!unit.instanceId) return null
+    const rEntry = useFleetStore.getState().roster.find((r) => r.instanceId === unit.instanceId)
+    const weaponId = rEntry?.equipment?.[slot]
+    const item = weaponId ? this.itemsById.get(weaponId) : null
+    return item ? { name: item.name, tier: item.tier ?? 0, family: item.family ?? null, apCost: item.apCost ?? 1 } : null
   }
 
   // 투항 판정 — boss/플래그십이 아닌 적이 격파될 때 config 확률로 투항.
@@ -3094,6 +3108,8 @@ export default class BattleScene extends Phaser.Scene {
         isFlagship:       u.isFlagship ?? false,
         eva:              u.ship.eva ?? 0,
         modifiers:        (u.modifiers ?? []).map((m) => ({ id: m.id, kind: m.kind, turnsLeft: m.turnsLeft ?? null })),
+        weapon1:          this._equippedWeaponInfo(u, 'weapon'),
+        weapon2:          this._equippedWeaponInfo(u, 'weapon2'),
       }))
     )
   }
