@@ -20,6 +20,7 @@ import { useBattleStore } from '../../state/useBattleStore'
 import { computeLaserShot } from '../weapons/laserPath'
 import { rollIonHit } from '../weapons/ionEffects'
 import { rollPlasmaHit, computeBlastCells, blastMultsForTier } from '../weapons/plasmaEffects'
+import { familyColor, playHitImpact, playIonBolt, playPlasmaShot, playCannonTracer } from '../effects/weaponVfx'
 import { addModifier, sumStat, hasModifier, consumeApEffects, tickTurn, modifierIcons } from '../systems/unitModifiers'
 
 // COLS/ROWS는 init()에서 gridCols/gridRows로 동적 설정된다 (기본값 20×16)
@@ -1304,6 +1305,27 @@ export default class BattleScene extends Phaser.Scene {
     this.laserPreview = null
   }
 
+  // 계열별 발사 연출 라우팅 — 이온=전기 볼트, 플라즈마=화염구, 그 외=예광탄. 명중이면 임팩트 링 추가.
+  // (레이저는 _tryLaserAttack의 빔 연출이 담당 — 이 경로로 오지 않는다)
+  _playAttackVfx(attacker, defender, weaponData, hit) {
+    const from = { x: attacker.container.x, y: attacker.container.y }
+    const to = { x: defender.container.x, y: defender.container.y }
+    const fam = weaponData.family
+    const color = familyColor(fam)
+    if (fam === 'ion') {
+      playIonBolt(this, from, to, color)
+      if (hit) this.time.delayedCall(160, () => playHitImpact(this, to.x, to.y, color))
+    } else if (fam === 'plasma') {
+      playPlasmaShot(this, from, to, color, () => {
+        if (hit) playHitImpact(this, to.x, to.y, color)
+      })
+    } else {
+      playCannonTracer(this, from, to, color, () => {
+        if (hit) playHitImpact(this, to.x, to.y, color)
+      })
+    }
+  }
+
   // ── 무기 계열별 명중 시 효과 (Phase 4) — 판정은 weapons/* 순수 모듈, 부착·지속 규칙은 systems/unitModifiers.js ──
 
   // 보스 예외 레이어 대상 판정 — enemies.json bosses 등재 또는 role='boss'
@@ -1437,7 +1459,6 @@ export default class BattleScene extends Phaser.Scene {
       cols: COLS, rows: ROWS,
       ringMults: blastMultsForTier(weaponData.tier || 3, plasmaCfg),
     })
-    this._flashBlastArea(cells)
 
     // 범위 내 모든 유닛(피아 무차별, 공격자 포함)을 링 배율로 순차 해소
     const cellMult = new Map(cells.map((c) => [`${c.x},${c.y}`, c.mult]))
@@ -1465,7 +1486,17 @@ export default class BattleScene extends Phaser.Scene {
         skipTargetLine: true,
       })
     }
-    fireAt(0)
+    // 화염구가 중심에 도착하면 폭발 범위 플래시 + 피해 해소 시작
+    playPlasmaShot(
+      this,
+      { x: attacker.container.x, y: attacker.container.y },
+      { x: target.container.x, y: target.container.y },
+      familyColor('plasma'),
+      () => {
+        this._flashBlastArea(cells)
+        fireAt(0)
+      },
+    )
   }
 
   // 폭발/프리뷰 공용 — 셀 다이아몬드 오버레이 그리기 ({ g } 반환)
@@ -2470,8 +2501,8 @@ export default class BattleScene extends Phaser.Scene {
     // 공격하는 함대 쪽으로 카메라가 따라가며 줌인(전투뷰). 조감 복귀는 토글 버튼으로만.
     this.focusCameraOnUnit(attacker)
 
-    // 타겟팅 라인 — 공격 방향과 명중/회피 색으로 짧게 번쩍임 (빔 연출 시 생략)
-    if (!opts.skipTargetLine) this.flashTargetingLine(attacker, defender, hit ? 0x44ff88 : 0xff6655)
+    // 무기 계열별 발사 연출 (빔 연출이 이미 나간 레이저 멀티히트 등은 skipTargetLine으로 생략)
+    if (!opts.skipTargetLine) this._playAttackVfx(attacker, defender, weaponData, hit)
 
     const finish = () => {
       this.busy = false
