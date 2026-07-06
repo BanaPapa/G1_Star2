@@ -1726,15 +1726,28 @@ export default function StrategyMapScreen({ onEnterBattle, onGameOver, onEnterPl
 
             {harvestMsg && <p className="map-info-harvest">{harvestMsg}</p>}
 
-            {/* 입항 — 함대가 이 노드에 있고(current) 모항/정복지일 때만 (스펙 §2 도킹 게이트) */}
-            {status === 'current' && (selected.role === 'home' || isConq) && onEnterPlace && (
-              <button
-                className="map-action-btn map-action-btn--planet"
-                onClick={() => onEnterPlace(selected.id)}
-              >
-                🛬 입항 — {selected.role === 'home' ? '정거장 내부' : '행성 관리'}
-              </button>
-            )}
+            {/* 입항 — 함대의 "실제 좌표"가 이 별계 반경(SYSTEM_DIST) 안이고 모항/정복지일 때만 (스펙 §2 도킹 게이트).
+                currentNodeId는 마지막 방문 기록이라 떠나도 남으므로 도킹 판정에 쓰지 않는다. */}
+            {(() => {
+              if (!onEnterPlace || !(selected.role === 'home' || isConq)) return null
+              const selPos = SYS_POS[selected.id]
+              const fleetDist = selPos ? Math.hypot(selPos.x - playerPos.x, selPos.y - playerPos.y) : Infinity
+              if (fleetDist < SYSTEM_DIST) {
+                return (
+                  <button
+                    className="map-action-btn map-action-btn--planet"
+                    onClick={() => onEnterPlace(selected.id)}
+                  >
+                    🛬 입항 — {selected.role === 'home' ? '정거장 내부' : '행성 관리'}
+                  </button>
+                )
+              }
+              return (
+                <p className="map-info-hint">
+                  🛬 입항하려면 함대를 이 별계 궤도까지 이동시키세요.
+                </p>
+              )
+            })()}
             {status === 'current'   && <p className="map-info-hint">현재 함대가 머무르고 있는 노드입니다.</p>}
             {status === 'locked'    && <p className="map-info-hint">🔒 연결된 인접 별계를 정복해야 이 항로가 열립니다.</p>}
             {status === 'conquered' && (
