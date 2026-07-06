@@ -91,6 +91,11 @@
    - 연구 트리: `weapon_eng_1`(T2) → `weapon_eng_adv`(T3) → `weapon_eng_4`(T4) → `weapon_eng_5`(T5), 티어별 5종 해금 + 상점 확장 + `weaponTierByResearch` 매핑(전장 크기 연동)
    - 쿨타임 토글은 기존 `combat.weapon.cooldownEnabled`(기본 OFF) 확인 — §3-5 충족
    - ⚠️ 구버전 세이브에 구 무기(pulse_cannon 등) 장착 시 해당 슬롯은 '기본 무기'로 폴백됨
+3b. ~~화면 구조(IA) 재설계~~ ✅ 완료 (2026-07-06 — 스펙: `superpowers/specs/2026-07-06-screen-ia-design.md`)
+   - 3계층 확립: 메인맵(성단맵) / 장소맵(PlaceScreen — 모항·점령 행성 공용) / 전투맵
+   - 시설(상점·연구·조합·건설)은 **입항 시에만** 사용 가능. 시설 탭은 건물 `providesFacility`에서 파생
+   - 전역 메뉴는 함대 편성/저장·설정만 (오버레이). 정비 허브·행성 관리 화면 폐지
+   - 조선소/수리 시설 탭은 자리만 확보 (준비 중 표시) — 후속 작업
 4. 무기 메커니즘 구현 (Laser → Ion → Plasma → Gravity → Antimatter 순, 계열당 1단위 작업)
    - Unit Modifier 카테고리 신설 (§3-6), 보스 예외 규칙 공통 레이어 포함
 5. 캐릭터·스토리 연결 (에이스 4명 ↔ 시나리오 1~4장 배치, 고대 문명 네이밍, 게임 내 이벤트 연출)
