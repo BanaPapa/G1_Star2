@@ -1,15 +1,17 @@
 {
   "_comment": "연구·개발 트리. cost=자원, prereq=선행 노드 id, unlock=해금되는 것(아이템/함선/기능 키). 노획 분석은 적 잔해를 연구포인트로 변환.",
   "research": [
-    { "id": "weapon_eng_1",  "name": "무기공학 I",   "prereq": [],              "cost": { "ec": 30 },           "unlock": ["railgun", "particle_beam"] },
+    { "id": "weapon_eng_1",  "name": "무기공학 I (Tier 2)",   "prereq": [],              "cost": { "ec": 30 },           "unlock": ["wpn_laser_vector", "wpn_ap_disruptor", "wpn_core_melter", "wpn_spatial_displacer", "wpn_defense_eraser"] },
     { "id": "defense_eng_1", "name": "방어공학 I",   "prereq": [],              "cost": { "ti": 30 },           "unlock": ["shield_gen"] },
     { "id": "thrust_eng_1",  "name": "추진공학 I",   "prereq": [],              "cost": { "ti": 25 },           "unlock": ["booster_engine"] },
-    { "id": "module_craft",  "name": "모듈 조합학",   "prereq": ["weapon_eng_1"], "cost": { "ec": 40 },           "unlock": ["craft:plasma_lance"] },
+    { "id": "module_craft",  "name": "모듈 조합학",   "prereq": ["weapon_eng_1"], "cost": { "ec": 40 },           "unlock": ["craft:wpn_hellfire_burst"] },
     { "id": "salvage",       "name": "노획 분석",     "prereq": [],              "cost": { "ec": 35 },           "unlock": ["feature:salvage_to_research"] },
     { "id": "mining_eff",    "name": "채굴 효율",     "prereq": ["thrust_eng_1"], "cost": { "ti": 30, "ec": 20 }, "unlock": ["buff:resource_yield_25"] },
     { "id": "finisher_amp",  "name": "필살기 증폭",   "prereq": ["weapon_eng_1"], "cost": { "dm": 10 },           "unlock": ["buff:finisher_power"] },
     { "id": "battlecruiser_ops", "name": "배틀크루저 가동", "prereq": ["defense_eng_1"],"cost": { "dm": 15 },     "unlock": ["ship:battlecruiser", "drone_bay"] },
-    { "id": "weapon_eng_adv","name": "고급 무기 공학", "prereq": ["weapon_eng_1"], "cost": { "dm": 5, "ec": 50 },  "unlock": ["heavy_railgun"] }
+    { "id": "weapon_eng_adv","name": "고급 무기공학 (Tier 3)", "prereq": ["weapon_eng_1"], "cost": { "dm": 5, "ec": 50 },  "unlock": ["wpn_laser_pierce", "wpn_shield_nullifier", "wpn_plasma_burst", "wpn_gravity_well", "wpn_antimatter_field"] },
+    { "id": "weapon_eng_4",  "name": "정예 무기공학 (Tier 4)", "prereq": ["weapon_eng_adv"], "cost": { "dm": 8, "ec": 70 },  "unlock": ["wpn_laser_deflection", "wpn_iff_scrambler", "wpn_hellfire_burst", "wpn_gravity_collapse", "wpn_micro_singularity"] },
+    { "id": "weapon_eng_5",  "name": "고대 무기공학 (Tier 5)", "prereq": ["weapon_eng_4"], "cost": { "dm": 18, "ec": 100 }, "unlock": ["wpn_laser_phase_lance", "wpn_system_collapse", "wpn_armor_annihilator", "wpn_event_horizon", "wpn_total_annihilation"] }
   ],
   "synergies": [
     { "id": "balance_synergy", "name": "공수 균형", "requires": ["weapon_eng_1", "defense_eng_1"], "bonus": { "atk": 3, "def": 3 }, "desc": "무기공학 I + 방어공학 I 동시 보유 — 전 함대 ATK/DEF +3" },

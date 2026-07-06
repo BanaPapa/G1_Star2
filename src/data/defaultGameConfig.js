@@ -70,6 +70,8 @@ export const DEFAULT_GAME_CONFIG = {
     weaponTierByResearch: {
       weapon_eng_1: 2,
       weapon_eng_adv: 3,
+      weapon_eng_4: 4,
+      weapon_eng_5: 5,
     },
 
     movement: {

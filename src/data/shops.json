@@ -3,9 +3,12 @@
   "shops": [
     {
       "id": "home_shop", "name": "모항 상점", "type": "base", "priceMultiplier": 1.0, "sellRate": 0.6,
-      "inventory": ["pulse_cannon","twin_pulse","missile_pod","armor_plate","evasion_ctrl","targeting_comp","nano_kit","tp_injector","smoke","emp_grenade"],
+      "inventory": ["wpn_laser_line","wpn_ion_jammer","wpn_armor_melter","wpn_graviton_ram","wpn_thruster_eraser","armor_plate","evasion_ctrl","targeting_comp","nano_kit","tp_injector","smoke","emp_grenade"],
       "expands": [
-        { "unlockedBy": "weapon_eng_1",  "add": ["railgun","particle_beam"] },
+        { "unlockedBy": "weapon_eng_1",  "add": ["wpn_laser_vector","wpn_ap_disruptor","wpn_core_melter","wpn_spatial_displacer","wpn_defense_eraser"] },
+        { "unlockedBy": "weapon_eng_adv","add": ["wpn_laser_pierce","wpn_shield_nullifier","wpn_plasma_burst","wpn_gravity_well","wpn_antimatter_field"] },
+        { "unlockedBy": "weapon_eng_4",  "add": ["wpn_laser_deflection","wpn_iff_scrambler","wpn_hellfire_burst","wpn_gravity_collapse"] },
+        { "unlockedBy": "weapon_eng_5",  "add": ["wpn_laser_phase_lance","wpn_system_collapse","wpn_armor_annihilator","wpn_event_horizon","wpn_total_annihilation"] },
         { "unlockedBy": "defense_eng_1", "add": ["shield_gen"] },
         { "unlockedBy": "thrust_eng_1",  "add": ["booster_engine"] }
       ],
@@ -14,12 +17,12 @@
     {
       "id": "ghost_market", "name": "유령 시장(비밀상점)", "type": "secret", "priceMultiplier": 1.6,
       "unlockCondition": "s3 도달 + 조건",
-      "inventory": ["plasma_lance","drone_bay"], "rareStock": { "dm": "대량 거래 가능" },
+      "inventory": ["wpn_micro_singularity","drone_bay"], "rareStock": { "dm": "대량 거래 가능" },
       "note": "유니크급 장비·고가"
     },
     {
       "id": "wandering_merchant", "name": "떠돌이 상인", "type": "event", "priceMultiplier": 1.3,
-      "inventory": ["missile_pod","nano_kit","tp_injector"], "rareStock": { "blueprint": "랜덤 청사진", "dm": "거래" },
+      "inventory": ["wpn_ion_jammer","nano_kit","tp_injector"], "rareStock": { "blueprint": "랜덤 청사진", "dm": "거래" },
       "haggle": true, "note": "랜덤 조우·흥정 선택지"
     }
   ]

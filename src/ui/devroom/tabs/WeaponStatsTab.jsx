@@ -6,11 +6,13 @@ import { Section } from '../controls'
 
 const STATS = [
   { key: 'atk', label: 'ATK', baseFrom: (w) => w.mods?.atk ?? 0 },
-  { key: 'range', label: '사거리', baseFrom: () => 0 },
-  { key: 'ap', label: 'AP', baseFrom: () => 1 },
-  { key: 'accuracy', label: '명중', baseFrom: () => 0 },
-  { key: 'pierce', label: '관통%', baseFrom: () => 0 },
-  { key: 'areaRadius', label: '범위', baseFrom: () => 0 },
+  { key: 'range', label: '사거리', baseFrom: (w) => w.range ?? 0 },
+  { key: 'apCost', label: 'AP', baseFrom: (w) => w.apCost ?? 1 },
+  { key: 'rangeBonus', label: '사거리+', baseFrom: (w) => w.rangeBonus ?? 0 },
+  { key: 'accuracy', label: '명중', baseFrom: (w) => w.accuracy ?? 0 },
+  { key: 'pierce', label: '관통%', baseFrom: (w) => w.pierce ?? 0 },
+  { key: 'areaRadius', label: '범위', baseFrom: (w) => w.areaRadius ?? 0 },
+  { key: 'cooldown', label: '쿨타임', baseFrom: (w) => w.cooldown ?? 0 },
 ]
 
 function StatCell({ weaponId, stat, base }) {

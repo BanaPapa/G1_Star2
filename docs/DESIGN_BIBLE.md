@@ -85,10 +85,12 @@
 
 1. ~~문서 통합 + 설계 성경~~ ✅ 완료 (2026-07-06)
 2. ~~§3 충돌 결정~~ ✅ 완료 (2026-07-06 — 6건 모두 확정)
-3. **데이터 정합화** ← 다음 작업
-   - `items.json` 무기를 `wpn_*` 25종으로 마이그레이션 (구 7종 → 폐기 또는 별칭 매핑)
-   - 무기 데이터에 `family/tier/cooldown/area/specialEffect` 필드 추가, 관제실 WeaponStatsTab 연동
-   - `config.combat.cooldownEnabled` 토글 추가 (기본 false, §3-5)
+3. ~~데이터 정합화~~ ✅ 완료 (2026-07-06)
+   - `items.json` 무기 25종(`wpn_*`) 마이그레이션 완료, 구 7종 폐기 (유니크 last_flame은 유지)
+   - 필드 구조: 현행 전투 호환값(`mods.atk/apCost/rangeBonus/pierce`) + 설계 기준값(`range/accuracy/areaRadius/area/cooldown` — 4단계에서 연결)
+   - 연구 트리: `weapon_eng_1`(T2) → `weapon_eng_adv`(T3) → `weapon_eng_4`(T4) → `weapon_eng_5`(T5), 티어별 5종 해금 + 상점 확장 + `weaponTierByResearch` 매핑(전장 크기 연동)
+   - 쿨타임 토글은 기존 `combat.weapon.cooldownEnabled`(기본 OFF) 확인 — §3-5 충족
+   - ⚠️ 구버전 세이브에 구 무기(pulse_cannon 등) 장착 시 해당 슬롯은 '기본 무기'로 폴백됨
 4. 무기 메커니즘 구현 (Laser → Ion → Plasma → Gravity → Antimatter 순, 계열당 1단위 작업)
    - Unit Modifier 카테고리 신설 (§3-6), 보스 예외 규칙 공통 레이어 포함
 5. 캐릭터·스토리 연결 (에이스 4명 ↔ 시나리오 1~4장 배치, 고대 문명 네이밍, 게임 내 이벤트 연출)
