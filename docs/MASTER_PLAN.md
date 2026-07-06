@@ -104,7 +104,7 @@
 | S4 | 전투 코어 (그리드, AP, 명중/회피, Shield→Armor→HP) | ✅ | 전투 v1.0 |
 | S5 | 전투 확장 (방어/경계 태세, 기함, 후퇴/교섭, 투항, 필드효과) | ✅ | Stage 3 |
 | S6 | 무기 5계열 25종 — 데이터 | ✅ | 2026-07-06 |
-| S7 | 무기 5계열 — **계열별 메커니즘** (관통/굴절, 교란, 5×5, 강제이동, 블랙홀) | 🟡 | Laser 완료(2026-07-07) — Ion/Plasma/Gravity/Antimatter 남음 |
+| S7 | 무기 5계열 — **계열별 메커니즘** (관통/굴절, 교란, 5×5, 강제이동, 블랙홀) | 🟡 | Laser·Ion 완료(2026-07-07) — Plasma/Gravity/Antimatter 남음 |
 | S8 | 에이스/TP/필살기/컷인 | ✅ | 카드 팝업은 리디자인 대상(§Phase 8) |
 | S9 | 함선 성장/전직 | ✅ | |
 | S10 | 건물/연구/조합/상점 (장소맵 시설) | ✅ | 연구 11노드, 레시피 1 |
@@ -278,12 +278,21 @@
 
 목표: 25종 무기가 실제로 서로 다르게 동작한다. 완료 기준: 계열별 대표 시나리오가 전투에서 재현되고 관제실로 수치 조정 가능.
 
-- [ ] 4-0 공통 기반: Unit Modifier 시스템(효과 부착/지속턴/중첩 규칙) + AP 행동 태그 + 보스 예외 레이어
-      (🟡 `weaponEffects` config 섹션은 4-1에서 신설됨 — 나머지는 Ion부터 필요해지는 시점에 구현)
+- [x] 4-0 공통 기반: Unit Modifier 시스템(효과 부착/지속턴/중첩 규칙) + 보스 예외 레이어 (2026-07-07)
+      — `game/systems/unitModifiers.js` 순수 모듈(테스트 13개): stat 디버프(지속턴)/stun·ap_drain(원샷, AP 충전 시 소비)/iff_scramble/recharge_block.
+      지속턴 규칙: 1턴 효과 = 대상의 다음 자기 페이즈 종료 시 만료. 중첩 = 같은 id 재부착 시 지속턴 갱신(중첩 금지).
+      보스 예외: config `combat.weaponEffects.bossExceptions` (스턴→AP-1, IFF 불가→디버프 대체).
+      ⚠ AP 행동 태그(MOVE/ATTACK/GUARD/SKILL)는 첫 소비자인 4-5 Antimatter T1에서 구현
 - [x] 4-1 Laser: 직선/8방향/관통(2번째 50%)/굴절(굴절점)/위상 랜스 + 조준 경로 UI (2026-07-07)
       — `game/weapons/laserPath.js` 순수 모듈(테스트 18개) + BattleScene 통합(호버 프리뷰·빔 연출·피격 순서 배지·멀티히트 체인).
       E2E 검증: 구매→장착→전투 T1 명중/비정렬 거부/관통 50% 배율/격파 중간 체인. dev 전용 `window.__battleScene` 훅 추가(E2E용)
-- [ ] 4-2 Ion: 명중·회피 디버프 / AP-2·스턴 / 쉴드 무력화(이온 취약도) / IFF 교란(제한 규칙) / 시스템 붕괴
+- [x] 4-2 Ion: 명중·회피 디버프 / AP-2·스턴 / 쉴드 무력화(이온 취약도) / IFF 교란(제한 규칙) / 시스템 붕괴 (2026-07-07)
+      — `game/weapons/ionEffects.js` 순수 롤러(테스트 15개, rng 주입) + BattleScene 통합(resolveCombat 명중식에 modifier 반영,
+      명중 시 효과 부착·연출, refillAp 스턴/드레인 소비, 페이즈 종료 틱, IFF 교란 시 적 AI가 최근접 같은 편 공격, 상태 라벨 아이콘).
+      수치는 전부 `combat.weaponEffects.ion` (관제실 조정). 쉴드 이온 취약도 = `combat.shield.ionVulnerabilityDefault` 1.0
+      (쉴드 등급 체계는 추후 상세화 — 설계문서 §3 '쉴드 체계 방향'대로 등급별 취약도는 그때 도입).
+      E2E 검증(모의 전투 + __battleScene 훅): T1 부착·라벨 📡 / 회피 디버프로 명중률 65→95% / 공격자 디버프 65→15% 클램프 /
+      스턴 소비 AP 0/3 / 1턴 만료 틱 / T3 쉴드 50→0 + 재충전 차단 / T4 IFF 적 AI가 아군 대신 같은 편 격파 확인
 - [ ] 4-3 Plasma: 방어·공격 디버프 / 5×5 폭발(아군 피해) / 잔열 지대(기존 Field Effect 연결) / 애니힐레이터(쉴드 무시·최대 HP)
 - [ ] 4-4 Gravity: 밀어내기+충돌 / 강제 워프(전장 이탈=보상 제외) / 중력 우물(기존 gravity_well 연결) / 집결 붕괴 / 사건의 지평선
 - [ ] 4-5 Antimatter: MOVE 제한 / 방어층 소거(재피격 붕괴) / 무기 폭주 / 블랙홀 생성(기존 black_hole 연결) / 완전 소멸(처치 판정 보상)
@@ -400,4 +409,4 @@ public/assets/                 # BGM 4 + 건십 hull 4 (나머지는 폴백)
 docs/                          # 이 문서, DESIGN_BIBLE, design/, superpowers/(스펙·계획)
 ```
 
-검증 명령: `npm test`(52개) · `npm run build` · `npm run dev` → F9 관제실
+검증 명령: `npm test`(98개) · `npm run build` · `npm run dev` → F9 관제실

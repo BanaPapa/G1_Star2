@@ -150,6 +150,18 @@ export const DEFAULT_GAME_CONFIG = {
         deflectMults: [1, 1],    // T4 굴절 빔 — [적 굴절점, 타깃] 피격 배율
         phaseMults: [1, 1, 0.5], // T5 위상 랜스 — 피격 순서별 배율 (최대 3기)
       },
+      ion: {
+        jammer:          { accMod: -30, evaMod: -30, turns: 1 },          // T1 — 명중/회피 감소 (확정)
+        apDisruptor:     { apDrainChance: 0.35, apDrainAmount: 2, stunChance: 0.15 }, // T2 — AP-2 또는 스턴 (동시 발생 없음)
+        shieldNullifier: { baseChance: 0.3, rechargeBlockTurns: 1 },      // T3 — 최종 확률 = baseChance × 이온 취약도
+        iffScrambler:    { turns: 1, bossFallback: { accMod: -20, evaMod: -20, turns: 1 } }, // T4 — 보스는 디버프로 약화
+        systemCollapse:  { accMod: -70, evaMod: -70, turns: 1, shieldNullifyChance: 0.6, stunChanceOnNullify: 0.25 }, // T5
+      },
+      // 보스 예외 공통 레이어 (weapons_master_plan §8 — 그대로 적용 금지 규칙의 변환값)
+      bossExceptions: {
+        stunConvertsToApDrain: 1,  // 스턴 → AP -1
+        iffScrambleAllowed: false, // 피아식별 교란 불가 → iffScrambler.bossFallback 적용
+      },
     },
 
     damage: {
@@ -166,6 +178,7 @@ export const DEFAULT_GAME_CONFIG = {
       itemRechargeAllowed: true,
       carryOverBetweenBattles: true,
       minimumRechargeIfDepletedNextBattle: 0.2,
+      ionVulnerabilityDefault: 1.0,    // 쉴드 이온 취약도 — 등급 체계 상세화 전까지 전 함선 1.0 (기본 쉴드)
     },
 
     statusEffects: {

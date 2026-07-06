@@ -18,6 +18,8 @@ import { getEmojiFallback } from '../../core/assetMap'
 import CutinManager from '../effects/CutinManager'
 import { useBattleStore } from '../../state/useBattleStore'
 import { computeLaserShot } from '../weapons/laserPath'
+import { rollIonHit } from '../weapons/ionEffects'
+import { addModifier, sumStat, hasModifier, consumeApEffects, tickTurn, modifierIcons } from '../systems/unitModifiers'
 
 // COLS/ROWS는 init()에서 gridCols/gridRows로 동적 설정된다 (기본값 20×16)
 let COLS = 20
@@ -918,6 +920,7 @@ export default class BattleScene extends Phaser.Scene {
       overwatchState: null,  // { radius, chance, accuracyPenalty, damageMultiplier, triggersLeft }
       isFlagship: false,
       apDebuff: 0,
+      modifiers: [],         // Unit Modifier (Phase 4-0) — 무기 고유 효과 부착 목록 (systems/unitModifiers.js)
       weaponRangeBonus: (() => {
         if (placement.side !== 'ally' || !placement.instanceId) return 0
         const rEntry = this.roster.find((r) => r.instanceId === placement.instanceId)
@@ -1280,6 +1283,50 @@ export default class BattleScene extends Phaser.Scene {
     this.laserPreview.g.destroy()
     this.laserPreview.badges.forEach((b) => b.destroy())
     this.laserPreview = null
+  }
+
+  // ── Ion 계열 (Phase 4-2) — 판정은 weapons/ionEffects.js, 부착·지속 규칙은 systems/unitModifiers.js ──
+
+  // 보스 예외 레이어 대상 판정 — enemies.json bosses 등재 또는 role='boss'
+  _isBossUnit(unit) {
+    return this.bossesById.has(unit.ship.id) || unit.baseShip?.role === 'boss'
+  }
+
+  // 이온 무기 명중 시 효과 부착. HUD용 요약 문자열(또는 null)을 반환한다.
+  _applyIonHitEffects(defender, weaponData, config) {
+    const fx = config?.combat?.weaponEffects ?? {}
+    const roll = rollIonHit({
+      tier: weaponData.tier || 1,
+      isBoss: this._isBossUnit(defender),
+      ionVulnerability: config?.combat?.shield?.ionVulnerabilityDefault ?? 1.0,
+      cfg: fx.ion,
+      bossCfg: fx.bossExceptions,
+    })
+    for (const mod of roll.modifiers) defender.modifiers = addModifier(defender.modifiers, mod)
+    if (roll.nullifyShield) {
+      defender.shield = 0
+      this.updateShieldBar(defender)
+    }
+    this.refreshUnitStatusLabel(defender)
+
+    const labels = roll.events
+      .map((e) => ({
+        stat: `📡 명중/회피 ${e.accMod}%`,
+        ap_drain: e.bossConverted ? `⚡ AP -${e.amount} (보스 저항)` : `⚡ 다음 턴 AP -${e.amount}`,
+        stun: '💫 스턴 — 다음 턴 행동 불가',
+        shield_null: '🛡 쉴드 무력화!',
+        iff: '🔀 피아식별 교란!',
+        iff_boss_resist: `🔀 교란 저항 — 명중/회피 ${e.accMod}%`,
+      })[e.type] ?? null)
+      .filter(Boolean)
+
+    if (labels.length > 0) {
+      // 데미지 팝업과 겹치지 않게 살짝 늦게 띄운다
+      this.time.delayedCall(450, () => {
+        if (this.units.includes(defender)) this.showFloatingText(defender, labels[0], '#9be8ff')
+      })
+    }
+    return labels.join(' · ') || null
   }
 
   handleCellClick(x, y) {
@@ -1866,8 +1913,13 @@ export default class BattleScene extends Phaser.Scene {
         this.showFloatingText(target, `+${effect.heal}`, HEAL_TEXT_COLOR)
       }
       if (effect.shield) {
-        target.shield = (target.shield ?? 0) + effect.shield
-        this.refreshUnitStatusLabel(target)
+        // 이온 쉴드 무력화(recharge_block) 중에는 충전 불가
+        if (hasModifier(target.modifiers, 'recharge_block')) {
+          this.showFloatingText(target, '🚫 재충전 차단', '#9be8ff')
+        } else {
+          target.shield = (target.shield ?? 0) + effect.shield
+          this.refreshUnitStatusLabel(target)
+        }
       }
     }
     const parts = []
@@ -2148,18 +2200,20 @@ export default class BattleScene extends Phaser.Scene {
     const atkState = getDamageState(attacker.maxHp > 0 ? attacker.hp / attacker.maxHp : 1, config)
     const defState = getDamageState(defender.maxHp > 0 ? defender.hp / defender.maxHp : 1, config)
 
-    // 경계 태세 반격 패널티 + 기함 격파 명중 패널티
+    // 경계 태세 반격 패널티 + 기함 격파 명중 패널티 + Unit Modifier(이온 교란 등) 명중/회피 보정
     const owAccPenalty      = attacker._overwatchAccPenalty ?? 0
     const flagAcc           = this.flagshipAccPenalty ?? { ally: 0, enemy: 0 }
     const flagshipAccPenalty = attacker.side === 'ally' ? (flagAcc.ally ?? 0) : (flagAcc.enemy ?? 0)
+    const modAcc = sumStat(attacker.modifiers, 'accMod')
+    const modEva = sumStat(defender.modifiers, 'evaMod')
     const hitRes = calculateHitChance(
-      { acc: attacker.ship.acc + owAccPenalty + flagshipAccPenalty },
+      { acc: attacker.ship.acc + owAccPenalty + flagshipAccPenalty + modAcc },
       { eva: defender.ship.eva },
       null,
       {
         terrainAccMod: defTerrain.accMod,
         damageStateAccMod: atkState.accMod,
-        evasionContext: { terrainEvaMod: defTerrain.evaMod + this._coverEvaBonus(defender.gridX, defender.gridY), damageStateEvaMod: defState.evaMod },
+        evasionContext: { terrainEvaMod: defTerrain.evaMod + this._coverEvaBonus(defender.gridX, defender.gridY), damageStateEvaMod: defState.evaMod + modEva },
       },
       config,
     )
@@ -2215,6 +2269,12 @@ export default class BattleScene extends Phaser.Scene {
     this.updateHpBar(defender)
     this.updateShieldBar(defender)
 
+    // Ion 계열(Phase 4-2) — 명중 시 시스템 교란 효과 부착 (판정: weapons/ionEffects.js)
+    const ionSummary = !pipe.destroyed && weaponData.family === 'ion'
+      ? this._applyIonHitEffects(defender, weaponData, config)
+      : null
+    const ionPart = ionSummary ? ` ⚡ ${ionSummary}` : ''
+
     const shieldAbsorbed = Math.max(0, Math.round(shieldBefore - pipe.shieldAfter))
     const lethal = pipe.destroyed
     const toShield = pipe.hpDamage <= 0 && shieldAbsorbed > 0
@@ -2248,7 +2308,7 @@ export default class BattleScene extends Phaser.Scene {
     } else {
       const shieldPart = defender.maxShield > 0 ? ` · 🛡${defender.shield}/${defender.maxShield}` : ''
       this.refreshHud(
-        `${attacker.ship.name} → ${defender.ship.name} : 명중! ${dmgDesc}${bonusPart} (HP ${defender.hp}/${defender.maxHp}${shieldPart}, 명중률 ${chancePct}%)`,
+        `${attacker.ship.name} → ${defender.ship.name} : 명중! ${dmgDesc}${bonusPart}${ionPart} (HP ${defender.hp}/${defender.maxHp}${shieldPart}, 명중률 ${chancePct}%)`,
       )
     }
   }
@@ -2729,6 +2789,16 @@ export default class BattleScene extends Phaser.Scene {
     }
     unit.maxAp = Math.max(0, base + (dmgState.apMod ?? 0))
     unit.ap = unit.maxAp
+    // Unit Modifier 원샷 AP 효과(Phase 4-0) — 스턴이면 이번 턴 AP 0, 아니면 드레인만큼 차감 후 소멸
+    const apFx = consumeApEffects(unit.modifiers)
+    unit.modifiers = apFx.remaining
+    if (apFx.stunned) {
+      unit.ap = 0
+      this.showFloatingText(unit, '💫 스턴!', '#9be8ff')
+    } else if (apFx.apDrain > 0) {
+      unit.ap = Math.max(0, unit.ap - apFx.apDrain)
+      this.showFloatingText(unit, `⚡ AP -${apFx.apDrain}`, '#9be8ff')
+    }
     unit.aoeFiredThisTurn = false
     // 태세 리셋 — 방어 태세는 발동한 턴에만 유효. 경계 태세는 duration 설정에 따라 다중 턴 유지 가능.
     unit.defenseReduction = 0
@@ -2754,7 +2824,9 @@ export default class BattleScene extends Phaser.Scene {
     const tpPct = Math.round((unit.tp / TP_MAX) * 100)
     const shieldPart  = unit.shield > 0 ? ` · 실드 ${unit.shield}` : ''
     const stancePart  = unit.isDefenseStance ? ' · 🛡' : unit.overwatchState ? ' · 👁' : ''
-    unit.statusLabel.setText(`AP ${unit.ap}/${unit.maxAp} · TP ${tpPct}%${shieldPart}${stancePart}`)
+    const modIcons    = modifierIcons(unit.modifiers)
+    const modPart     = modIcons ? ` · ${modIcons}` : ''
+    unit.statusLabel.setText(`AP ${unit.ap}/${unit.maxAp} · TP ${tpPct}%${shieldPart}${stancePart}${modPart}`)
   }
 
   // AP가 소진된 유닛은 더 이상 행동할 수 없음을 시각적으로 표시한다(반투명 처리).
@@ -2788,6 +2860,7 @@ export default class BattleScene extends Phaser.Scene {
         overwatchState:   u.overwatchState ?? null,
         isFlagship:       u.isFlagship ?? false,
         eva:              u.ship.eva ?? 0,
+        modifiers:        (u.modifiers ?? []).map((m) => ({ id: m.id, kind: m.kind, turnsLeft: m.turnsLeft ?? null })),
       }))
     )
   }
@@ -2846,9 +2919,19 @@ export default class BattleScene extends Phaser.Scene {
   endPlayerPhase() {
     this.clearSelection()
     for (const unit of this.units) {
-      if (unit.side === 'ally') this.chargeTp(unit)
+      if (unit.side === 'ally') {
+        this.chargeTp(unit)
+        this._tickUnitModifiers(unit)
+      }
     }
     this.startEnemyPhase()
+  }
+
+  // 자기 페이즈 종료 시 지속형 Unit Modifier의 남은 턴을 줄인다 (1턴 효과 = 다음 자기 페이즈까지)
+  _tickUnitModifiers(unit) {
+    if (!unit.modifiers?.length) return
+    unit.modifiers = tickTurn(unit.modifiers)
+    this.refreshUnitStatusLabel(unit)
   }
 
   startEnemyPhase() {
@@ -2878,7 +2961,10 @@ export default class BattleScene extends Phaser.Scene {
 
   endEnemyPhase() {
     for (const unit of this.units) {
-      if (unit.side === 'enemy') this.chargeTp(unit)
+      if (unit.side === 'enemy') {
+        this.chargeTp(unit)
+        this._tickUnitModifiers(unit)
+      }
     }
     this.turnNumber += 1
     this.startPlayerPhase()
@@ -2923,8 +3009,10 @@ export default class BattleScene extends Phaser.Scene {
         onDone()
         return
       }
-      const allies = this.units.filter((u) => u.side === 'ally')
-      const target = pickTarget(unit, allies, this.combatRules.counterMultiplier)
+      // IFF 교란(Ion T4) — 자기 페이즈 동안 가장 가까운 같은 편을 일반 공격 (특수기 사용 불가)
+      const target = hasModifier(unit.modifiers, 'iff_scramble')
+        ? this._nearestUnit(unit, this.units.filter((u) => u.side === unit.side && u !== unit))
+        : pickTarget(unit, this.units.filter((u) => u.side === 'ally'), this.combatRules.counterMultiplier)
       if (!target) {
         onDone()
         return
@@ -2945,6 +3033,17 @@ export default class BattleScene extends Phaser.Scene {
       this.aiMoveTo(unit, move.x, move.y, step)
     }
     step()
+  }
+
+  // 맨해튼 거리 기준 최근접 유닛 (IFF 교란 — 최근접 아군 우선 규칙)
+  _nearestUnit(unit, pool) {
+    let best = null
+    let bestDist = Infinity
+    for (const u of pool) {
+      const d = manhattanDistance({ x: unit.gridX, y: unit.gridY }, { x: u.gridX, y: u.gridY })
+      if (d < bestDist) { best = u; bestDist = d }
+    }
+    return best
   }
 
   aiMoveTo(unit, targetX, targetY, onDone) {
@@ -3006,8 +3105,10 @@ export default class BattleScene extends Phaser.Scene {
         onDone()
         return
       }
-      const enemies = this.units.filter((u) => u.side === 'enemy')
-      const target = pickTarget(unit, enemies, this.combatRules.counterMultiplier)
+      // IFF 교란(Ion T4) — 자동전투 아군도 교란되면 가장 가까운 같은 편을 공격한다
+      const target = hasModifier(unit.modifiers, 'iff_scramble')
+        ? this._nearestUnit(unit, this.units.filter((u) => u.side === unit.side && u !== unit))
+        : pickTarget(unit, this.units.filter((u) => u.side === 'enemy'), this.combatRules.counterMultiplier)
       if (!target) {
         onDone()
         return
