@@ -143,6 +143,17 @@ export const DEFAULT_GAME_CONFIG = {
       maxAttacksPerTurnDefault: 1,
     },
 
+    // 전투 타격감 연출 (Phase 10-1) — 강도 자체는 설정(vfxIntensity: off/low/full)이 곱해진다.
+    vfx: {
+      shake: {
+        light:  { duration: 70,  intensity: 0.003 },  // 일반 명중
+        medium: { duration: 130, intensity: 0.007 },  // 크리티컬·광역 폭발
+        heavy:  { duration: 220, intensity: 0.012 },  // 격파
+      },
+      hitStop:  { durationMs: 80, timeScale: 0.15 },  // 격파·T5 무기 명중에만 (full 강도에서만)
+      hitFlash: { durationMs: 90 },                   // 피격 유닛 백색 틴트
+    },
+
     // 무기 계열별 고유 메커니즘 수치 (MASTER_PLAN Phase 4 · weapons_master_plan.md)
     weaponEffects: {
       laser: {
@@ -334,6 +345,14 @@ export const DEFAULT_GAME_CONFIG = {
     victory: {
       winOnAllEnemiesDestroyedOrSurrendered: true,
       loseOnAllAlliesDestroyedOrRetreated: true,
+    },
+  },
+
+  // 경제 시설 수치 (MASTER_PLAN Phase 5) — 조선소·수리
+  economy: {
+    shipyard: {
+      // 조선소 레벨별 건조 가능 함급 (buildings.js bld_shipyard effectByLevel과 일치)
+      classUnlockLevel: { gunship: 1, frigate: 1, destroyer: 2, cruiser: 3, battlecruiser: 4, battleship: 5 },
     },
   },
 

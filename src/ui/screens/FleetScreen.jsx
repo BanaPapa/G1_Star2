@@ -3,39 +3,10 @@ import { useDataStore } from '../../state/useDataStore'
 import { useFleetStore } from '../../state/useFleetStore'
 import { useResearchStore } from '../../state/useResearchStore'
 import { useProgressStore } from '../../state/useProgressStore'
-import { useResourceStore } from '../../state/useResourceStore'
 import { getEffectiveShip, applyEquipment, applyResearchSynergies, getUnitFinishers, canPromote, xpToNextLevel } from '../../core/growth'
 import AssetImage from '../components/AssetImage'
 import EquipSlot from '../components/EquipSlot'
 import './FleetScreen.css'
-
-// 함선 해금 조건 충족 여부 — ships.json의 unlock 필드 해석
-function isShipUnlocked(ship, { conqueredNodeIds, unlockedIds }) {
-  const unlock = ship.unlock
-  if (!unlock || unlock === 'start') return true
-  if (unlock.startsWith('progress:')) return conqueredNodeIds.includes(unlock.split(':')[1])
-  if (unlock.startsWith('research:')) {
-    const resId = unlock.split(':')[1]
-    if (unlockedIds.includes(resId)) return true
-    return false
-  }
-  return false
-}
-
-function unlockLabel(ship, { conqueredNodeIds, unlockedIds }) {
-  const unlock = ship.unlock
-  if (!unlock || unlock === 'start') return null
-  if (unlock.startsWith('progress:')) {
-    const nodeId = unlock.split(':')[1]
-    return conqueredNodeIds.includes(nodeId) ? null : `🔒 ${nodeId} 별계 정복 필요`
-  }
-  if (unlock.startsWith('research:')) {
-    const resId = unlock.split(':')[1]
-    if (unlockedIds.includes(resId)) return null
-    return `🔒 연구 "${resId}" 필요`
-  }
-  return null
-}
 
 // MOD-10: 에이스 탭 — 보유 에이스 목록 및 함선 배정 UI
 function AceTab({ aces, skills, roster, assignAce, recruitedAces, shipsById }) {
@@ -120,13 +91,9 @@ export default function FleetScreen() {
   const roster = useFleetStore((s) => s.roster)
   const ownedItems = useFleetStore((s) => s.ownedItems)
   const promote = useFleetStore((s) => s.promote)
-  const buyShip = useFleetStore((s) => s.buyShip)
   const assignAce = useFleetStore((s) => s.assignAce)
-  const unlockedIds = useResearchStore((s) => s.unlockedIds)
   const activeSynergyBonus = useResearchStore((s) => s.activeSynergyBonus)
-  const conqueredNodeIds = useProgressStore((s) => s.conqueredNodeIds)
   const recruitedAces = useProgressStore((s) => s.recruitedAces)
-  useResourceStore((s) => s.wallet)
 
   if (!ships || !aces || !skills || !items) return null
 
@@ -135,16 +102,12 @@ export default function FleetScreen() {
   const itemsById = new Map(
     ['weapons', 'modules', 'consumables', 'uniques'].flatMap((cat) => items[cat] ?? []).map((i) => [i.id, i]),
   )
-  const wallet = useResourceStore.getState().wallet
 
   return (
     <div className="fleet-screen">
       <div className="fleet-tab-bar">
         <button className={`fleet-tab-btn${tab === 'roster' ? ' active' : ''}`} onClick={() => setTab('roster')}>
           🚀 편성 목록
-        </button>
-        <button className={`fleet-tab-btn${tab === 'shipyard' ? ' active' : ''}`} onClick={() => setTab('shipyard')}>
-          🏭 조선소
         </button>
         <button className={`fleet-tab-btn${tab === 'aces' ? ' active' : ''}`} onClick={() => setTab('aces')}>
           🎖 에이스
@@ -246,56 +209,7 @@ export default function FleetScreen() {
         </>
       )}
 
-      {tab === 'shipyard' && (
-        <div className="shipyard">
-          <p className="fleet-hint">
-            해금 조건을 충족한 함선을 스텔라크레딧(SC)으로 구매해 편성에 추가합니다.
-            배틀십(battleship)은 s2 정복, 디스트로이어(destroyer)는 s1 정복, 배틀크루저(battlecruiser)는 배틀크루저 가동 연구 완료 후 구매 가능합니다.
-          </p>
-          <div className="fleet-roster">
-            {ships.map((ship) => {
-              const locked = !isShipUnlocked(ship, { conqueredNodeIds, unlockedIds })
-              const lockReason = unlockLabel(ship, { conqueredNodeIds, unlockedIds })
-              const affordable = (wallet.sc ?? 0) >= (ship.cost ?? 0)
-              return (
-                <article key={ship.id} className={`fleet-card holo-panel${locked ? ' fleet-card--locked' : ''}`}>
-                  <header className="fleet-card-head">
-                    <AssetImage assetKey={ship.sprite} alt={ship.name} className="fleet-card-icon holo-badge" />
-                    <div>
-                      <h3 className="fleet-card-name">{ship.name}</h3>
-                      <p className="fleet-card-role">{ship.role}</p>
-                    </div>
-                  </header>
-                  <div className="fleet-stat-grid">
-                    {[
-                      ['HP', ship.hp], ['ATK', ship.atk], ['DEF', ship.def],
-                      ['ACC', ship.acc], ['EVA', ship.eva], ['MOV', ship.mov],
-                    ].map(([label, val]) => (
-                      <div className="fleet-stat-cell" key={label}>
-                        <span className="fleet-stat-label">{label}</span>
-                        <span className="fleet-stat-value">{val}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {locked ? (
-                    <p className="shipyard-lock-msg">{lockReason}</p>
-                  ) : (
-                    <button
-                      className={`fleet-promote-btn${affordable ? ' fleet-promote-btn--ready' : ''}`}
-                      disabled={!affordable}
-                      onClick={() => buyShip(ship.id)}
-                    >
-                      {affordable
-                        ? `🏭 건조 — 💰 ${ship.cost} SC`
-                        : `⚠ SC 부족 (필요 ${ship.cost}, 보유 ${wallet.sc ?? 0})`}
-                    </button>
-                  )}
-                </article>
-              )
-            })}
-          </div>
-        </div>
-      )}
+      {/* 조선소 탭은 화면 IA(시설은 도킹 시에만)에 따라 장소맵 시설 패널로 이관 — Phase 5-1 (ui/facilities/ShipyardPanel) */}
 
       {tab === 'aces' && (
         <>

@@ -1,6 +1,11 @@
 import { create } from 'zustand'
 import { useDataStore } from './useDataStore'
 import { useResourceStore } from './useResourceStore'
+import { useBuildingStore } from './useBuildingStore'
+import { useProgressStore } from './useProgressStore'
+import { useResearchStore } from './useResearchStore'
+import { getGameConfig } from './useGameConfigStore'
+import { getEffectiveBuildingDef } from '../data/buildings'
 import { applyXpGain, canPromote, promoteUnit } from '../core/growth'
 
 // 보유 함대 로스터 — ships.json의 "클래스 정의"와 별개로, 플레이어가 실제로 보유한 함선 인스턴스
@@ -163,10 +168,45 @@ export const useFleetStore = create((set, get) => ({
     }))
   },
 
-  // 조선소 — 비용(sc)을 지불하고 함선을 새 인스턴스로 편성에 추가한다(MOD-9).
-  buyShip: (shipId) => {
+  // 조선소 건조 게이트 (Phase 5-1) — 사유를 함께 반환해 UI가 안내문을 만들 수 있게 한다.
+  // { ok, reason: 'unknown'|'unlock'|'shipyard_level'|'fleet_cap'|'cost'|null, requiredLevel?, cap?, unlockLabel? }
+  canBuyShip: (shipId) => {
     const ship = getShipById(shipId)
-    if (!ship) return false
+    if (!ship) return { ok: false, reason: 'unknown' }
+    const config = getGameConfig()
+
+    // 시나리오 해금 (ships.json unlock: progress:노드 / research:연구) — 볼륨 진행 게이트 유지
+    const unlock = ship.unlock
+    if (unlock && unlock !== 'start') {
+      const [kind, id] = unlock.split(':')
+      if (kind === 'progress' && !useProgressStore.getState().conqueredNodeIds.includes(id)) {
+        return { ok: false, reason: 'unlock', unlockLabel: `${id} 별계 정복 필요` }
+      }
+      if (kind === 'research' && !useResearchStore.getState().unlockedIds.includes(id)) {
+        return { ok: false, reason: 'unlock', unlockLabel: `연구 "${id}" 필요` }
+      }
+    }
+
+    // 조선소 레벨별 함급 제한 — 조선소는 모항 건물이므로 모항 레벨 기준
+    const homeId = useDataStore.getState().data?.systems?.systems?.find((n) => n.role === 'home')?.id ?? 's0'
+    const yardLevel = useBuildingStore.getState().getLevel(homeId, 'bld_shipyard')
+    const requiredLevel = config?.economy?.shipyard?.classUnlockLevel?.[shipId] ?? 1
+    if (yardLevel < requiredLevel) return { ok: false, reason: 'shipyard_level', requiredLevel }
+
+    // 함대 정원 — 사령부(Command Center) 레벨의 fleetCap (buildings.js)
+    const ccDef = getEffectiveBuildingDef('bld_command_center', config)
+    const ccLevel = useBuildingStore.getState().getLevel(homeId, 'bld_command_center')
+    const cap = ccDef?.fleetCap?.[ccLevel] ?? 2
+    if (get().roster.length >= cap) return { ok: false, reason: 'fleet_cap', cap }
+
+    if (!useResourceStore.getState().canAfford({ sc: ship.cost })) return { ok: false, reason: 'cost' }
+    return { ok: true, reason: null, cap }
+  },
+
+  // 조선소 — 게이트 통과 시 비용(sc)을 지불하고 함선을 새 인스턴스로 편성에 추가한다(MOD-9 → Phase 5-1 게이팅).
+  buyShip: (shipId) => {
+    if (!get().canBuyShip(shipId).ok) return false
+    const ship = getShipById(shipId)
     if (!useResourceStore.getState().spend({ sc: ship.cost })) return false
     const instanceId = `${shipId}-${Date.now()}`
     set((state) => ({ roster: [...state.roster, freshEntry({ instanceId, shipId, aceId: null })] }))

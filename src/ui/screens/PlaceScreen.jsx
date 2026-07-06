@@ -8,6 +8,7 @@ import ResearchPanel from '../facilities/ResearchPanel'
 import ShopPanel from '../facilities/ShopPanel'
 import CraftPanel from '../facilities/CraftPanel'
 import BuildPanel from '../facilities/BuildPanel'
+import ShipyardPanel from '../facilities/ShipyardPanel'
 import './PlaceScreen.css'
 
 const FACILITY_LABEL = {
@@ -19,7 +20,7 @@ const FACILITY_LABEL = {
   repair:   '🛠️ 수리',
 }
 
-// 아직 전용 UI가 없는 시설 — 자리만 확보 (스펙 §7 비범위: 조선소/수리)
+// 아직 전용 UI가 없는 시설 — 자리만 확보 (수리는 Phase 5-2)
 function PlaceholderPanel({ label }) {
   return <p className="hub-card-meta">{label} 시설은 준비 중입니다 — 다음 업데이트에서 열립니다.</p>
 }
@@ -87,7 +88,7 @@ export default function PlaceScreen({ placeId, onExit }) {
       {activeTab === 'research' && <ResearchPanel />}
       {activeTab === 'shop' && <ShopPanel />}
       {activeTab === 'craft' && <CraftPanel />}
-      {activeTab === 'shipyard' && <PlaceholderPanel label={FACILITY_LABEL.shipyard} />}
+      {activeTab === 'shipyard' && <ShipyardPanel nodeId={placeId} />}
       {activeTab === 'repair' && <PlaceholderPanel label={FACILITY_LABEL.repair} />}
     </div>
   )
