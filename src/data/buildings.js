@@ -37,6 +37,7 @@ export const BUILDINGS = {
     icon: '🔬',
     description: '연구 해금 티어를 결정합니다.',
     maxLevel: 5,
+    providesFacility: 'research',
     upgradeCosts: {
       2: { sc: 400,  ti: 80 },
       3: { sc: 800,  ti: 150, ec: 40 },
@@ -58,6 +59,7 @@ export const BUILDINGS = {
     icon: '⚒️',
     description: '장비(무기·방어구·쉴드·엔진·코어 모듈)를 제작합니다.',
     maxLevel: 5,
+    providesFacility: 'craft',
     upgradeCosts: {
       2: { sc: 500,  ti: 80,  ec: 20 },
       3: { sc: 1000, ti: 180, ec: 60 },
@@ -79,6 +81,7 @@ export const BUILDINGS = {
     icon: '🚀',
     description: '함선 제작·수리·장비 장착 및 교체를 담당합니다.',
     maxLevel: 5,
+    providesFacility: 'shipyard',
     upgradeCosts: {
       2: { sc: 500,  ti: 120 },
       3: { sc: 1000, ti: 220, ec: 40 },
@@ -90,7 +93,7 @@ export const BUILDINGS = {
       2: '제작: + Destroyer    | 장착: Tier II',
       3: '제작: + Cruiser      | 장착: Tier III',
       4: '제작: + Battlecruiser| 장착: Tier IV',
-      5: '제작: + Dreadnought  | 장착: Tier V',
+      5: '제작: + Battleship   | 장착: Tier V',
     },
   },
 
@@ -100,6 +103,7 @@ export const BUILDINGS = {
     icon: '🛰️',
     description: '점령 행성 운영 거점. 고유자원을 생산하고 간이수리를 지원합니다.',
     maxLevel: 5,
+    providesFacility: 'repair',
     upgradeCosts: {
       2: { sc: 300,  ti: 60,  ec: 20,  ur: 1 },
       3: { sc: 700,  ti: 120, ec: 50,  nc: 20,  ur: 3 },
