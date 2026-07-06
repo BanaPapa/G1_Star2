@@ -1,0 +1,17 @@
+.place-screen { min-height: 100%; }
+
+.place-header {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.place-title { display: flex; align-items: center; gap: 12px; }
+.place-icon { font-size: 40px; }
+.place-name { margin: 0; font-size: 22px; color: #e8f0ff; }
+.place-meta { margin: 2px 0 0; font-size: 13px; color: #8fa3c8; }
+
+.place-exit-btn {
+  font-family: var(--mono); font-size: 14px; padding: 10px 18px;
+  background: rgba(58, 214, 196, 0.12); border: 1px solid #3ad6c4;
+  border-radius: 8px; color: #3ad6c4; cursor: pointer; letter-spacing: 0.5px;
+}
+.place-exit-btn:hover { background: rgba(58, 214, 196, 0.22); }
