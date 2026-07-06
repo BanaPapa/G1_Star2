@@ -169,6 +169,24 @@ export const DEFAULT_GAME_CONFIG = {
           boss: { defPct: -50, defChance: 0.7, maxHpNormalPct: 10, maxHpStrongPct: 20, maxHpStrongChance: 0.25 },
         },
       },
+      gravity: {
+        ram:       { pushDistance: 5, collisionMult: 0.5, bossPushDistance: 1 },   // T1 — 충돌 피해 = atk × mult (양쪽 동일)
+        displacer: { ejectChance: 0.12, strongerBlockPct: 30, aiWarpRadius: 3 },   // T2 — 이탈=보상 제외, 30%+ 강한 적·보스 불가
+        well:      { turns: 1, apCostMult: 2, attackMult: 0.5, damageTakenMult: 2 }, // T3 — 5×5 중력장
+        collapse:  { collisionMult: 0.6, wellTurns: 2 },                            // T4 — 집결 충돌 + 2턴 중력장
+        eventHorizon: {                                                             // T5 — 이동 봉쇄→AP 2배+약화+도트
+          weaken: { atkPct: -30, defPct: -30, apCostPct: 100, turns: 2 },
+          dot: { pct: 5, turns: 2 },
+          boss: { movPct: -50, atkPct: -30, defPct: -30, turns: 2 },
+        },
+      },
+      antimatter: {
+        thruster:      { movPct: -50, turns: 1, penaltyChance: 0.8, blockChance: 0.15 }, // T1 — MOVE만 제한
+        defenseEraser: { erodeChance: 0.8, erodeMult: 0.5 },                             // T2 — 재피격 시 완전 붕괴
+        field:         { applyChance: 0.8, rampageTurns: 2, boss: { atkPct: -30, turns: 2 } }, // T3 — 무기 폭주
+        singularity:   { holeCount: 4, adjacentDurabilityLossPct: 20, entryKills: true },      // T4 — 블랙홀 (전투 종료까지)
+        annihilation:  { annihilateChance: 0.6, chainChance: 0.5, failDurabilityChance: 0.7, failDurabilityMult: 0.5 }, // T5
+      },
       // 보스 예외 공통 레이어 (weapons_master_plan §8 — 그대로 적용 금지 규칙의 변환값)
       bossExceptions: {
         stunConvertsToApDrain: 1,  // 스턴 → AP -1

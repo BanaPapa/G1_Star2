@@ -104,6 +104,39 @@ export function playPlasmaExplosion(scene, x, y, color = FAMILY_COLOR.plasma) {
   scene.tweens.add({ targets: ring2, scale: 2.2, alpha: 0, duration: 520, delay: 90, ease: 'Cubic.easeOut', onComplete: () => ring2.destroy() })
 }
 
+// ── Gravity: 중력 파동 — 타깃 위로 수축하는 링 (끌려 들어가는 왜곡감). onArrive로 후속 연결 ──
+export function playGravityWave(scene, from, to, color = FAMILY_COLOR.gravity, onArrive) {
+  const wave = scene.add.circle(from.x, from.y, 10, color, 0.35).setDepth(9)
+  const dist = Math.hypot(to.x - from.x, to.y - from.y)
+  const duration = Math.min(380, Math.max(160, dist * 0.5))
+  scene.tweens.add({
+    targets: wave, x: to.x, y: to.y, duration, ease: 'Sine.easeIn',
+    onComplete: () => {
+      wave.destroy()
+      // 도착 — 바깥에서 안으로 수축하는 삼중 링 (블랙홀로 빨려드는 인상)
+      for (let i = 0; i < 3; i++) {
+        const ring = scene.add.circle(to.x, to.y, 8, color, 0).setStrokeStyle(2.5, color, 0.85).setDepth(9)
+        ring.setScale(4 - i)
+        scene.tweens.add({
+          targets: ring, scale: 0.3, alpha: 0, duration: 380, delay: i * 90, ease: 'Cubic.easeIn',
+          onComplete: () => ring.destroy(),
+        })
+      }
+      onArrive?.()
+    },
+  })
+}
+
+// ── Antimatter: 소멸 섬광 — 검은 수축 + 마젠타 링 팽창 (존재가 지워지는 인상) ──
+export function playAntimatterFlash(scene, x, y, color = FAMILY_COLOR.antimatter) {
+  const dark = scene.add.circle(x, y, 22, 0x000000, 0.8).setDepth(9)
+  scene.tweens.add({ targets: dark, scale: 0.1, alpha: 0, duration: 360, ease: 'Cubic.easeIn', onComplete: () => dark.destroy() })
+  const ring = scene.add.circle(x, y, 10, color, 0).setStrokeStyle(3, color, 0.95).setDepth(9)
+  scene.tweens.add({ targets: ring, scale: 3.4, alpha: 0, duration: 420, ease: 'Cubic.easeOut', onComplete: () => ring.destroy() })
+  const flash = scene.add.circle(x, y, 8, 0xffffff, 0.9).setDepth(9)
+  scene.tweens.add({ targets: flash, scale: 1.8, alpha: 0, duration: 180, onComplete: () => flash.destroy() })
+}
+
 // ── 기본 포: 총구 섬광 + 예광탄 ──
 export function playCannonTracer(scene, from, to, color = FAMILY_COLOR.basic, onArrive) {
   const muzzle = scene.add.circle(from.x, from.y, 8, 0xffffff, 0.9).setDepth(9)

@@ -56,6 +56,9 @@ const KIND_ICON = {
   ap_drain: '⚡',
   iff_scramble: '🔀',
   recharge_block: '🚫',
+  move_block: '⛓️',   // 이동 봉쇄 (Gravity T5 / Antimatter T1) — 자기 페이즈 동안 이동 불가, 공격은 가능
+  rampage: '💢',      // 무기 폭주 (Antimatter T3) — 피아 무차별, 가장 가까운 유닛을 일반 공격
+  dot: '☣️',          // 주기 피해 — 자기 AP 충전 시점에 최대 HP 비례 피해
 }
 export function modifierIcons(list) {
   const icons = []

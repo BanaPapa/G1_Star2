@@ -20,7 +20,9 @@ import { useBattleStore } from '../../state/useBattleStore'
 import { computeLaserShot } from '../weapons/laserPath'
 import { rollIonHit } from '../weapons/ionEffects'
 import { rollPlasmaHit, computeBlastCells, blastMultsForTier } from '../weapons/plasmaEffects'
-import { familyColor, playHitImpact, playIonBolt, playPlasmaShot, playCannonTracer } from '../effects/weaponVfx'
+import { computePush, rollDisplace, unitStrength, computeGatherPlacements, eventHorizonModifiers, gravityDefaults } from '../weapons/gravityEffects'
+import { rollAntimatterHit, pickBlackHoleCells, antimatterDefaults } from '../weapons/antimatterEffects'
+import { familyColor, playHitImpact, playIonBolt, playPlasmaShot, playCannonTracer, playGravityWave, playAntimatterFlash } from '../effects/weaponVfx'
 import { addModifier, sumStat, hasModifier, consumeApEffects, tickTurn, modifierIcons } from '../systems/unitModifiers'
 
 // COLS/ROWS는 init()에서 gridCols/gridRows로 동적 설정된다 (기본값 20×16)
@@ -1058,9 +1060,13 @@ export default class BattleScene extends Phaser.Scene {
       return
     }
 
-    // Plasma 광역(T3/T4)은 지점 폭발로 해소 — 그 외에는 단일 대상 전투
+    // 광역/지점 시전 무기 라우팅 — Plasma 폭발(T3/T4), Gravity 시전(T3/T4/T5). 그 외 단일 대상 전투
     if (this._isPlasmaBurst(weaponData)) {
       this.resolvePlasmaBurst(attacker, enemy, weaponData, 'weapon')
+      return
+    }
+    if (this._isGravityCast(weaponData)) {
+      this.resolveGravityCast(attacker, enemy, weaponData, 'weapon')
       return
     }
     this.resolveCombat(attacker, enemy)
@@ -1123,6 +1129,8 @@ export default class BattleScene extends Phaser.Scene {
       this._tryLaserAttack(attacker, enemy, weaponData, slot)
     } else if (this._isPlasmaBurst(weaponData)) {
       this.resolvePlasmaBurst(attacker, enemy, weaponData, slot)
+    } else if (this._isGravityCast(weaponData)) {
+      this.resolveGravityCast(attacker, enemy, weaponData, slot)
     } else {
       this.resolveCombat(attacker, enemy, undefined, slot)
     }
@@ -1279,15 +1287,15 @@ export default class BattleScene extends Phaser.Scene {
     if (!attacker || unit.side === attacker.side) return
     const config = getGameConfig()
     const weaponData = this._getEquippedWeaponData(attacker, config, 'weapon')
-    // Plasma 광역 — 호버한 적을 중심으로 5×5 폭발 범위 프리뷰
-    if (this._isPlasmaBurst(weaponData)) {
+    // 광역/지점 시전 — 호버한 적을 중심으로 5×5 범위 프리뷰 (Plasma 주황 / Gravity 보라)
+    if (this._isPlasmaBurst(weaponData) || this._isGravityCast(weaponData)) {
       this._clearPlasmaPreview()
       const cells = computeBlastCells({
         center: { x: unit.gridX, y: unit.gridY },
         cols: COLS, rows: ROWS,
-        ringMults: blastMultsForTier(weaponData.tier || 3, config?.combat?.weaponEffects?.plasma),
+        ringMults: weaponData.family === 'gravity' ? [1, 1, 1] : blastMultsForTier(weaponData.tier || 3, config?.combat?.weaponEffects?.plasma),
       })
-      this.plasmaPreview = this._drawBlastOverlay(cells, 0xff7a2a, 0.28)
+      this.plasmaPreview = this._drawBlastOverlay(cells, weaponData.family === 'gravity' ? 0xb18cff : 0xff7a2a, 0.28)
       return
     }
     if (weaponData.family !== 'laser') return
@@ -1319,6 +1327,14 @@ export default class BattleScene extends Phaser.Scene {
       playPlasmaShot(this, from, to, color, () => {
         if (hit) playHitImpact(this, to.x, to.y, color)
       })
+    } else if (fam === 'gravity') {
+      playGravityWave(this, from, to, color, () => {
+        if (hit) playHitImpact(this, to.x, to.y, color)
+      })
+    } else if (fam === 'antimatter') {
+      playCannonTracer(this, from, to, color, () => {
+        if (hit) playAntimatterFlash(this, to.x, to.y, color)
+      })
     } else {
       playCannonTracer(this, from, to, color, () => {
         if (hit) playHitImpact(this, to.x, to.y, color)
@@ -1334,10 +1350,17 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   // 계열 라우터 — resolveCombat에서 명중 확정 후 호출. HUD 요약 문자열(또는 null) 반환.
-  _applyWeaponHitEffects(defender, weaponData, config) {
+  // (attacker는 강제 이동 방향·이탈 판정 등 위치 기반 효과에 필요)
+  _applyWeaponHitEffects(defender, weaponData, config, attacker) {
     if (weaponData.family === 'ion') return this._applyIonHitEffects(defender, weaponData, config)
     if (weaponData.family === 'plasma' && [1, 2, 5].includes(weaponData.tier)) {
       return this._applyPlasmaHitEffects(defender, weaponData, config)
+    }
+    if (weaponData.family === 'gravity' && [1, 2].includes(weaponData.tier)) {
+      return this._applyGravityHitEffects(attacker, defender, weaponData, config)
+    }
+    if (weaponData.family === 'antimatter') {
+      return this._applyAntimatterHitEffects(attacker, defender, weaponData, config)
     }
     return null
   }
@@ -1470,7 +1493,7 @@ export default class BattleScene extends Phaser.Scene {
     const fireAt = (idx) => {
       if (idx >= victims.length) {
         // T4 — 잔열 지대 생성 (기존 residual_heat 필드효과 연결)
-        if (isHellfire) this._createHeatZone(cells, config)
+        if (isHellfire) this._createTerrainZone(cells, 'residual_heat', config?.combat?.weaponEffects?.plasma?.heatZoneTurns ?? 1)
         this.busy = false
         this.refreshHud(
           `${attacker.ship.name} [플라즈마] 폭발! 범위 내 ${victims.length}기 피격${isHellfire ? ' · 잔열 지대 생성' : ''} (명중률 ${hitRes.hitChance}%)`,
@@ -1535,30 +1558,31 @@ export default class BattleScene extends Phaser.Scene {
     this.plasmaPreview = null
   }
 
-  // ── 잔열 지대 (T4) — this.terrain을 residual_heat로 임시 전환, 만료 시 원복 ──
+  // ── 런타임 지형 존 — this.terrain을 필드효과 지형으로 임시 전환, 만료 시 원복 ──
+  // 잔열(Plasma T4)·중력장(Gravity T3/T4)·블랙홀(Antimatter T4, turns=Infinity=전투 종료까지) 공용.
 
-  _createHeatZone(blastCells, config) {
-    const turns = config?.combat?.weaponEffects?.plasma?.heatZoneTurns ?? 1
+  _createTerrainZone(cells, terrainType, turns) {
     const zone = { cells: [], expiresTurn: this.turnNumber + turns }
-    for (const c of blastCells) {
+    for (const c of cells) {
       const cur = this.terrain[c.y][c.x]
       const t = getTerrain(cur)
       if (!t.passable || t.fieldEffectType) continue // 통과 불가·기존 필드효과 칸은 덮지 않음
       zone.cells.push({ x: c.x, y: c.y, prevType: cur })
-      this.terrain[c.y][c.x] = 'residual_heat'
+      this.terrain[c.y][c.x] = terrainType
       this._repaintTerrainTile(c.x, c.y)
     }
     if (zone.cells.length > 0) {
-      if (!this.heatZones) this.heatZones = []
-      this.heatZones.push(zone)
+      if (!this.terrainZones) this.terrainZones = []
+      this.terrainZones.push(zone)
     }
+    return zone.cells.length
   }
 
-  // 플레이어 턴 시작 시(주기 피해 이전) 만료 잔열을 원복한다.
-  _expireHeatZones() {
-    if (!this.heatZones?.length) return
+  // 플레이어 턴 시작 시(주기 피해 이전) 만료된 존을 원복한다.
+  _expireTerrainZones() {
+    if (!this.terrainZones?.length) return
     const keep = []
-    for (const zone of this.heatZones) {
+    for (const zone of this.terrainZones) {
       if (this.turnNumber > zone.expiresTurn) {
         for (const c of zone.cells) {
           this.terrain[c.y][c.x] = c.prevType
@@ -1568,7 +1592,12 @@ export default class BattleScene extends Phaser.Scene {
         keep.push(zone)
       }
     }
-    this.heatZones = keep
+    this.terrainZones = keep
+  }
+
+  // 유닛이 서 있는 지형의 필드효과 타입 (없으면 null)
+  _unitTerrainId(unit) {
+    return getTerrain(this.terrain[unit.gridY][unit.gridX]).id
   }
 
   // 지형 타입 변경 후 타일 시각을 갱신한다 (하이라이트 중이면 색만 저장).
@@ -1584,8 +1613,356 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
+  // ── Gravity 계열 (Phase 4-4) — 강제 이동·중력장. 판정은 weapons/gravityEffects.js ──
+
+  // 유닛을 지정 칸으로 이동(강제 이동 공용) — 그리드 갱신 + 컨테이너 트윈 + 도착 지형 진입 판정
+  _forceMoveUnit(unit, x, y, onDone) {
+    unit.gridX = x
+    unit.gridY = y
+    const { px, py } = this.cellToWorld(x, y)
+    this.tweens.add({
+      targets: unit.container, x: px, y: py, duration: 220, ease: 'Cubic.easeOut',
+      onComplete: () => {
+        if (this.units.includes(unit)) this.applyEntryDamage(unit, getTerrain(this.terrain[y][x]))
+        onDone?.()
+      },
+    })
+  }
+
+  // 전장 이탈 (Gravity T2) — 처치가 아니므로 보상 없음 (weapons_master_plan §6 보상 구분)
+  _ejectUnit(unit) {
+    this.showFloatingText(unit, '🌀 전장 이탈!', '#b18cff')
+    this.tweens.add({
+      targets: unit.container, scale: 0, alpha: 0, angle: 360, duration: 500, ease: 'Cubic.easeIn',
+      onComplete: () => {
+        unit.container.destroy()
+        this.units = this.units.filter((u) => u !== unit)
+        if (this.selected === unit) this.selected = null
+        this.syncUnitsToStore()
+        this.checkBattleEnd()
+      },
+    })
+  }
+
+  _applyGravityHitEffects(attacker, defender, weaponData, config) {
+    const gcfg = gravityDefaults(config?.combat?.weaponEffects?.gravity)
+    const tier = weaponData.tier || 1
+
+    if (tier === 1) {
+      // T1 밀어내기 — 공격 방향으로 최대 5칸(보스 감소), 충돌 시 양쪽 동일 피해
+      const dx = Math.sign(defender.gridX - attacker.gridX)
+      const dy = Math.sign(defender.gridY - attacker.gridY)
+      if (dx === 0 && dy === 0) return null
+      const push = computePush({
+        from: { x: defender.gridX, y: defender.gridY },
+        dir: [dx, dy],
+        maxDistance: this._isBossUnit(defender) ? gcfg.ram.bossPushDistance : gcfg.ram.pushDistance,
+        cols: COLS, rows: ROWS,
+        blockedAt: (cx, cy) => {
+          if (!getTerrain(this.terrain[cy][cx]).passable) return 'obstacle'
+          if (this.units.some((u) => u !== defender && u.gridX === cx && u.gridY === cy)) return 'unit'
+          return null
+        },
+      })
+      if (push.moved > 0) this._forceMoveUnit(defender, push.dest.x, push.dest.y)
+      let summary = `🌀 ${push.moved}칸 밀림`
+      if (push.collided) {
+        // 충돌 — 밀린 유닛 피해, 막은 게 유닛이면 그 유닛도 동일 피해
+        const dmg = Math.max(1, Math.round((attacker.ship.atk ?? 1) * gcfg.ram.collisionMult))
+        this.applyDamageWithShield(defender, dmg)
+        this.showFloatingText(defender, `💥 충돌 -${dmg}`, '#b18cff')
+        const blocker = push.collided.type === 'unit'
+          ? this.units.find((u) => u.gridX === push.collided.x && u.gridY === push.collided.y)
+          : null
+        if (blocker) {
+          this.applyDamageWithShield(blocker, dmg)
+          this.showFloatingText(blocker, `💥 충돌 -${dmg}`, '#b18cff')
+          if (blocker.hp <= 0) this.destroyUnit(blocker)
+        }
+        summary += ` · 충돌 ${dmg}`
+        if (defender.hp <= 0) {
+          this.time.delayedCall(300, () => { if (this.units.includes(defender)) this.destroyUnit(defender) })
+        }
+      }
+      this.syncUnitsToStore()
+      return summary
+    }
+
+    if (tier === 2) {
+      // T2 강제 워프 — 낮은 확률 전장 이탈(보스·30%+ 강한 적 불가), 아니면 좌표 지정 워프
+      const roll = rollDisplace({
+        isBoss: this._isBossUnit(defender),
+        attackerStrength: unitStrength({ atk: attacker.ship.atk, maxHp: attacker.maxHp, def: attacker.ship.def }),
+        targetStrength: unitStrength({ atk: defender.ship.atk, maxHp: defender.maxHp, def: defender.ship.def }),
+        cfg: config?.combat?.weaponEffects?.gravity,
+      })
+      if (roll.type === 'eject') {
+        this.time.delayedCall(400, () => { if (this.units.includes(defender)) this._ejectUnit(defender) })
+        return '🌀 전장 이탈! (보상 제외)'
+      }
+      // 워프 좌표: 플레이어 수동 조작이면 칸 클릭으로 지정, AI/자동이면 랜덤
+      if (attacker.side === 'ally' && !this.autoBattle && this.phase === 'player') {
+        this.pendingWarp = { unit: defender }
+        this.refreshHud(`🌀 [공간 전위기] 빈 칸을 클릭해 ${defender.ship.name}의 워프 좌표를 지정하세요 (Esc/아군 선택 시 취소)`)
+        return '🌀 워프 좌표 지정 대기'
+      }
+      const dest = this._randomWarpCell(defender, gcfg.displacer.aiWarpRadius)
+      if (dest) this._forceMoveUnit(defender, dest.x, dest.y)
+      return dest ? '🌀 강제 워프' : null
+    }
+
+    return null
+  }
+
+  // 워프 목적지 랜덤 선정 (AI/자동전투용) — 현재 위치 주변 radius 내 빈 칸
+  _randomWarpCell(unit, radius) {
+    const candidates = []
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        if (dx === 0 && dy === 0) continue
+        const x = unit.gridX + dx
+        const y = unit.gridY + dy
+        if (x < 0 || y < 0 || x >= COLS || y >= ROWS) continue
+        if (!this.isPassable(x, y, unit)) continue
+        candidates.push({ x, y })
+      }
+    }
+    return candidates.length ? candidates[Math.floor(Math.random() * candidates.length)] : null
+  }
+
+  // T3/T4/T5 지점 시전 여부 (area 태그 기준)
+  _isGravityCast(weaponData) {
+    return weaponData.family === 'gravity' && ['field5x5', 'burst5x5'].includes(weaponData.area)
+  }
+
+  // 중심 명중 판정 (지점 시전 공용 — resolveCombat과 동일한 명중식)
+  _rollAreaHit(attacker, target, config) {
+    const defTerrain = getTerrain(this.terrain[target.gridY][target.gridX])
+    const atkState = getDamageState(attacker.maxHp > 0 ? attacker.hp / attacker.maxHp : 1, config)
+    const defState = getDamageState(target.maxHp > 0 ? target.hp / target.maxHp : 1, config)
+    const flagAcc = this.flagshipAccPenalty ?? { ally: 0, enemy: 0 }
+    const hitRes = calculateHitChance(
+      { acc: attacker.ship.acc + (attacker.side === 'ally' ? (flagAcc.ally ?? 0) : (flagAcc.enemy ?? 0)) + sumStat(attacker.modifiers, 'accMod') },
+      { eva: target.ship.eva },
+      null,
+      {
+        terrainAccMod: defTerrain.accMod,
+        damageStateAccMod: atkState.accMod,
+        evasionContext: { terrainEvaMod: defTerrain.evaMod + this._coverEvaBonus(target.gridX, target.gridY), damageStateEvaMod: defState.evaMod + sumStat(target.modifiers, 'evaMod') },
+      },
+      config,
+    )
+    return { hit: Math.random() * 100 < hitRes.hitChance, chance: hitRes.hitChance }
+  }
+
+  // Gravity T3 중력장 / T4 집결 붕괴 / T5 사건의 지평선 — 지점 시전
+  resolveGravityCast(attacker, target, weaponData, slot) {
+    const config = getGameConfig()
+    const gcfg = gravityDefaults(config?.combat?.weaponEffects?.gravity)
+    const tier = weaponData.tier || 3
+    this._clearPlasmaPreview()
+    this.clearSelection()
+    this.busy = true
+    this.spendAp(attacker, weaponData.apCost ?? 1)
+    this.focusCameraOnUnit(attacker)
+
+    const center = { x: target.gridX, y: target.gridY }
+    const from = { x: attacker.container.x, y: attacker.container.y }
+    const to = { x: target.container.x, y: target.container.y }
+
+    // T3 중력장 — 명중 판정 없이 존 생성
+    if (tier === 3) {
+      playGravityWave(this, from, to, familyColor('gravity'), () => {
+        const cells = computeBlastCells({ center, cols: COLS, rows: ROWS, ringMults: [1, 1, 1] })
+        const placed = this._createTerrainZone(cells, 'gravity_well', gcfg.well.turns)
+        this.busy = false
+        this.refreshHud(`${attacker.ship.name} [중력 우물] 5×5 중력장 전개 (${placed}칸, ${gcfg.well.turns}턴) — AP 2배·공격 50%·피해 2배`)
+      })
+      return
+    }
+
+    // T4/T5 — 중심 명중 판정 1회 (빗나가면 전체 불발)
+    const roll = this._rollAreaHit(attacker, target, config)
+    if (!roll.hit) {
+      this._dodgeUnit(target, attacker)
+      this.showFloatingText(target, '회피!', MISS_TEXT_COLOR, () => { this.busy = false })
+      this.refreshHud(`${attacker.ship.name} [중력] 조준 빗나감! (명중률 ${roll.chance}%)`)
+      return
+    }
+
+    const cells = computeBlastCells({ center, cols: COLS, rows: ROWS, ringMults: [1, 1, 1] })
+    const inArea = new Set(cells.map((c) => `${c.x},${c.y}`))
+    const hostiles = this.units.filter((u) => u.side !== attacker.side && u.hp > 0 && inArea.has(`${u.gridX},${u.gridY}`))
+
+    playGravityWave(this, from, to, familyColor('gravity'), () => {
+      if (tier === 4) {
+        // 집결 — 적들을 중심 인접으로 끌어모으고 충돌 피해, 이후 중력장
+        const placements = computeGatherPlacements({
+          center,
+          units: hostiles.map((u) => ({ x: u.gridX, y: u.gridY })),
+          isFree: (x, y) => inArea.has(`${x},${y}`) && this.isPassable(x, y, null),
+        })
+        for (const u of hostiles) {
+          const dest = placements.get(`${u.gridX},${u.gridY}`)
+          if (dest && (dest.x !== u.gridX || dest.y !== u.gridY)) this._forceMoveUnit(u, dest.x, dest.y)
+        }
+        const fireAt = (idx) => {
+          if (idx >= hostiles.length) {
+            const placed = this._createTerrainZone(cells, 'gravity_well', gcfg.collapse.wellTurns)
+            this.busy = false
+            this.refreshHud(`${attacker.ship.name} [중력 붕괴] ${hostiles.length}기 집결·충돌! 중력장 ${gcfg.collapse.wellTurns}턴 (${placed}칸)`)
+            return
+          }
+          const u = hostiles[idx]
+          if (!this.units.includes(u) || u.hp <= 0) { fireAt(idx + 1); return }
+          this.resolveCombat(attacker, u, () => fireAt(idx + 1), slot, {
+            damageMultiplier: gcfg.collapse.collisionMult,
+            guaranteedHit: true, skipApSpend: true, skipTargetLine: true,
+          })
+        }
+        this.time.delayedCall(260, () => fireAt(0))
+        return
+      }
+
+      // T5 사건의 지평선 — 100% 피해 + 이동 봉쇄/약화/도트 (보스 완화)
+      const fireAt = (idx) => {
+        if (idx >= hostiles.length) {
+          this.busy = false
+          this.refreshHud(`${attacker.ship.name} [사건의 지평선] ${hostiles.length}기 피격 — 이동 봉쇄·약화·도트 (명중률 ${roll.chance}%)`)
+          return
+        }
+        const u = hostiles[idx]
+        if (!this.units.includes(u) || u.hp <= 0) { fireAt(idx + 1); return }
+        this.resolveCombat(attacker, u, () => {
+          if (this.units.includes(u) && u.hp > 0) {
+            for (const mod of eventHorizonModifiers({ isBoss: this._isBossUnit(u), cfg: config?.combat?.weaponEffects?.gravity })) {
+              u.modifiers = addModifier(u.modifiers, mod)
+            }
+            this.refreshUnitStatusLabel(u)
+          }
+          fireAt(idx + 1)
+        }, slot, { damageMultiplier: 1, guaranteedHit: true, skipApSpend: true, skipTargetLine: true })
+      }
+      fireAt(0)
+    })
+  }
+
+  // ── Antimatter 계열 (Phase 4-5) — 방어층 소거·폭주·블랙홀·소멸. 판정은 weapons/antimatterEffects.js ──
+
+  // 소멸 처리 — 처치 판정 (destroyUnit 경유 → 경험치/보상/투항 정상)
+  _annihilateUnit(unit) {
+    this.showFloatingText(unit, '🕳 소멸!', '#ff5ce1')
+    playAntimatterFlash(this, unit.container.x, unit.container.y)
+    this.time.delayedCall(350, () => { if (this.units.includes(unit)) this.destroyUnit(unit) })
+  }
+
+  _applyAntimatterHitEffects(attacker, defender, weaponData, config) {
+    const acfg = config?.combat?.weaponEffects?.antimatter
+    const tier = weaponData.tier || 1
+    const roll = rollAntimatterHit({
+      tier,
+      isBoss: this._isBossUnit(defender),
+      alreadyEroded: (defender.modifiers ?? []).some((m) => m.id === 'am_eroded'),
+      cfg: acfg,
+    })
+
+    // 변이 적용 — 쉴드/장갑 내구도 삭제 (Plasma의 방어력 약화와 다른 축)
+    const m = roll.mutations
+    if (m.shieldMult != null) defender.shield = Math.round((defender.shield ?? 0) * m.shieldMult)
+    if (m.armorDurMult != null) defender.armorDurability = Math.round((defender.armorDurability ?? 0) * m.armorDurMult)
+    if (m.shieldZero) defender.shield = 0
+    if (m.armorDurZero) defender.armorDurability = 0
+    this.updateShieldBar(defender)
+    for (const mod of roll.modifiers) defender.modifiers = addModifier(defender.modifiers, mod)
+    this.refreshUnitStatusLabel(defender)
+
+    // T4 — 블랙홀 생성 (명중한 대상 주변 8칸 중 랜덤 4칸, 전투 종료까지)
+    let holeCount = 0
+    if (tier === 4) {
+      const holes = pickBlackHoleCells({
+        center: { x: defender.gridX, y: defender.gridY },
+        holeCount: antimatterDefaults(acfg).singularity.holeCount,
+        isValid: (x, y) => {
+          if (x < 0 || y < 0 || x >= COLS || y >= ROWS) return false
+          const t = getTerrain(this.terrain[y][x])
+          if (!t.passable || t.fieldEffectType) return false
+          return !this.units.some((u) => u.gridX === x && u.gridY === y)
+        },
+      })
+      holeCount = this._createTerrainZone(holes, 'black_hole', Infinity)
+    }
+
+    // T5 — 완전 소멸 + 인접 연쇄 (처치 판정, 보상 지급)
+    if (m.annihilate) {
+      this._annihilateUnit(defender)
+      const chainChance = m.chainChance ?? 0.5
+      const adjacent = this.units.filter((u) =>
+        u !== defender && u.hp > 0 && !this._isBossUnit(u) &&
+        Math.max(Math.abs(u.gridX - defender.gridX), Math.abs(u.gridY - defender.gridY)) === 1)
+      let chained = 0
+      adjacent.forEach((u, i) => {
+        if (Math.random() < chainChance) {
+          chained += 1
+          this.time.delayedCall(350 + i * 180, () => { if (this.units.includes(u)) this._annihilateUnit(u) })
+        }
+      })
+      return `🕳 완전 소멸!${chained ? ` 연쇄 ${chained}기` : ''}`
+    }
+
+    const labels = roll.events
+      .map((e) => ({
+        move_block: '⛓ 다음 턴 이동 불가',
+        move_cut: `🕳 이동 효율 ${e.movPct}%`,
+        erode: '🕳 장갑·쉴드 절삭 -50%',
+        erode_collapse: '🕳 방어층 완전 붕괴!',
+        field: `🕳 방어층 영구 소실 + 💢 폭주 ${e.rampageTurns}턴`,
+        field_boss: `🕳 공격 ${e.atkPct}% + 재충전 봉쇄 (보스 저항)`,
+        annihilate_fail: '🕳 쉴드 파괴' + (e.durabilityMult ? ' · 내구 -50%' : ''),
+        annihilate_boss_resist: '🕳 쉴드 파괴 + 재충전 봉쇄 (보스 저항)',
+      })[e.type] ?? null)
+      .filter(Boolean)
+    const holePart = holeCount ? `🕳 블랙홀 ${holeCount}칸 생성` : ''
+    const all = [...labels, holePart].filter(Boolean)
+
+    if (all.length > 0) {
+      this.time.delayedCall(450, () => {
+        if (this.units.includes(defender)) this.showFloatingText(defender, all[0], '#ff5ce1')
+      })
+    }
+    return all.join(' · ') || null
+  }
+
+  // 인접 8칸에 특정 지형이 있는가 (블랙홀 인접 내구도 감쇠 판정)
+  _isAdjacentToTerrain(unit, terrainId) {
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dx === 0 && dy === 0) continue
+        const x = unit.gridX + dx
+        const y = unit.gridY + dy
+        if (x < 0 || y < 0 || x >= COLS || y >= ROWS) continue
+        if (getTerrain(this.terrain[y][x]).id === terrainId) return true
+      }
+    }
+    return false
+  }
+
   handleCellClick(x, y) {
     if (!this.canControl()) return
+
+    // 워프 좌표 지정 (Gravity T2) — 빈 칸 클릭으로 대상 유닛을 그 좌표로 워프
+    if (this.pendingWarp) {
+      const { unit } = this.pendingWarp
+      if (!this.units.includes(unit)) { this.pendingWarp = null; return }
+      if (!this.isPassable(x, y, unit)) {
+        this.refreshHud('🌀 그 칸으로는 워프할 수 없습니다 — 비어 있는 통과 가능 칸을 클릭하세요')
+        return
+      }
+      this.pendingWarp = null
+      this._forceMoveUnit(unit, x, y)
+      this.refreshHud(`🌀 ${unit.ship.name}을(를) (${x}, ${y})로 강제 워프!`)
+      this.syncUnitsToStore()
+      return
+    }
 
     if (this.pendingAbility) {
       const { unit, skill, presenter } = this.pendingAbility
@@ -1623,7 +2000,7 @@ export default class BattleScene extends Phaser.Scene {
 
     const range = computeMovementRange(
       { x: unit.gridX, y: unit.gridY },
-      unit.ship.mov,
+      this._effectiveMov(unit), // 이동 제한 modifier(⛓ 봉쇄 / 🕳 효율 감소) 반영
       (cx, cy) => this.isPassable(cx, cy),
       (cx, cy) => this._getTerrainMoveCost(cx, cy),
     )
@@ -1663,6 +2040,7 @@ export default class BattleScene extends Phaser.Scene {
     this.selected = null
     useBattleStore.getState().setActiveUnit(null)
     this.pendingAbility = null
+    this.pendingWarp = null // 워프 좌표 지정 중이었다면 취소 (워프 미실행)
     this.refreshActionMenu()
     this.refreshHud()
   }
@@ -2334,8 +2712,17 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   // 진입 피해 — terrain.js 폴백 또는 fieldEffects config 수치로 적용. 지형 단독으로는 격파 안 됨.
+  // 예외: 블랙홀(Antimatter T4)은 진입 시 피아 구분 없이 소멸 (보스는 예외 레이어로 면제 — master_plan §8)
   applyEntryDamage(unit, terrain) {
     const config = getGameConfig()
+    if (
+      terrain.id === 'black_hole' &&
+      (config?.combat?.weaponEffects?.antimatter?.singularity?.entryKills ?? true) &&
+      !this._isBossUnit(unit)
+    ) {
+      this._annihilateUnit(unit)
+      return
+    }
     const { entryDamagePct } = this._resolveFieldParams(terrain, config)
     if (!entryDamagePct) return
     const dmg = Math.max(1, Math.floor(unit.maxHp * entryDamagePct / 100))
@@ -2361,6 +2748,14 @@ export default class BattleScene extends Phaser.Scene {
         : terrain.fieldEffectType === 'energy_storm'  ? '폭풍'
         : '장판'
       this.showFloatingText(unit, `-${dmg} (${label})`, '#cc66ff')
+    }
+    // 블랙홀 인접 1칸 — 턴마다 장갑 내구도 감쇠 (Antimatter T4, master_plan §6)
+    const decayPct = config?.combat?.weaponEffects?.antimatter?.singularity?.adjacentDurabilityLossPct ?? 20
+    for (const unit of [...this.units]) {
+      if ((unit.armorDurability ?? 0) <= 0) continue
+      if (!this._isAdjacentToTerrain(unit, 'black_hole')) continue
+      unit.armorDurability = Math.max(0, Math.round(unit.armorDurability * (1 - decayPct / 100)))
+      this.showFloatingText(unit, `🕳 내구 -${decayPct}%`, '#ff5ce1')
     }
     this.syncUnitsToStore()
   }
@@ -2519,7 +2914,11 @@ export default class BattleScene extends Phaser.Scene {
     // 피해량 = 상성 배율 × 측면/크리티컬 → Shield → Armor → HP 파이프라인
     const counter = lookupCounterMultiplier(this.combatRules.counterMultiplier, attacker.ship.id, defender.ship.id)
     const owDmgMult   = attacker._overwatchDmgMult ?? 1
-    const extraMult   = opts.damageMultiplier ?? 1
+    // 중력장(gravity_well) 위: 공격자는 공격력 감소, 피격자는 받는 피해 증가 (Gravity T3 — 위치 기반 환경 효과)
+    const wellCfg = config?.combat?.weaponEffects?.gravity?.well ?? {}
+    const wellAtkMult = this._unitTerrainId(attacker) === 'gravity_well' ? (wellCfg.attackMult ?? 0.5) : 1
+    const wellDmgMult = this._unitTerrainId(defender) === 'gravity_well' ? (wellCfg.damageTakenMult ?? 2) : 1
+    const extraMult   = (opts.damageMultiplier ?? 1) * wellAtkMult * wellDmgMult
     // Unit Modifier 공격력/방어력 % 보정 (Plasma 멜팅 등) + 잔열 지대 위 방어력 감소(환경성 — 벗어나면 해제)
     const modAtkPct = sumStat(attacker.modifiers, 'atkPct')
     const effAtk = Math.max(1, Math.round(attacker.ship.atk * (1 + modAtkPct / 100)))
@@ -2549,8 +2948,8 @@ export default class BattleScene extends Phaser.Scene {
     this.updateHpBar(defender)
     this.updateShieldBar(defender)
 
-    // 계열별 명중 시 효과 부착 (Ion 교란 / Plasma 멜팅·붕괴 — 판정은 weapons/* 순수 모듈)
-    const ionSummary = !pipe.destroyed ? this._applyWeaponHitEffects(defender, weaponData, config) : null
+    // 계열별 명중 시 효과 부착 (Ion 교란 / Plasma 멜팅 / Gravity 강제이동 / Antimatter 소거 — 판정은 weapons/* 순수 모듈)
+    const ionSummary = !pipe.destroyed ? this._applyWeaponHitEffects(defender, weaponData, config, attacker) : null
     const ionPart = ionSummary ? ` ⚡ ${ionSummary}` : ''
 
     const shieldAbsorbed = Math.max(0, Math.round(shieldBefore - pipe.shieldAfter))
@@ -3042,11 +3441,28 @@ export default class BattleScene extends Phaser.Scene {
 
   // ----- AP/TP -----
   // 행동(이동=1, 공격=1) 시 AP를 소모한다 — dev_plan_guide.md MOD-3 요청 예시의 비용 규칙을 그대로 따른다.
+  // 중력장(gravity_well) 위의 유닛은 모든 행동 AP 소모 배수(기본 2배), Unit Modifier apCostPct도 가산.
   spendAp(unit, cost) {
-    unit.ap = Math.max(0, unit.ap - cost)
+    unit.ap = Math.max(0, unit.ap - this._effectiveApCost(unit, cost))
     this.refreshUnitStatusLabel(unit)
     this.updateApBar(unit)
     this.updateUnitAvailability(unit)
+  }
+
+  // 이동 제한 modifier 반영 이동력 — move_block이면 0, movPct 감산 (Antimatter T1 / Gravity T5)
+  _effectiveMov(unit) {
+    if (hasModifier(unit.modifiers, 'move_block')) return 0
+    const pct = sumStat(unit.modifiers, 'movPct')
+    return Math.max(0, Math.round((unit.ship.mov ?? 0) * (1 + pct / 100)))
+  }
+
+  _effectiveApCost(unit, cost) {
+    const config = getGameConfig()
+    const wellMult = this._unitTerrainId(unit) === 'gravity_well'
+      ? (config?.combat?.weaponEffects?.gravity?.well?.apCostMult ?? 2)
+      : 1
+    const modPct = sumStat(unit.modifiers, 'apCostPct')
+    return Math.ceil(cost * wellMult * (1 + Math.max(0, modPct) / 100))
   }
 
   // ships.json의 tpPerTurn만큼 턴마다 충전한다(밸런싱 수치는 데이터 그대로 사용).
@@ -3076,6 +3492,14 @@ export default class BattleScene extends Phaser.Scene {
     } else if (apFx.apDrain > 0) {
       unit.ap = Math.max(0, unit.ap - apFx.apDrain)
       this.showFloatingText(unit, `⚡ AP -${apFx.apDrain}`, '#9be8ff')
+    }
+    // 도트(dot) modifier — 자기 턴 시작 시 최대 HP 비례 피해 (지형 주기 피해처럼 단독 격파는 없음)
+    for (const m of unit.modifiers ?? []) {
+      if (m.kind !== 'dot') continue
+      const dmg = Math.max(1, Math.floor(unit.maxHp * (m.data?.pct ?? 5) / 100))
+      unit.hp = Math.max(1, unit.hp - dmg)
+      this.updateHpBar(unit)
+      this.showFloatingText(unit, `☣ -${dmg}`, '#cc66ff')
     }
     unit.aoeFiredThisTurn = false
     // 태세 리셋 — 방어 태세는 발동한 턴에만 유효. 경계 태세는 duration 설정에 따라 다중 턴 유지 가능.
@@ -3187,7 +3611,7 @@ export default class BattleScene extends Phaser.Scene {
     useBattleStore.getState().setPlayerPhase(true)
     this.allyQueue = this.units.filter((u) => u.side === 'ally')
     for (const unit of this.allyQueue) this.refillAp(unit)
-    this._expireHeatZones() // 만료된 잔열 지대 원복 (주기 피해 판정 이전)
+    this._expireTerrainZones() // 만료된 런타임 존(잔열/중력장) 원복 — 주기 피해 판정 이전
     if (this.turnNumber > 1) this.applyPeriodicTerrainDamage()
     this.refreshHud()
     this.syncUnitsToStore()
@@ -3290,10 +3714,12 @@ export default class BattleScene extends Phaser.Scene {
         onDone()
         return
       }
-      // IFF 교란(Ion T4) — 자기 페이즈 동안 가장 가까운 같은 편을 일반 공격 (특수기 사용 불가)
-      const target = hasModifier(unit.modifiers, 'iff_scramble')
-        ? this._nearestUnit(unit, this.units.filter((u) => u.side === unit.side && u !== unit))
-        : pickTarget(unit, this.units.filter((u) => u.side === 'ally'), this.combatRules.counterMultiplier)
+      // 무기 폭주(Antimatter T3) > IFF 교란(Ion T4) > 일반 타게팅 순으로 판정
+      const target = hasModifier(unit.modifiers, 'rampage')
+        ? this._nearestUnit(unit, this.units.filter((u) => u !== unit)) // 피아 무차별 — 최근접 아무나
+        : hasModifier(unit.modifiers, 'iff_scramble')
+          ? this._nearestUnit(unit, this.units.filter((u) => u.side === unit.side && u !== unit))
+          : pickTarget(unit, this.units.filter((u) => u.side === 'ally'), this.combatRules.counterMultiplier)
       if (!target) {
         onDone()
         return
@@ -3305,7 +3731,14 @@ export default class BattleScene extends Phaser.Scene {
         return
       }
 
-      const move = planApproach(unit, target, (x, y) => this.isPassable(x, y, unit), (x, y) => this._getTerrainMoveCost(x, y))
+      // 이동 제한 modifier — 봉쇄면 접근 포기, 효율 감소면 감소된 이동력으로 접근
+      const effMov = this._effectiveMov(unit)
+      if (effMov <= 0) {
+        onDone()
+        return
+      }
+      const mover = effMov === unit.ship.mov ? unit : { ...unit, ship: { ...unit.ship, mov: effMov } }
+      const move = planApproach(mover, target, (x, y) => this.isPassable(x, y, unit), (x, y) => this._getTerrainMoveCost(x, y))
       if (move.x === unit.gridX && move.y === unit.gridY) {
         // 더 다가갈 수 없음 — 이번 유닛의 행동 종료
         onDone()
@@ -3386,10 +3819,12 @@ export default class BattleScene extends Phaser.Scene {
         onDone()
         return
       }
-      // IFF 교란(Ion T4) — 자동전투 아군도 교란되면 가장 가까운 같은 편을 공격한다
-      const target = hasModifier(unit.modifiers, 'iff_scramble')
-        ? this._nearestUnit(unit, this.units.filter((u) => u.side === unit.side && u !== unit))
-        : pickTarget(unit, this.units.filter((u) => u.side === 'enemy'), this.combatRules.counterMultiplier)
+      // 무기 폭주/IFF 교란 — 자동전투 아군도 동일하게 적용
+      const target = hasModifier(unit.modifiers, 'rampage')
+        ? this._nearestUnit(unit, this.units.filter((u) => u !== unit))
+        : hasModifier(unit.modifiers, 'iff_scramble')
+          ? this._nearestUnit(unit, this.units.filter((u) => u.side === unit.side && u !== unit))
+          : pickTarget(unit, this.units.filter((u) => u.side === 'enemy'), this.combatRules.counterMultiplier)
       if (!target) {
         onDone()
         return
@@ -3401,7 +3836,13 @@ export default class BattleScene extends Phaser.Scene {
         return
       }
 
-      const move = planApproach(unit, target, (x, y) => this.isPassable(x, y, unit), (x, y) => this._getTerrainMoveCost(x, y))
+      const effMov = this._effectiveMov(unit)
+      if (effMov <= 0) {
+        onDone()
+        return
+      }
+      const mover = effMov === unit.ship.mov ? unit : { ...unit, ship: { ...unit.ship, mov: effMov } }
+      const move = planApproach(mover, target, (x, y) => this.isPassable(x, y, unit), (x, y) => this._getTerrainMoveCost(x, y))
       if (move.x === unit.gridX && move.y === unit.gridY) {
         onDone()
         return
