@@ -1001,9 +1001,14 @@ export default class BattleScene extends Phaser.Scene {
       modifiers: [],         // Unit Modifier (Phase 4-0) — 무기 고유 효과 부착 목록 (systems/unitModifiers.js)
       cooldowns: {},         // 무기 쿨타임 (Phase 4-6) — { weapon: n, weapon2: n } (systems/weaponCooldowns.js)
       weaponRangeBonus: (() => {
-        if (placement.side !== 'ally' || !placement.instanceId) return 0
-        const rEntry = this.roster.find((r) => r.instanceId === placement.instanceId)
-        const weaponId = rEntry?.equipment?.weapon
+        // 아군: 로스터 장비 무기, 적: enemies.json weapon (Phase 7-2) — AI 사거리 판정(inAttackRange)에도 반영된다.
+        const weaponId = (() => {
+          if (placement.side === 'ally' && placement.instanceId) {
+            const rEntry = this.roster.find((r) => r.instanceId === placement.instanceId)
+            return rEntry?.equipment?.weapon ?? null
+          }
+          return baseShip.weapon ?? null
+        })()
         if (!weaponId) return 0
         const item = this.itemsById.get(weaponId)
         return item?.rangeBonus ?? 0
@@ -2609,15 +2614,25 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   // 장착 무기 데이터를 config override와 병합해 반환 (요청서 6장 무기별 AP·사거리·관통).
-  // 적 유닛이나 무기 미장착 시 기본값(apCost:1, rangeBonus:0, pierce:0) 폴백.
-  // slot: 'weapon' | 'weapon2' — 어떤 슬롯의 무기를 읽을지 지정 (기본 'weapon').
+  // 아군은 로스터 장비 슬롯, 적은 enemies.json weapon(→ resolveEnemyShip이 ship.weapon으로 전달)을 읽는다 (Phase 7-2).
+  // 무기 미장착 시 기본값(apCost:1, rangeBonus:0, pierce:0) 폴백.
+  // slot: 'weapon' | 'weapon2' — 어떤 슬롯의 무기를 읽을지 지정 (기본 'weapon'). 적은 weapon 슬롯만 사용.
   _getEquippedWeaponData(unit, config, slot = 'weapon') {
-    const defaults = { apCost: 1, rangeBonus: 0, pierce: 0, family: null, tier: 0, range: null, area: null, areaRadius: 0 }
-    if (!unit.instanceId) return defaults
+    const weaponId = this._unitWeaponId(unit, slot)
+    return this._weaponDataFromId(weaponId, config)
+  }
+
+  // 유닛의 해당 슬롯 무기 id — 아군: 로스터 equipment, 적: enemies.json weapon (weapon 슬롯 한정).
+  _unitWeaponId(unit, slot = 'weapon') {
+    if (!unit.instanceId) return slot === 'weapon' ? (unit.baseShip?.weapon ?? null) : null
     const rEntry = useFleetStore.getState().roster.find((r) => r.instanceId === unit.instanceId)
-    const weaponId = rEntry?.equipment?.[slot]
-    if (!weaponId) return defaults
-    const item = this.itemsById.get(weaponId)
+    return rEntry?.equipment?.[slot] ?? null
+  }
+
+  // 무기 id → 판정용 weaponData (config.overrides.weaponStats 병합). id가 없거나 미등록이면 기본값.
+  _weaponDataFromId(weaponId, config) {
+    const defaults = { apCost: 1, rangeBonus: 0, pierce: 0, family: null, tier: 0, range: null, area: null, areaRadius: 0 }
+    const item = weaponId ? this.itemsById.get(weaponId) : null
     if (!item) return defaults
     const ov = config?.overrides?.weaponStats?.[weaponId] ?? {}
     return {
@@ -2648,11 +2663,9 @@ export default class BattleScene extends Phaser.Scene {
     unit.cooldowns = startCooldown(unit.cooldowns, slot, weaponData?.cooldown ?? 0)
   }
 
-  // 장착 무기 표시 정보 (카드덱/HUD용) — 미장착이면 null
+  // 장착 무기 표시 정보 (카드덱/HUD용) — 미장착이면 null. 적도 enemies.json weapon을 표시 (Phase 7-2).
   _equippedWeaponInfo(unit, slot = 'weapon') {
-    if (!unit.instanceId) return null
-    const rEntry = useFleetStore.getState().roster.find((r) => r.instanceId === unit.instanceId)
-    const weaponId = rEntry?.equipment?.[slot]
+    const weaponId = this._unitWeaponId(unit, slot)
     const item = weaponId ? this.itemsById.get(weaponId) : null
     if (!item) return null
     return {
@@ -3521,6 +3534,7 @@ export default class BattleScene extends Phaser.Scene {
           name: riftDef.name,
           sprite: riftDef.sprite,
           tpPerTurn: riftDef.stats.tpPerTurn ?? 0,
+          weapon: riftDef.weapon ?? null, // 소환 유닛도 무기 계열 메커니즘 사용 (Phase 7-2)
         }
         const spawnPos = (this.enemySpawnPositions ?? []).find(
           (pos) => !this.units.some((u) => u.gridX === pos.x && u.gridY === pos.y),
@@ -4113,6 +4127,12 @@ export default class BattleScene extends Phaser.Scene {
       }
 
       if (inAttackRange(unit, target)) {
+        // 무기 AP 비용 확인 (Phase 7-2) — apCost>1 무기(적 포함)는 잔여 AP가 모자라면 공격 불가.
+        const apCost = this._getEquippedWeaponData(unit, getGameConfig(), 'weapon').apCost ?? 1
+        if (unit.ap < apCost) {
+          onDone()
+          return
+        }
         this.busy = true
         this.resolveCombat(unit, target, step)
         return
@@ -4218,6 +4238,12 @@ export default class BattleScene extends Phaser.Scene {
       }
 
       if (inAttackRange(unit, target)) {
+        // 무기 AP 비용 확인 (Phase 7-2) — apCost>1 무기(적 포함)는 잔여 AP가 모자라면 공격 불가.
+        const apCost = this._getEquippedWeaponData(unit, getGameConfig(), 'weapon').apCost ?? 1
+        if (unit.ap < apCost) {
+          onDone()
+          return
+        }
         this.busy = true
         this.resolveCombat(unit, target, step)
         return
