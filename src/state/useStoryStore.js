@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import storyData from '../data/story.json'
+import { getGameConfig } from './useGameConfigStore'
 
 // 스토리 대사 이벤트 상태 (Phase 6-2).
 // - trigger(key, onDone): story.json에서 trigger===key인 미재생 이벤트를 찾아 활성화. 재생됐으면 false.
@@ -26,6 +27,9 @@ export const useStoryStore = create((set, get) => ({
   queue: [],    // 다른 대사가 재생 중일 때 들어온 트리거 — 닫히면 순서대로 이어진다 (정복 대사→영입 제안 등)
 
   trigger: (key, onDone = null) => {
+    // 대사 모달 전역 스위치 (config story.dialogEnabled) — OFF면 재생하지 않고 seen도 남기지 않는다
+    // (나중에 켜면 그때부터 안 본 대사가 정상 재생). 호출부는 false를 받아 폴백 처리한다.
+    if (!getGameConfig()?.story?.dialogEnabled) return false
     const ev = EVENTS.find((e) => e.trigger === key)
     if (!ev || get().seenIds.includes(ev.id)) return false
     const { active, queue } = get()

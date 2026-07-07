@@ -3609,6 +3609,7 @@ export default class BattleScene extends Phaser.Scene {
 
     // 레이븐 영입 분기 (Phase 6-4) — 정복 승리 시 스토리 대화 선택지로 1회만 제공.
     // 정복 대사(conquer:s3)가 재생 중이면 대기열로 이어진다. 거절해도 seen 처리 — "놓치면 영구 불가" 유지.
+    // 스토리 대사 OFF(config story.dialogEnabled=false)면 기존 승리 배너 버튼으로 폴백 — 영입 기회는 잃지 않는다.
     const endActions = this.buildEndActions()
     if (this.node?.recruit && !this.mockControl) {
       const aceId = this.node.recruit
@@ -3617,7 +3618,18 @@ export default class BattleScene extends Phaser.Scene {
         const offered = useStoryStore.getState().trigger('raven:offer', (choiceId) => {
           if (choiceId === 'recruit') useProgressStore.getState().recruitAce(aceId)
         })
-        if (offered) extraLines.push('🎖 통신 요청 수신 — 대화에서 영입 여부를 선택하세요. (놓치면 영구 불가)')
+        if (offered) {
+          extraLines.push('🎖 통신 요청 수신 — 대화에서 영입 여부를 선택하세요. (놓치면 영구 불가)')
+        } else {
+          const aceData = (useDataStore.getState().data?.aces?.aces ?? []).find((a) => a.id === aceId)
+          if (aceData) {
+            extraLines.push(`🎖 ${aceData.name} 영입 가능 — 아래 버튼으로 영입하세요. (놓치면 영구 불가)`)
+            endActions.push({
+              label: `🎖 ${aceData.name} 영입하기`,
+              onClick: () => { useProgressStore.getState().recruitAce(aceId) },
+            })
+          }
+        }
       }
     }
 
