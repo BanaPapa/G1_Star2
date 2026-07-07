@@ -8,6 +8,7 @@ import { useBuildingStore } from '../../state/useBuildingStore'
 import { useGameConfigStore } from '../../state/useGameConfigStore'
 import { getEffectiveBuildingDef } from '../../data/buildings'
 import AssetImage from '../components/AssetImage'
+import RepairPanel from './RepairPanel'
 
 export default function ShipyardPanel({ nodeId }) {
   const ships = useDataStore((s) => s.data?.ships?.ships)
@@ -71,6 +72,11 @@ export default function ShipyardPanel({ nodeId }) {
             </div>
           )
         })}
+      </div>
+
+      {/* 조선소 = 완전 수리 담당 (Phase 5-2, MASTER_PLAN §3.7) */}
+      <div style={{ marginTop: 18 }}>
+        <RepairPanel capPct={1} facilityName="조선소 정비 도크 — 완전 수리" />
       </div>
     </div>
   )

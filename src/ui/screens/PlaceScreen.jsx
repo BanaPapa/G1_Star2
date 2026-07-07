@@ -9,6 +9,7 @@ import ShopPanel from '../facilities/ShopPanel'
 import CraftPanel from '../facilities/CraftPanel'
 import BuildPanel from '../facilities/BuildPanel'
 import ShipyardPanel from '../facilities/ShipyardPanel'
+import RepairPanel from '../facilities/RepairPanel'
 import './PlaceScreen.css'
 
 const FACILITY_LABEL = {
@@ -20,10 +21,6 @@ const FACILITY_LABEL = {
   repair:   '🛠️ 수리',
 }
 
-// 아직 전용 UI가 없는 시설 — 자리만 확보 (수리는 Phase 5-2)
-function PlaceholderPanel({ label }) {
-  return <p className="hub-card-meta">{label} 시설은 준비 중입니다 — 다음 업데이트에서 열립니다.</p>
-}
 
 export default function PlaceScreen({ placeId, onExit }) {
   const systems = useDataStore((s) => s.data?.systems?.systems)
@@ -89,7 +86,12 @@ export default function PlaceScreen({ placeId, onExit }) {
       {activeTab === 'shop' && <ShopPanel />}
       {activeTab === 'craft' && <CraftPanel />}
       {activeTab === 'shipyard' && <ShipyardPanel nodeId={placeId} />}
-      {activeTab === 'repair' && <PlaceholderPanel label={FACILITY_LABEL.repair} />}
+      {activeTab === 'repair' && (
+        <RepairPanel
+          capPct={config?.economy?.repair?.outpostCapByLevel?.[getLevel(placeId, 'bld_outpost')] ?? 0.5}
+          facilityName={`아웃포스트 간이수리 Lv.${getLevel(placeId, 'bld_outpost')}`}
+        />
+      )}
     </div>
   )
 }

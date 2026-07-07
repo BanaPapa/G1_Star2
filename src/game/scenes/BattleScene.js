@@ -22,7 +22,7 @@ import { rollIonHit } from '../weapons/ionEffects'
 import { rollPlasmaHit, computeBlastCells, blastMultsForTier } from '../weapons/plasmaEffects'
 import { computePush, rollDisplace, unitStrength, computeGatherPlacements, eventHorizonModifiers, gravityDefaults } from '../weapons/gravityEffects'
 import { rollAntimatterHit, pickBlackHoleCells, antimatterDefaults } from '../weapons/antimatterEffects'
-import { familyColor, playHitImpact, playIonBolt, playPlasmaShot, playCannonTracer, playGravityWave, playAntimatterFlash } from '../effects/weaponVfx'
+import { familyColor, playHitImpact, playIonBolt, playPlasmaShot, playCannonTracer, playGravityWave, playAntimatterFlash, playDestruction, playAnnihilateShards, playIonSparks } from '../effects/weaponVfx'
 import { addModifier, sumStat, hasModifier, consumeApEffects, tickTurn, modifierIcons } from '../systems/unitModifiers'
 import { startCooldown, tickCooldowns, cooldownLeft } from '../systems/weaponCooldowns'
 
@@ -339,6 +339,7 @@ export default class BattleScene extends Phaser.Scene {
       this.cellRects.push(row)
     }
     this.drawMapObjects()
+    this._refreshZoneOverlays()  // 맵 자체에 필드효과 지형(중력장/블랙홀 등)이 있으면 루프 연출
 
     // 선택 브래킷·타겟팅 라인용 그래픽 레이어
     this.selectionGfx = null
@@ -902,7 +903,18 @@ export default class BattleScene extends Phaser.Scene {
       instanceId: placement.instanceId ?? null,
       gridX: placement.x,
       gridY: placement.y,
-      hp: ship.hp,
+      // HP/장갑 내구도 이월 (Phase 5-2): 손상은 수리 전까지 다음 전투로 이어진다 (config로 토글).
+      hp: (() => {
+        const carry = config?.economy?.repair?.damageCarryOver !== false
+        if (carry && placement.side === 'ally' && placement.instanceId) {
+          const rEntry = this.roster.find((r) => r.instanceId === placement.instanceId)
+          if (rEntry?.currentHp != null) {
+            const minHp = Math.ceil(ship.hp * (config?.economy?.repair?.minHpPctNextBattle ?? 10) / 100)
+            return Math.min(Math.max(rEntry.currentHp, minHp), ship.hp)
+          }
+        }
+        return ship.hp
+      })(),
       maxHp: ship.hp,
       ap: ship.ap,
       maxAp: ship.ap,
@@ -918,7 +930,14 @@ export default class BattleScene extends Phaser.Scene {
       })(),
       maxShield,
       armor: armorVal,
-      armorDurability: maxArmorDur,
+      armorDurability: (() => {
+        const carry = config?.economy?.repair?.damageCarryOver !== false
+        if (carry && placement.side === 'ally' && placement.instanceId) {
+          const rEntry = this.roster.find((r) => r.instanceId === placement.instanceId)
+          if (rEntry?.currentArmorDur != null) return Math.min(rEntry.currentArmorDur, maxArmorDur)
+        }
+        return maxArmorDur
+      })(),
       maxArmorDurability: maxArmorDur,
       defenseReduction: 0,
       isDefenseStance: false,
@@ -1395,6 +1414,8 @@ export default class BattleScene extends Phaser.Scene {
       defender.shield = 0
       this.updateShieldBar(defender)
     }
+    // 잔류 스파크 (WO-4) — 명중 직후 0.5초간 대상 주변이 지지직거린다
+    if (this._vfxScale() > 0) playIonSparks(this, defender.container.x, defender.container.y)
     this.refreshUnitStatusLabel(defender)
 
     const labels = roll.events
@@ -1532,7 +1553,8 @@ export default class BattleScene extends Phaser.Scene {
       { x: target.container.x, y: target.container.y },
       familyColor('plasma'),
       () => {
-        this._flashBlastArea(cells)
+        this._flashBlastAreaStaggered(cells, { x: target.gridX, y: target.gridY })
+        this.vfxShake('medium')
         fireAt(0)
       },
     )
@@ -1568,6 +1590,33 @@ export default class BattleScene extends Phaser.Scene {
     })
   }
 
+  // 폭발 플래시 (WO-3) — 중심→바깥 링 순서로 시차를 두고 퍼진다. 피해 판정과 무관한 연출 전용.
+  _flashBlastAreaStaggered(cells, center) {
+    const ringDelay = 60
+    const rings = new Map()
+    for (const c of cells) {
+      if (c.mult <= 0) continue
+      const r = Math.max(Math.abs(c.x - center.x), Math.abs(c.y - center.y))
+      if (!rings.has(r)) rings.set(r, [])
+      rings.get(r).push(c)
+    }
+    for (const [r, ringCells] of rings) {
+      this.time.delayedCall(r * ringDelay, () => {
+        const drawn = this._drawBlastOverlay(ringCells, 0xff7a2a, 0.5)
+        this.tweens.add({
+          targets: drawn.g, alpha: 0, duration: 700, delay: 180, ease: 'Cubic.easeOut',
+          onComplete: () => drawn.g.destroy(),
+        })
+        if (r > 0 && this._vfxScale() > 0) {
+          // 바깥 링에도 잔폭발 1개 — 퍼지는 느낌 보강
+          const sample = ringCells[Math.floor(Math.random() * ringCells.length)]
+          const { px, py } = this.cellToWorld(sample.x, sample.y)
+          playHitImpact(this, px, py, familyColor('plasma'))
+        }
+      })
+    }
+  }
+
   _clearPlasmaPreview() {
     if (!this.plasmaPreview) return
     this.plasmaPreview.g.destroy()
@@ -1590,6 +1639,7 @@ export default class BattleScene extends Phaser.Scene {
     if (zone.cells.length > 0) {
       if (!this.terrainZones) this.terrainZones = []
       this.terrainZones.push(zone)
+      this._refreshZoneOverlays()
     }
     return zone.cells.length
   }
@@ -1598,8 +1648,10 @@ export default class BattleScene extends Phaser.Scene {
   _expireTerrainZones() {
     if (!this.terrainZones?.length) return
     const keep = []
+    let expired = false
     for (const zone of this.terrainZones) {
       if (this.turnNumber > zone.expiresTurn) {
+        expired = true
         for (const c of zone.cells) {
           this.terrain[c.y][c.x] = c.prevType
           this._repaintTerrainTile(c.x, c.y)
@@ -1609,11 +1661,84 @@ export default class BattleScene extends Phaser.Scene {
       }
     }
     this.terrainZones = keep
+    if (expired) this._refreshZoneOverlays()
   }
 
   // 유닛이 서 있는 지형의 필드효과 타입 (없으면 null)
   _unitTerrainId(unit) {
     return getTerrain(this.terrain[unit.gridY][unit.gridX]).id
+  }
+
+  // ── 필드효과 지형 오버레이 (WO-3/5/6) — 잔열 히트헤이즈·중력장 소용돌이·블랙홀 루프 연출 ──
+  // this.terrain 전체를 스캔해 해당 칸 위에 루프 연출을 얹는다. 지형이 바뀔 때마다 전부 재생성(칸 수가 적어 저렴).
+  _refreshZoneOverlays() {
+    this.zoneFxList?.forEach((o) => o.destroy())
+    this.zoneFxList = []
+    if (this._vfxScale() <= 0 || !this.terrain || !this.cellRects) return
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        const id = getTerrain(this.terrain[y][x]).id
+        if (id === 'residual_heat') this._addHeatHazeFx(x, y)
+        else if (id === 'gravity_well') this._addGravityWellFx(x, y)
+        else if (id === 'black_hole') this._addBlackHoleFx(x, y)
+      }
+    }
+  }
+
+  // 잔열 — 칸 위에 주황 다이아몬드가 느리게 일렁인다 (알파 펄스)
+  _addHeatHazeFx(x, y) {
+    const h = 0.42
+    const pts = [
+      this.cellToWorld(x - h, y - h), this.cellToWorld(x + h, y - h),
+      this.cellToWorld(x + h, y + h), this.cellToWorld(x - h, y + h),
+    ]
+    const g = this.add.graphics().setDepth(1)
+    g.fillStyle(0xff7a2a, 1)
+    g.beginPath()
+    g.moveTo(pts[0].px, pts[0].py)
+    for (let i = 1; i < 4; i++) g.lineTo(pts[i].px, pts[i].py)
+    g.closePath()
+    g.fillPath()
+    g.setAlpha(0.12)
+    this.tweens.add({
+      targets: g, alpha: 0.3, duration: 650 + Math.random() * 250,
+      yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+    })
+    this.zoneFxList.push(g)
+  }
+
+  // 중력장 — 보라 동심원이 바깥에서 중심으로 계속 수축한다 (빨려드는 인상)
+  _addGravityWellFx(x, y) {
+    const { px, py } = this.cellToWorld(x, y)
+    const r = this.iso.hw * 0.5
+    for (let i = 0; i < 2; i++) {
+      const ring = this.add.circle(px, py, r, 0xb18cff, 0)
+        .setStrokeStyle(1.5, 0xb18cff, 0.6).setDepth(1)
+      ring.setScale(1.15).setAlpha(0.9)
+      this.tweens.add({
+        targets: ring, scale: 0.2, alpha: 0, duration: 1300, delay: i * 650,
+        repeat: -1, ease: 'Cubic.easeIn',
+      })
+      this.zoneFxList.push(ring)
+    }
+  }
+
+  // 블랙홀 — 어두운 중심 + 마젠타 림 펄스 + 궤도를 도는 입자
+  _addBlackHoleFx(x, y) {
+    const { px, py } = this.cellToWorld(x, y)
+    const hw = this.iso.hw
+    const core = this.add.circle(px, py, hw * 0.28, 0x05030a, 0.85).setDepth(1)
+    const rim = this.add.circle(px, py, hw * 0.34, 0xff5ce1, 0)
+      .setStrokeStyle(2, 0xff5ce1, 0.75).setDepth(1)
+    const orbit = this.add.container(px, py).setDepth(1)
+    for (let i = 0; i < 3; i++) {
+      const ang = (Math.PI * 2 * i) / 3
+      const rad = hw * (0.42 + i * 0.1)
+      orbit.add(this.add.circle(Math.cos(ang) * rad, Math.sin(ang) * rad, 2.2, 0xff5ce1, 0.9))
+    }
+    this.tweens.add({ targets: orbit, angle: 360, duration: 2600, repeat: -1, ease: 'Linear' })
+    this.tweens.add({ targets: rim, alpha: { from: 1, to: 0.45 }, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' })
+    this.zoneFxList.push(core, rim, orbit)
   }
 
   // 지형 타입 변경 후 타일 시각을 갱신한다 (하이라이트 중이면 색만 저장).
@@ -1632,12 +1757,13 @@ export default class BattleScene extends Phaser.Scene {
   // ── Gravity 계열 (Phase 4-4) — 강제 이동·중력장. 판정은 weapons/gravityEffects.js ──
 
   // 유닛을 지정 칸으로 이동(강제 이동 공용) — 그리드 갱신 + 컨테이너 트윈 + 도착 지형 진입 판정
+  // Back.easeIn: 살짝 버티다 획 끌려가는 곡선 — 중력으로 "던져지는" 인상 (WO-5)
   _forceMoveUnit(unit, x, y, onDone) {
     unit.gridX = x
     unit.gridY = y
     const { px, py } = this.cellToWorld(x, y)
     this.tweens.add({
-      targets: unit.container, x: px, y: py, duration: 220, ease: 'Cubic.easeOut',
+      targets: unit.container, x: px, y: py, duration: 240, ease: 'Back.easeIn',
       onComplete: () => {
         if (this.units.includes(unit)) this.applyEntryDamage(unit, getTerrain(this.terrain[y][x]))
         onDone?.()
@@ -1683,6 +1809,11 @@ export default class BattleScene extends Phaser.Scene {
       if (push.moved > 0) this._forceMoveUnit(defender, push.dest.x, push.dest.y)
       let summary = `🌀 ${push.moved}칸 밀림`
       if (push.collided) {
+        // 충돌 임팩트 (WO-5) — 강제이동 트윈이 도착하는 시점에 백색 플래시
+        if (this._vfxScale() > 0) {
+          const { px: cpx, py: cpy } = this.cellToWorld(push.dest.x, push.dest.y)
+          this.time.delayedCall(230, () => playHitImpact(this, cpx, cpy, 0xffffff))
+        }
         // 충돌 — 밀린 유닛 피해, 막은 게 유닛이면 그 유닛도 동일 피해
         const dmg = Math.max(1, Math.round((attacker.ship.atk ?? 1) * gcfg.ram.collisionMult))
         this.applyDamageWithShield(defender, dmg)
@@ -1870,7 +2001,8 @@ export default class BattleScene extends Phaser.Scene {
   _annihilateUnit(unit) {
     this.showFloatingText(unit, '🕳 소멸!', '#ff5ce1')
     playAntimatterFlash(this, unit.container.x, unit.container.y)
-    this.time.delayedCall(350, () => { if (this.units.includes(unit)) this.destroyUnit(unit) })
+    // 소멸은 폭발이 아니라 조각 분해 연출(WO-6) — destroyUnit 경유로 경험치/보상/투항은 동일
+    this.time.delayedCall(350, () => { if (this.units.includes(unit)) this.destroyUnit(unit, { visual: 'annihilate' }) })
   }
 
   _applyAntimatterHitEffects(attacker, defender, weaponData, config) {
@@ -2153,6 +2285,7 @@ export default class BattleScene extends Phaser.Scene {
 
     // 맵 오브젝트 재배치(yaw 회전 반영)
     this.drawMapObjects()
+    this._refreshZoneOverlays()
 
     // 유닛 위치 갱신
     for (const unit of this.units) {
@@ -2467,6 +2600,19 @@ export default class BattleScene extends Phaser.Scene {
     useFleetStore.getState().addCapturedShip({ instanceId, shipId })
     this.capturedShips.push(unit.ship?.name ?? shipId)
     this.showFloatingText(unit, '🏳 투항!', '#7dffb0')
+  }
+
+  // 전투 종료 시 이월할 아군 상태 수집 (Phase 5-2) — 방어막은 항상, HP/내구도는 damageCarryOver 켜졌을 때만.
+  _collectBattleDamage() {
+    const carry = getGameConfig()?.economy?.repair?.damageCarryOver !== false
+    const map = {}
+    for (const u of this.units.filter((u) => u.side === 'ally' && u.instanceId)) {
+      map[u.instanceId] = {
+        shield: u.shield ?? 0,
+        ...(carry ? { hp: u.hp, armorDur: u.armorDurability ?? 0 } : {}),
+      }
+    }
+    return map
   }
 
   // 도주·협상 실패 패널티 — 아군 기함 AP를 0으로.
@@ -3000,6 +3146,11 @@ export default class BattleScene extends Phaser.Scene {
     const bonusTxt  = [isFlank ? '측면' : null, isCrit ? '크리티컬!' : null].filter(Boolean).join(' · ')
     const bonusPart = bonusTxt ? ` [${bonusTxt}]` : ''
 
+    // 타격감 공통 레이어 (WO-1) — 피격 플래시 + 셰이크. 격파의 heavy 셰이크/히트스톱은 destroyUnit이 담당.
+    this._flashUnit(defender)
+    if (!lethal) this.vfxShake(isCrit ? 'medium' : 'light')
+    if ((weaponData.tier ?? 0) >= 5) this.vfxHitStop()
+
     this.showFloatingText(defender, hitLabel, hitColor, () => {
       if (lethal) {
         this.destroyUnit(defender)
@@ -3100,6 +3251,53 @@ export default class BattleScene extends Phaser.Scene {
     })
   }
 
+  // ── 타격감 공통 레이어 (Phase 10-1) — 수치는 combat.vfx.*, 강도는 설정(vfxIntensity) ──
+
+  // off=0 / low=0.5 / full=1 — 셰이크 강도에 곱하고, 0이면 연출 자체를 생략한다.
+  _vfxScale() {
+    const v = useSettingsStore.getState().vfxIntensity ?? 'full'
+    return v === 'off' ? 0 : v === 'low' ? 0.5 : 1
+  }
+
+  // 화면 셰이크 — level: 'light'(일반 명중) | 'medium'(크리티컬·광역 폭발) | 'heavy'(격파)
+  vfxShake(level) {
+    const s = this._vfxScale()
+    if (s <= 0) return
+    const fallback = {
+      light:  { duration: 70,  intensity: 0.003 },
+      medium: { duration: 130, intensity: 0.007 },
+      heavy:  { duration: 220, intensity: 0.012 },
+    }
+    const c = getGameConfig()?.combat?.vfx?.shake?.[level] ?? fallback[level] ?? fallback.light
+    this.cameras.main.shake(c.duration ?? 100, (c.intensity ?? 0.006) * s)
+  }
+
+  // 히트스톱 — 격파·T5 명중 순간 전체 트윈/타이머를 잠깐 늦췄다 복구. full 강도에서만.
+  // 복구 타이머는 실시간(setTimeout) — 씬 클록을 쓰면 스스로 느려진 시간에 갇힌다.
+  vfxHitStop() {
+    if (this._vfxScale() < 1 || this._hitStopActive) return
+    const cfg = getGameConfig()?.combat?.vfx?.hitStop ?? {}
+    const scale = cfg.timeScale ?? 0.15
+    this._hitStopActive = true
+    this.tweens.timeScale = scale
+    this.time.timeScale = scale
+    setTimeout(() => {
+      this._hitStopActive = false
+      if (this.tweens) this.tweens.timeScale = 1
+      if (this.time) this.time.timeScale = 1
+    }, cfg.durationMs ?? 80)
+  }
+
+  // 피격 플래시 — 맞은 유닛 스프라이트/이모지를 한순간 백색 실루엣으로. (복구도 실시간 — 히트스톱 영향 배제)
+  // Phaser 4: setTintFill은 제거됨 — setTint + tintMode 1(FILL)이 대체 API. clearTint가 둘 다 원복한다.
+  _flashUnit(unit) {
+    if (this._vfxScale() <= 0 || !unit?.glyph?.setTint) return
+    const ms = getGameConfig()?.combat?.vfx?.hitFlash?.durationMs ?? 90
+    unit.glyph.setTint(0xffffff)
+    unit.glyph.setTintMode?.(1)
+    setTimeout(() => { if (unit.glyph?.active) unit.glyph.clearTint() }, ms)
+  }
+
   // 회피 애니메이션 — 공격자 방향의 수직으로 빠르게 대시한 뒤 원위치로 복귀
   _dodgeUnit(unit, attacker) {
     if (!unit?.container) return
@@ -3164,8 +3362,29 @@ export default class BattleScene extends Phaser.Scene {
     unit.apBarFg.setSize(HP_BAR_WIDTH * ratio, HP_BAR_HEIGHT - 1)
   }
 
-  destroyUnit(unit) {
-    unit.container.destroy()
+  // opts.visual: 'explode'(기본 — 폭발+파편) | 'annihilate'(Antimatter 소멸 — 조각 분해) | 'silent'(즉시 제거)
+  // 파괴 판정·보상 로직은 즉시 실행되고 연출만 fire-and-forget으로 남는다.
+  destroyUnit(unit, opts = {}) {
+    const { x: wx, y: wy } = unit.container
+    const visual = opts.visual ?? 'explode'
+    if (visual === 'annihilate' && this._vfxScale() > 0) {
+      playAnnihilateShards(this, wx, wy)
+      this.vfxShake('medium')
+      unit.container.destroy()
+    } else if (visual === 'explode' && this._vfxScale() > 0) {
+      playDestruction(this, wx, wy)
+      this.vfxShake('heavy')
+      this.vfxHitStop()
+      // 유닛은 본 폭발 시점에 맞춰 페이드아웃 (로직상으로는 이미 제거됨)
+      const c = unit.container
+      c.disableInteractive()
+      this.tweens.add({
+        targets: c, alpha: 0, scaleX: 0.8, scaleY: 0.8, duration: 240, delay: 140,
+        ease: 'Cubic.easeIn', onComplete: () => c.destroy(),
+      })
+    } else {
+      unit.container.destroy()
+    }
     this.units = this.units.filter((u) => u !== unit)
     if (this.selected === unit) this.selected = null
     if (unit.side === 'enemy') {
@@ -3271,12 +3490,8 @@ export default class BattleScene extends Phaser.Scene {
   // useFleetStore.gainXp로 지급한다 — 레벨업·전직 가능 여부까지 한 번에 확인해 결과를 보여준다.
   // MOD-6: 노드 진입 전투라면 onVictory(node)를 호출해 정복 상태를 즉시 갱신한다(인접 다음 노드 잠금 해제).
   handleVictory() {
-    // Shield 이월 저장 — 생존 아군의 현재 방어막을 로스터에 보관 (다음 전투에서 복원).
-    const shieldMap = {}
-    for (const u of this.units.filter((u) => u.side === 'ally' && u.instanceId)) {
-      shieldMap[u.instanceId] = u.shield ?? 0
-    }
-    useFleetStore.getState().saveShields(shieldMap)
+    // 상태 이월 저장 — 생존 아군의 방어막 + HP/장갑 내구도(Phase 5-2)를 로스터에 보관.
+    useFleetStore.getState().saveBattleDamage(this._collectBattleDamage())
 
     const totalXp = xpRewardForVictory(this.defeatedEnemyShips)
 
@@ -3569,6 +3784,27 @@ export default class BattleScene extends Phaser.Scene {
     const modIcons    = modifierIcons(unit.modifiers)
     const modPart     = modIcons ? ` · ${modIcons}` : ''
     unit.statusLabel.setText(`AP ${unit.ap}/${unit.maxAp} · TP ${tpPct}%${shieldPart}${stancePart}${modPart}`)
+    this._syncStunFx(unit)
+  }
+
+  // 스턴 표시 링 (WO-4) — stun 모디파이어가 붙어 있는 동안 유닛 머리 위를 도는 스파크 3점.
+  // 컨테이너 자식이라 유닛 이동/격파를 자동으로 따라간다.
+  _syncStunFx(unit) {
+    const stunned = (unit.modifiers ?? []).some((m) => m.kind === 'stun')
+    if (stunned && !unit.stunFx && this._vfxScale() > 0 && unit.container?.active) {
+      const fx = this.add.container(0, -Math.round(CELL * 0.55))
+      const rad = 12
+      for (let i = 0; i < 3; i++) {
+        const ang = (Math.PI * 2 * i) / 3
+        fx.add(this.add.circle(Math.cos(ang) * rad, Math.sin(ang) * rad, 2.2, 0x7fd9ff, 0.95))
+      }
+      this.tweens.add({ targets: fx, angle: 360, duration: 1000, repeat: -1, ease: 'Linear' })
+      unit.container.add(fx)
+      unit.stunFx = fx
+    } else if (!stunned && unit.stunFx) {
+      unit.stunFx.destroy()
+      unit.stunFx = null
+    }
   }
 
   // AP가 소진된 유닛은 더 이상 행동할 수 없음을 시각적으로 표시한다(반투명 처리).
@@ -3625,12 +3861,8 @@ export default class BattleScene extends Phaser.Scene {
     this.clearSelection()
     this.actionChips?.forEach((chip) => chip.destroy())
     this.actionChips = []
-    // 도주 성공 시 Shield 이월 저장
-    const shieldMap = {}
-    for (const u of this.units.filter((u) => u.side === 'ally' && u.instanceId)) {
-      shieldMap[u.instanceId] = u.shield ?? 0
-    }
-    useFleetStore.getState().saveShields(shieldMap)
+    // 도주 성공 시 상태 이월 저장 (방어막 + HP/내구도)
+    useFleetStore.getState().saveBattleDamage(this._collectBattleDamage())
     this.refreshHud('철수합니다...')
     this.time.delayedCall(600, () => this.onExit?.())
   }

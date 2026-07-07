@@ -354,6 +354,15 @@ export const DEFAULT_GAME_CONFIG = {
       // 조선소 레벨별 건조 가능 함급 (buildings.js bld_shipyard effectByLevel과 일치)
       classUnlockLevel: { gunship: 1, frigate: 1, destroyer: 2, cruiser: 3, battlecruiser: 4, battleship: 5 },
     },
+    repair: {
+      // 전투 간 손상 이월 (HP/장갑 내구도) — 끄면 매 전투 풀피 시작(수리 시스템 비활성과 동일)
+      damageCarryOver: true,
+      minHpPctNextBattle: 10,   // 이월 HP가 이보다 낮아도 다음 전투는 최대 HP의 n%로 시작 (빈사 출격 방지)
+      costPerHpSc: 2,           // 수리 비용 = 회복 HP × n SC
+      costPerArmorDurSc: 1,     // + 회복 장갑 내구도 × n SC
+      // 아웃포스트 간이수리 한도 — 레벨별 최대 회복률 (buildings.js bld_outpost repairByLevel과 일치)
+      outpostCapByLevel: { 1: 0.5, 2: 0.75, 3: 1, 4: 1, 5: 1 },
+    },
   },
 
   // 타 시스템 override (런타임 적용은 다음 단계 — 이번 단계는 편집/저장까지).

@@ -28,8 +28,10 @@ function freshEntry({ instanceId, shipId, aceId }) {
     statGrowth: { hp: 0, atk: 0, def: 0, acc: 0, eva: 0 },
     promoted: false,
     equipment: { weapon: null, weapon2: null, module: null },
-    currentShield: null,  // null = 최대치(전투 시작 시 초기화). number = 이전 전투 종료 시 남은 방어막.
-    isCaptured: false,    // true = 투항 포획 함선
+    currentShield: null,   // null = 최대치(전투 시작 시 초기화). number = 이전 전투 종료 시 남은 방어막.
+    currentHp: null,       // 전투 간 HP 이월 (Phase 5-2) — null = 무손상(최대)
+    currentArmorDur: null, // 전투 간 장갑 내구도 이월 — null = 무손상
+    isCaptured: false,     // true = 투항 포획 함선
   }
 }
 
@@ -64,11 +66,30 @@ export const useFleetStore = create((set, get) => ({
     set((state) => ({ roster: state.roster.filter((e) => e.instanceId !== instanceId) }))
   },
 
-  // 전투 종료 시 방어막 이월값 저장 (승리·도주 시 호출).
-  saveShields: (shieldMap) => {
+  // 전투 종료 시 상태 이월값 저장 (승리·도주 시 호출) — 방어막 + HP/장갑 내구도 (Phase 5-2).
+  // map[instanceId] = { shield, hp, armorDur } (hp/armorDur는 damageCarryOver 켜졌을 때만 전달됨)
+  saveBattleDamage: (map) => {
+    set((state) => ({
+      roster: state.roster.map((e) => {
+        const d = map[e.instanceId]
+        if (!d) return e
+        return {
+          ...e,
+          currentShield: d.shield ?? e.currentShield,
+          currentHp: d.hp !== undefined ? d.hp : e.currentHp,
+          currentArmorDur: d.armorDur !== undefined ? d.armorDur : e.currentArmorDur,
+        }
+      }),
+    }))
+  },
+
+  // 수리 적용 (Phase 5-2) — 비용 지불은 호출자(수리 패널)가 처리. 값은 호출자가 한도까지 계산해 전달.
+  applyRepair: (instanceId, { hp, armorDur }) => {
     set((state) => ({
       roster: state.roster.map((e) =>
-        shieldMap[e.instanceId] !== undefined ? { ...e, currentShield: shieldMap[e.instanceId] } : e,
+        e.instanceId === instanceId
+          ? { ...e, currentHp: hp !== undefined ? hp : e.currentHp, currentArmorDur: armorDur !== undefined ? armorDur : e.currentArmorDur }
+          : e,
       ),
     }))
   },
