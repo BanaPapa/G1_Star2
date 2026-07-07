@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { useResourceStore } from './useResourceStore'
+import { useStoryStore } from './useStoryStore'
 
 // 성단 진행 상태 — 현재 위치(currentNodeId)와 정복한 노드 집합(conqueredNodeIds)을 영구 보관한다(MOD-6).
 // MOD-8: miningDeposits — 채굴 노드별 잔여 매장량. 없으면 systems.json의 mining.deposit 값이 기본.
@@ -18,17 +19,24 @@ export const useProgressStore = create((set, get) => ({
 
   isConquered: (nodeId) => get().conqueredNodeIds.includes(nodeId),
 
-  moveTo: (nodeId) => set({ currentNodeId: nodeId }),
+  moveTo: (nodeId) => {
+    set({ currentNodeId: nodeId })
+    // 노드 최초 진입 대사 (Phase 6-3) — story.json에 'enter:노드id' 이벤트가 있고 미재생일 때만 뜬다
+    useStoryStore.getState().trigger(`enter:${nodeId}`)
+  },
 
   setFleetPos: (pos) => set({ fleetPos: pos }),
 
-  conquer: (nodeId) =>
+  conquer: (nodeId) => {
     set((state) => ({
       currentNodeId: nodeId,
       conqueredNodeIds: state.conqueredNodeIds.includes(nodeId)
         ? state.conqueredNodeIds
         : [...state.conqueredNodeIds, nodeId],
-    })),
+    }))
+    // 노드 정복 대사 (Phase 6-3) — 전투 승리(BattleScreen)·자동 정복 어느 경로든 여기로 모인다
+    useStoryStore.getState().trigger(`conquer:${nodeId}`)
+  },
 
   // 채굴 가능 여부 — 해당 노드에 mining 데이터가 있고 매장량이 남아 있을 때
   canHarvest: (node) => {
