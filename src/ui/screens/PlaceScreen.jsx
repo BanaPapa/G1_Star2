@@ -82,9 +82,9 @@ export default function PlaceScreen({ placeId, onExit }) {
       </div>
 
       {activeTab === 'build' && <BuildPanel nodeId={placeId} isHome={isHome} />}
-      {activeTab === 'research' && <ResearchPanel />}
+      {activeTab === 'research' && <ResearchPanel nodeId={placeId} />}
       {activeTab === 'shop' && <ShopPanel />}
-      {activeTab === 'craft' && <CraftPanel />}
+      {activeTab === 'craft' && <CraftPanel nodeId={placeId} />}
       {activeTab === 'shipyard' && <ShipyardPanel nodeId={placeId} />}
       {activeTab === 'repair' && (
         <RepairPanel
