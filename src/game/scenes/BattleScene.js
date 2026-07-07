@@ -10,7 +10,7 @@ import { buildEncounterPlacements } from '../../core/encounter'
 import { useFleetStore } from '../../state/useFleetStore'
 import { useResourceStore } from '../../state/useResourceStore'
 import { useProgressStore } from '../../state/useProgressStore'
-import { useStoryStore } from '../../state/useStoryStore'
+import { useStoryStore, pickBark } from '../../state/useStoryStore'
 import { useDataStore } from '../../state/useDataStore'
 import { useSettingsStore } from '../../state/useSettingsStore'
 import { getTerrain } from '../systems/terrain'
@@ -3618,6 +3618,18 @@ export default class BattleScene extends Phaser.Scene {
           if (choiceId === 'recruit') useProgressStore.getState().recruitAce(aceId)
         })
         if (offered) extraLines.push('🎖 통신 요청 수신 — 대화에서 영입 여부를 선택하세요. (놓치면 영구 불가)')
+      }
+    }
+
+    // 에이스 소품 대화 (Phase 6-6) — 확률로 승리 배너에 1건. 영입된 에이스만 화자 후보(카이는 항상).
+    if (!this.mockControl) {
+      const bark = pickBark('battleWin', useProgressStore.getState().recruitedAces, getGameConfig()?.story?.barkChance ?? 0.4)
+      if (bark) {
+        const acesData = useDataStore.getState().data?.aces?.aces ?? []
+        for (const line of bark) {
+          const name = acesData.find((a) => a.id === line.speaker)?.name ?? line.speaker
+          extraLines.push(`💬 ${name}: "${line.text}"`)
+        }
       }
     }
 

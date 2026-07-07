@@ -1,5 +1,33 @@
 {
   "_comment": "스토리 대사 이벤트 (Phase 6-2). useStoryStore.trigger(키)가 trigger 필드로 조회해 1회만 재생(seenIds는 세이브 포함). 트리거 키 규칙: 'newGame' | 'enter:노드id'(최초 진입) | 'conquer:노드id'(정복) | 'preboss:s4' 등 — 새 연출은 여기 데이터만 추가하면 된다. speaker: 'narrator'(내레이션, 초상화 없음) | 에이스 id(kai/sera/mila/raven — aces.json에서 이름·초상화 자동 해석) | 그 외 문자열(페이지의 name/emoji/portrait 필드로 표시). choices는 마지막 페이지에만 — 선택 시 trigger(key, onDone)의 onDone(choiceId)로 전달된다.",
+  "_barks_comment": "소품 대화 (Phase 6-6) — 전투 승리/입항 시 확률(config story.barkChance)로 1건 표시. 각 항목은 1~2줄 배열(2줄=주고받기). 화자가 전원 사용 가능(카이는 항상, 나머지는 영입됨)한 항목만 후보가 된다.",
+  "barks": {
+    "battleWin": [
+      [{ "speaker": "kai", "text": "봤습니까 지금? 완벽한 기동이었죠!" }],
+      [{ "speaker": "kai", "text": "전 함선 이상 무! …다음엔 더 깔끔하게 이깁니다." }],
+      [{ "speaker": "sera", "text": "…정리 완료. 탄약 소모 보고는 5분 내로." }],
+      [{ "speaker": "mila", "text": "이겼다~! 근데 장갑 이렇게 긁어오면 정비는 누가 해요, 누가!" }],
+      [{ "speaker": "raven", "text": "……보이드는 이 정도로 멈추지 않는다. 방심하지 마라." }],
+      [
+        { "speaker": "kai", "text": "세라, 아까 그 저격 봤어? 두 척을 한 줄로!" },
+        { "speaker": "sera", "text": "…궤도가 겹쳤을 뿐입니다. 계산대로." }
+      ],
+      [
+        { "speaker": "mila", "text": "레이븐 씨 기체, 또 한계까지 몰아붙였죠? 프레임이 비명 지르던데요." },
+        { "speaker": "raven", "text": "…버티게 만드는 게 네 일이다." }
+      ]
+    ],
+    "dock": [
+      [{ "speaker": "kai", "text": "오랜만의 정박이네요. 전 시뮬레이터 좀 돌리고 오겠습니다!" }],
+      [{ "speaker": "sera", "text": "…보급 목록은 함교에 뒀습니다. 확인을." }],
+      [{ "speaker": "mila", "text": "드디어 도크다! 다들 기체 여기 세워두고 가요~ 오늘 밤샘 정비 각이에요." }],
+      [{ "speaker": "raven", "text": "……정거장의 불빛은, 오랜만이군." }],
+      [
+        { "speaker": "kai", "text": "밀라, 내 기체 엔진 소리가 좀 이상한데…" },
+        { "speaker": "mila", "text": "아까 그렇게 몰았으면 이상한 게 정상이에요!" }
+      ]
+    ]
+  },
   "events": [
     {
       "id": "prologue",

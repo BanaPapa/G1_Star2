@@ -4,6 +4,7 @@ import { useProgressStore } from '../../state/useProgressStore'
 import { useBuildingStore } from '../../state/useBuildingStore'
 import { useGameConfigStore } from '../../state/useGameConfigStore'
 import { getPlaceFacilities } from '../../data/placeFacilities'
+import { pickBark } from '../../state/useStoryStore'
 import ResearchPanel from '../facilities/ResearchPanel'
 import ShopPanel from '../facilities/ShopPanel'
 import CraftPanel from '../facilities/CraftPanel'
@@ -31,9 +32,16 @@ export default function PlaceScreen({ placeId, onExit }) {
   const config = useGameConfigStore((s) => s.config)
   const [tab, setTab] = useState(null)
 
+  const aces = useDataStore((s) => s.data?.aces?.aces)
+
   const node = systems?.find((s) => s.id === placeId)
   const isHome = node?.role === 'home'
   const isConquered = conqueredNodeIds.includes(placeId)
+
+  // 입항 소품 대화 (Phase 6-6) — 입항(마운트) 시 1회 확률 판정, 영입된 에이스만 화자 후보
+  const [dockBark] = useState(() =>
+    pickBark('dock', useProgressStore.getState().recruitedAces, config?.story?.barkChance ?? 0.4),
+  )
 
   // 점령 행성 입항 시 아웃포스트 Lv1 자동 생성 (구 PlanetManagementScreen 동작 유지)
   useEffect(() => {
@@ -68,6 +76,15 @@ export default function PlaceScreen({ placeId, onExit }) {
         </div>
         <button className="place-exit-btn" onClick={onExit}>🚀 출항 — 성단 맵</button>
       </header>
+
+      {dockBark && (
+        <div className="place-bark">
+          {dockBark.map((line, i) => {
+            const name = aces?.find((a) => a.id === line.speaker)?.name ?? line.speaker
+            return <p key={i}>💬 <strong>{name}</strong> — “{line.text}”</p>
+          })}
+        </div>
+      )}
 
       <div className="hub-tabs">
         {facilities.map((f) => (

@@ -365,6 +365,11 @@ export const DEFAULT_GAME_CONFIG = {
     },
   },
 
+  // 스토리 연출 (Phase 6-6)
+  story: {
+    barkChance: 0.4, // 전투 승리/입항 시 에이스 소품 대화가 나올 확률 (0~1)
+  },
+
   // 타 시스템 override (런타임 적용은 다음 단계 — 이번 단계는 편집/저장까지).
   overrides: {
     buildings: {},

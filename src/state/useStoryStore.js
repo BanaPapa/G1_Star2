@@ -7,6 +7,18 @@ import storyData from '../data/story.json'
 // - onDone(choiceId): 대화가 닫힐 때 호출 — 선택지 분기(레이븐 영입 등)는 호출부가 처리.
 const EVENTS = storyData.events ?? []
 
+// 소품 대화 뽑기 (Phase 6-6) — situation: 'battleWin' | 'dock'.
+// 화자 전원이 사용 가능한(카이는 항상, 나머지는 영입된) 항목 중 확률 통과 시 1건. 실패/후보 없음 → null.
+// 순환 import 방지를 위해 recruitedAces는 호출부가 넘긴다.
+export function pickBark(situation, recruitedAces = [], chance = 0.4) {
+  if (Math.random() > chance) return null
+  const pool = (storyData.barks?.[situation] ?? []).filter((lines) =>
+    lines.every((l) => l.speaker === 'kai' || recruitedAces.includes(l.speaker)),
+  )
+  if (!pool.length) return null
+  return pool[Math.floor(Math.random() * pool.length)]
+}
+
 export const useStoryStore = create((set, get) => ({
   seenIds: [],
   choices: {},  // { 이벤트id: 선택지id } — 문답/분기 선택 기록. 엔딩 등이 참조 (세이브 포함)
