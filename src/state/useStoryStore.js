@@ -9,6 +9,7 @@ const EVENTS = storyData.events ?? []
 
 export const useStoryStore = create((set, get) => ({
   seenIds: [],
+  choices: {},  // { 이벤트id: 선택지id } — 문답/분기 선택 기록. 엔딩 등이 참조 (세이브 포함)
   active: null, // { event, onDone } — StoryDialog가 구독해 표시
   queue: [],    // 다른 대사가 재생 중일 때 들어온 트리거 — 닫히면 순서대로 이어진다 (정복 대사→영입 제안 등)
 
@@ -26,10 +27,15 @@ export const useStoryStore = create((set, get) => ({
   },
 
   close: (choiceId = null) => {
-    const { active, seenIds, queue } = get()
+    const { active, seenIds, queue, choices } = get()
     if (!active) return
     const [next, ...rest] = queue
-    set({ seenIds: [...seenIds, active.event.id], active: next ?? null, queue: rest })
+    set({
+      seenIds: [...seenIds, active.event.id],
+      choices: choiceId ? { ...choices, [active.event.id]: choiceId } : choices,
+      active: next ?? null,
+      queue: rest,
+    })
     active.onDone?.(choiceId)
   },
 }))

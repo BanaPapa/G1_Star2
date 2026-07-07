@@ -3482,7 +3482,14 @@ export default class BattleScene extends Phaser.Scene {
       }
     }
 
-    this.cutinManager.playBossPhase({ unit, bossData, onApply: applyPhase2Effects, onComplete: () => {} })
+    this.cutinManager.playBossPhase({
+      unit,
+      bossData,
+      onApply: applyPhase2Effects,
+      // 컷인이 끝난 뒤 보스 페이즈 대사 (Phase 6-5) — 워든이면 "문명은 왜 존재해야 하는가" 문답.
+      // 선택은 useStoryStore.choices에 기록되어 엔딩 문구가 달라진다. story.json에 이벤트 없는 보스는 무시.
+      onComplete: () => { useStoryStore.getState().trigger(`boss:phase2:${unit.ship.id}`) },
+    })
   }
 
   // 보스 2페이즈 광역 차원 파동 — ATK×0.5 피해를 아군 전원에게 동시 적용

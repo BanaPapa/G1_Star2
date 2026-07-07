@@ -74,6 +74,12 @@
   color: var(--text);
 }
 
+/* 니힐 문답의 답 — 플레이어가 고른 한 줄이라 금색으로 강조 (Phase 6-5) */
+.ending-answer {
+  color: var(--gold) !important;
+  font-style: italic;
+}
+
 .ending-teaser {
   margin-top: 10px !important;
   color: var(--cyan) !important;

@@ -168,6 +168,29 @@
       ]
     },
     {
+      "id": "warden_phase2",
+      "trigger": "boss:phase2:warden",
+      "pages": [
+        {
+          "speaker": "voice",
+          "name": "니힐 코어",
+          "emoji": "👁️",
+          "text": "…연산 재분배. 출력 상승.\n루멘도 여기까지 왔다. 그리고 그들의 답은 — 부족했다."
+        },
+        {
+          "speaker": "voice",
+          "name": "니힐 코어",
+          "emoji": "👁️",
+          "text": "마지막으로 묻는다.\n문명은, 왜 존재해야 하는가.",
+          "choices": [
+            { "id": "memory", "label": "🕯 \"기억하기 위해서다 — 루멘처럼 사라진 모든 것들을.\"" },
+            { "id": "future", "label": "🌅 \"다음 세대에게 다음 아침을 건네주기 위해서다.\"" },
+            { "id": "defiance", "label": "⚔ \"이유 따위 없다. 우리는 살아 있고, 그걸 증명하겠다.\"" }
+          ]
+        }
+      ]
+    },
+    {
       "id": "conquer_nihil",
       "trigger": "conquer:s4",
       "pages": [

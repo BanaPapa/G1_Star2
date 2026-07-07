@@ -63,7 +63,7 @@ export const useSaveStore = create((set) => ({
       development: { developed:   d.developed   },
       resources:   { wallet:      res.wallet    },
       buildings:   { buildings: b.buildings, uniqueResources: b.uniqueResources },
-      story:       { seenIds: useStoryStore.getState().seenIds },
+      story:       { seenIds: useStoryStore.getState().seenIds, choices: useStoryStore.getState().choices },
     })
 
     set((s) => ({ rev: s.rev + 1 }))
@@ -98,7 +98,7 @@ export const useSaveStore = create((set) => ({
       useBuildingStore.getState().loadState(data.buildings)
     }
     // 구버전 세이브(story 없음)는 빈 목록 — 대사가 다시 나올 뿐 진행에는 영향 없음
-    useStoryStore.setState({ seenIds: data.story?.seenIds ?? [], active: null })
+    useStoryStore.setState({ seenIds: data.story?.seenIds ?? [], choices: data.story?.choices ?? {}, active: null, queue: [] })
 
     set((s) => ({ loadRev: s.loadRev + 1 }))
     return true
