@@ -199,6 +199,13 @@ export default class BattleScene extends Phaser.Scene {
     for (const dir of ['ne', 'nw', 'se', 'sw']) {
       this.load.image(`hull_gunship_${dir}`, `/assets/hull_gunship_${dir}.png`)
     }
+    // 이펙트 텍스처 (WO-7/8) — 파일이 없으면 로드 실패해도 무해: 각 연출이 프로시저럴로 폴백한다.
+    this.load.image('fx_glow_soft', '/assets/fx_glow_soft.png')
+    this.load.image('fx_spark', '/assets/fx_spark.png')
+    this.load.image('fx_blackhole', '/assets/fx_blackhole.png')
+    this.load.image('fx_gravity_well', '/assets/fx_gravity_well.png')
+    this.load.spritesheet('fx_explosion_sheet', '/assets/fx_explosion_sheet.png', { frameWidth: 256, frameHeight: 256 })
+    this.load.spritesheet('fx_annihilation_sheet', '/assets/fx_annihilation_sheet.png', { frameWidth: 256, frameHeight: 256 })
   }
 
   init({ ships, combatRules, skills, aces, enemies, items, node, gridCols, gridRows, mapDefinition, mock, onVictory, onExit, onEnding, onGameOver }) {
@@ -1708,8 +1715,21 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   // 중력장 — 보라 동심원이 바깥에서 중심으로 계속 수축한다 (빨려드는 인상)
+  // fx_gravity_well 텍스처가 있으면 실제 소용돌이 이미지가 타일 평면에 누워 회전한다 (WO-7 B).
   _addGravityWellFx(x, y) {
     const { px, py } = this.cellToWorld(x, y)
+    if (this.textures.exists('fx_gravity_well')) {
+      // 컨테이너에 iso 납작 비율을 주고 안의 이미지만 돌리면 타원이 아닌 "누운 원판"으로 회전한다
+      const holder = this.add.container(px, py).setDepth(1)
+      holder.setScale(1, this.iso.hh / this.iso.hw)
+      const img = this.add.image(0, 0, 'fx_gravity_well')
+      img.setDisplaySize(this.iso.hw * 2.1, this.iso.hw * 2.1).setAlpha(0.62)
+      holder.add(img)
+      this.tweens.add({ targets: img, angle: -360, duration: 7000, repeat: -1, ease: 'Linear' })
+      this.tweens.add({ targets: holder, alpha: { from: 0.75, to: 1 }, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' })
+      this.zoneFxList.push(holder)
+      return
+    }
     const r = this.iso.hw * 0.5
     for (let i = 0; i < 2; i++) {
       const ring = this.add.circle(px, py, r, 0xb18cff, 0)
@@ -1724,8 +1744,20 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   // 블랙홀 — 어두운 중심 + 마젠타 림 펄스 + 궤도를 도는 입자
+  // fx_blackhole 텍스처가 있으면 강착원반 이미지가 타일 평면에 누워 회전한다 (WO-7 B).
   _addBlackHoleFx(x, y) {
     const { px, py } = this.cellToWorld(x, y)
+    if (this.textures.exists('fx_blackhole')) {
+      const holder = this.add.container(px, py).setDepth(1)
+      holder.setScale(1, this.iso.hh / this.iso.hw)
+      const img = this.add.image(0, 0, 'fx_blackhole')
+      img.setDisplaySize(this.iso.hw * 1.9, this.iso.hw * 1.9).setAlpha(0.92)
+      holder.add(img)
+      this.tweens.add({ targets: img, angle: 360, duration: 4200, repeat: -1, ease: 'Linear' })
+      this.tweens.add({ targets: img, scale: { from: img.scaleX, to: img.scaleX * 1.08 }, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' })
+      this.zoneFxList.push(holder)
+      return
+    }
     const hw = this.iso.hw
     const core = this.add.circle(px, py, hw * 0.28, 0x05030a, 0.85).setDepth(1)
     const rim = this.add.circle(px, py, hw * 0.34, 0xff5ce1, 0)

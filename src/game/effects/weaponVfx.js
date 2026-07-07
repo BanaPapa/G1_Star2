@@ -17,6 +17,57 @@ export function familyColor(family) {
   return FAMILY_COLOR[family] ?? FAMILY_COLOR.basic
 }
 
+// ── WO-7 파티클 텍스처 헬퍼 — 텍스처가 로드돼 있으면 네온 글로우, 없으면 기존 Graphics 원 (폴백 필수) ──
+// fx_glow_soft/fx_spark는 흰색·검정 배경으로 제작: ADD 블렌드가 검정을 투명 처리하고 setTint로 계열색을 입힌다.
+// 타이밍/개수/움직임은 기존 그대로 — 껍데기만 교체. scale을 트윈할 때는 반드시 현재 scale 기준 상대값으로
+// (텍스처 이미지는 setDisplaySize로 scale이 1이 아니므로 절대값 트윈이 들어가면 화면을 덮는다).
+const ADD_BLEND = 1 // Phaser.BlendModes.ADD — Phaser 4에서도 숫자 1 (런타임 확인됨)
+
+function glowDot(scene, x, y, radius, color, alpha = 1) {
+  if (scene.textures?.exists('fx_glow_soft')) {
+    // 소프트 글로우는 가장자리로 갈수록 옅어지므로 원 대비 지름을 크게 잡아야 같은 존재감이 난다
+    return scene.add.image(x, y, 'fx_glow_soft')
+      .setDisplaySize(radius * 4.5, radius * 4.5)
+      .setTint(color).setAlpha(alpha).setBlendMode(ADD_BLEND).setDepth(9)
+  }
+  return scene.add.circle(x, y, radius, color, alpha).setDepth(9)
+}
+
+function sparkDot(scene, x, y, radius, color, alpha = 1) {
+  if (scene.textures?.exists('fx_spark')) {
+    return scene.add.image(x, y, 'fx_spark')
+      .setDisplaySize(radius * 7, radius * 7)
+      .setAngle(Math.random() * 90)
+      .setTint(color).setAlpha(alpha).setBlendMode(ADD_BLEND).setDepth(9)
+  }
+  return scene.add.circle(x, y, radius, color, alpha).setDepth(9)
+}
+
+// ── WO-8 스프라이트시트 — 시트가 로드돼 있으면 16프레임 재생 후 파괴하고 true, 없으면 false(호출부가 폴백) ──
+function playSheet(scene, texKey, animKey, x, y, scale) {
+  if (!scene.textures?.exists(texKey)) return false
+  if (!scene.anims.exists(animKey)) {
+    scene.anims.create({
+      key: animKey,
+      frames: scene.anims.generateFrameNumbers(texKey, { start: 0, end: 15 }),
+      frameRate: 24,
+      repeat: 0,
+    })
+  }
+  const spr = scene.add.sprite(x, y, texKey, 0).setScale(scale).setBlendMode(ADD_BLEND).setDepth(9)
+  spr.once('animationcomplete', () => spr.destroy())
+  spr.play(animKey)
+  return true
+}
+
+export function playExplosionSheet(scene, x, y, scale = 0.5) {
+  return playSheet(scene, 'fx_explosion_sheet', 'fx_explosion_anim', x, y, scale)
+}
+
+export function playAnnihilationSheet(scene, x, y, scale = 0.55) {
+  return playSheet(scene, 'fx_annihilation_sheet', 'fx_annihilation_anim', x, y, scale)
+}
+
 // ── 공용: 명중 임팩트 — 확장 링 + 사방 파편 ──
 export function playHitImpact(scene, x, y, color = FAMILY_COLOR.basic) {
   const ring = scene.add.circle(x, y, 9, color, 0).setStrokeStyle(3, color, 0.95).setDepth(9)
@@ -27,7 +78,7 @@ export function playHitImpact(scene, x, y, color = FAMILY_COLOR.basic) {
   for (let i = 0; i < 6; i++) {
     const ang = (Math.PI * 2 * i) / 6 + Math.random() * 0.6
     const dist = 22 + Math.random() * 18
-    const p = scene.add.circle(x, y, 2.2, color, 0.95).setDepth(9)
+    const p = sparkDot(scene, x, y, 2.2, color, 0.95)
     scene.tweens.add({
       targets: p, x: x + Math.cos(ang) * dist, y: y + Math.sin(ang) * dist,
       alpha: 0, duration: 300 + Math.random() * 150, ease: 'Cubic.easeOut',
@@ -79,9 +130,9 @@ export function playIonBolt(scene, from, to, color = FAMILY_COLOR.ion) {
 
 // ── Plasma: 화염구 발사체 — 날아가서 도착 시 폭발. onArrive로 후속 연출을 연결한다 ──
 export function playPlasmaShot(scene, from, to, color = FAMILY_COLOR.plasma, onArrive) {
-  const glow = scene.add.circle(from.x, from.y, 13, color, 0.28).setDepth(9)
-  const core = scene.add.circle(from.x, from.y, 7, color, 1).setDepth(9)
-  const inner = scene.add.circle(from.x, from.y, 3.5, 0xffe0b0, 1).setDepth(9)
+  const glow = glowDot(scene, from.x, from.y, 13, color, 0.28)
+  const core = glowDot(scene, from.x, from.y, 7, color, 1)
+  const inner = glowDot(scene, from.x, from.y, 3.5, 0xffe0b0, 1)
   const dist = Math.hypot(to.x - from.x, to.y - from.y)
   const duration = Math.min(420, Math.max(180, dist * 0.55))
   scene.tweens.add({
@@ -94,10 +145,12 @@ export function playPlasmaShot(scene, from, to, color = FAMILY_COLOR.plasma, onA
   })
 }
 
-// Plasma 폭발 — 섬광 + 이중 확장 링
+// Plasma 폭발 — 섬광 + 이중 확장 링. 스프라이트시트가 있으면 섬광 대신 16프레임 화염구 재생 (WO-8)
 export function playPlasmaExplosion(scene, x, y, color = FAMILY_COLOR.plasma) {
-  const flash = scene.add.circle(x, y, 16, 0xffffff, 0.85).setDepth(9)
-  scene.tweens.add({ targets: flash, scale: 2.4, alpha: 0, duration: 200, ease: 'Cubic.easeOut', onComplete: () => flash.destroy() })
+  if (!playExplosionSheet(scene, x, y, 0.5)) {
+    const flash = glowDot(scene, x, y, 16, 0xffffff, 0.85)
+    scene.tweens.add({ targets: flash, scale: flash.scale * 2.4, alpha: 0, duration: 200, ease: 'Cubic.easeOut', onComplete: () => flash.destroy() })
+  }
   const ring1 = scene.add.circle(x, y, 12, color, 0).setStrokeStyle(4, color, 0.9).setDepth(9)
   scene.tweens.add({ targets: ring1, scale: 3.6, alpha: 0, duration: 420, ease: 'Cubic.easeOut', onComplete: () => ring1.destroy() })
   const ring2 = scene.add.circle(x, y, 12, color, 0).setStrokeStyle(2, 0xffd166, 0.8).setDepth(9)
@@ -106,7 +159,7 @@ export function playPlasmaExplosion(scene, x, y, color = FAMILY_COLOR.plasma) {
 
 // ── Gravity: 중력 파동 — 타깃 위로 수축하는 링 (끌려 들어가는 왜곡감). onArrive로 후속 연결 ──
 export function playGravityWave(scene, from, to, color = FAMILY_COLOR.gravity, onArrive) {
-  const wave = scene.add.circle(from.x, from.y, 10, color, 0.35).setDepth(9)
+  const wave = glowDot(scene, from.x, from.y, 10, color, 0.35)
   const dist = Math.hypot(to.x - from.x, to.y - from.y)
   const duration = Math.min(380, Math.max(160, dist * 0.5))
   scene.tweens.add({
@@ -133,8 +186,8 @@ export function playAntimatterFlash(scene, x, y, color = FAMILY_COLOR.antimatter
   scene.tweens.add({ targets: dark, scale: 0.1, alpha: 0, duration: 360, ease: 'Cubic.easeIn', onComplete: () => dark.destroy() })
   const ring = scene.add.circle(x, y, 10, color, 0).setStrokeStyle(3, color, 0.95).setDepth(9)
   scene.tweens.add({ targets: ring, scale: 3.4, alpha: 0, duration: 420, ease: 'Cubic.easeOut', onComplete: () => ring.destroy() })
-  const flash = scene.add.circle(x, y, 8, 0xffffff, 0.9).setDepth(9)
-  scene.tweens.add({ targets: flash, scale: 1.8, alpha: 0, duration: 180, onComplete: () => flash.destroy() })
+  const flash = glowDot(scene, x, y, 8, 0xffffff, 0.9)
+  scene.tweens.add({ targets: flash, scale: flash.scale * 1.8, alpha: 0, duration: 180, onComplete: () => flash.destroy() })
 }
 
 // ── 격파 연출 — 선행 폭발 1~2회 → 본 폭발(섬광+링) → 파편 비산 (WO-2) ──
@@ -144,17 +197,18 @@ export function playDestruction(scene, x, y, color = 0xff9a3d) {
     scene.time.delayedCall(i * 85, () => {
       const ox = x + (Math.random() - 0.5) * 28
       const oy = y + (Math.random() - 0.5) * 22
-      const pop = scene.add.circle(ox, oy, 7, 0xffffff, 0.9).setDepth(9)
-      scene.tweens.add({ targets: pop, scale: 2.0, alpha: 0, duration: 160, ease: 'Cubic.easeOut', onComplete: () => pop.destroy() })
+      const pop = glowDot(scene, ox, oy, 7, 0xffffff, 0.9)
+      scene.tweens.add({ targets: pop, scale: pop.scale * 2.0, alpha: 0, duration: 160, ease: 'Cubic.easeOut', onComplete: () => pop.destroy() })
     })
   }
   scene.time.delayedCall(170, () => {
-    playPlasmaExplosion(scene, x, y, color)
+    // 본 폭발 — 시트가 있으면 격파답게 한 단계 크게 재생, 없으면 프로시저럴 폭발 (WO-8)
+    if (!playExplosionSheet(scene, x, y, 0.72)) playPlasmaExplosion(scene, x, y, color)
     for (let i = 0; i < 9; i++) {
       const ang = Math.random() * Math.PI * 2
       const dist = 30 + Math.random() * 40
       const size = 1.6 + Math.random() * 2.4
-      const p = scene.add.circle(x, y, size, i % 3 === 0 ? 0xffffff : color, 0.95).setDepth(9)
+      const p = sparkDot(scene, x, y, size, i % 3 === 0 ? 0xffffff : color, 0.95)
       scene.tweens.add({
         targets: p, x: x + Math.cos(ang) * dist, y: y + Math.sin(ang) * dist,
         alpha: 0, duration: 420 + Math.random() * 260, ease: 'Cubic.easeOut',
@@ -166,7 +220,8 @@ export function playDestruction(scene, x, y, color = 0xff9a3d) {
 
 // ── Antimatter 완전 소멸 — 폭발이 아니라 "존재가 지워지는" 파편화. 중력 없이 감속만 (WO-6) ──
 export function playAnnihilateShards(scene, x, y, color = FAMILY_COLOR.antimatter) {
-  playAntimatterFlash(scene, x, y, color)
+  // 소멸 시트가 있으면 마젠타 붕괴 16프레임으로 대체, 없으면 기존 수축-섬광 (WO-8)
+  if (!playAnnihilationSheet(scene, x, y, 0.62)) playAntimatterFlash(scene, x, y, color)
   const n = 8 + Math.floor(Math.random() * 5)
   for (let i = 0; i < n; i++) {
     const ang = Math.random() * Math.PI * 2
@@ -208,10 +263,10 @@ export function playIonSparks(scene, x, y, color = FAMILY_COLOR.ion) {
 
 // ── 기본 포: 총구 섬광 + 예광탄 ──
 export function playCannonTracer(scene, from, to, color = FAMILY_COLOR.basic, onArrive) {
-  const muzzle = scene.add.circle(from.x, from.y, 8, 0xffffff, 0.9).setDepth(9)
-  scene.tweens.add({ targets: muzzle, scale: 1.8, alpha: 0, duration: 130, onComplete: () => muzzle.destroy() })
-  const tracer = scene.add.circle(from.x, from.y, 3, color, 1).setDepth(9)
-  const trail = scene.add.circle(from.x, from.y, 5.5, color, 0.3).setDepth(9)
+  const muzzle = glowDot(scene, from.x, from.y, 8, 0xffffff, 0.9)
+  scene.tweens.add({ targets: muzzle, scale: muzzle.scale * 1.8, alpha: 0, duration: 130, onComplete: () => muzzle.destroy() })
+  const tracer = glowDot(scene, from.x, from.y, 3, color, 1)
+  const trail = glowDot(scene, from.x, from.y, 5.5, color, 0.3)
   const dist = Math.hypot(to.x - from.x, to.y - from.y)
   const duration = Math.min(260, Math.max(110, dist * 0.32))
   scene.tweens.add({
