@@ -2593,9 +2593,15 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   // 투항 포획 처리 — 적 함선을 플레이어 로스터에 추가하고 캡처 목록에 기록.
+  // 적 정의의 base(플레이어 함급)로 매핑해야 편성 UI 노출·재출격이 가능하다 (Phase 5-3).
+  // 적 전용 id(void_scout 등)를 그대로 넣으면 ships.json에 없어 로스터에서 보이지 않던 버그 수정.
   _captureEnemyShip(unit) {
-    const shipId = unit.baseShip?.id ?? unit.ship?.id
-    if (!shipId) { this.defeatedEnemyShips.push(unit.baseShip); return }
+    const shipId = unit.baseShip?.base ?? unit.baseShip?.id ?? unit.ship?.id
+    if (!shipId || !this.shipsById.has(shipId)) {
+      // 플레이어 함급으로 환산 불가한 적(고유 유닛 등)은 일반 격파 처리
+      this.defeatedEnemyShips.push(unit.baseShip)
+      return
+    }
     const instanceId = `${shipId}-captured-${Date.now()}`
     useFleetStore.getState().addCapturedShip({ instanceId, shipId })
     this.capturedShips.push(unit.ship?.name ?? shipId)

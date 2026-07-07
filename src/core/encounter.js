@@ -31,7 +31,10 @@ function resolveEnemyShip(enemyDef, shipsById, threatLevel = 1) {
     stats.eva = Math.round(stats.eva * 0.3)
   }
 
-  return { ...stats, id: enemyDef.id, name: enemyDef.name, sprite: enemyDef.sprite }
+  // base(원본 플레이어 함급) = 투항 포획 시 로스터 함급 매핑용 (Phase 5-3).
+  // role 'boss' = 투항 불가 판정용 — enemies.json type(miniboss/galaxy_boss)에서 환산.
+  const isBoss = typeof enemyDef.type === 'string' && enemyDef.type.includes('boss')
+  return { ...stats, id: enemyDef.id, name: enemyDef.name, sprite: enemyDef.sprite, base: enemyDef.base ?? null, role: isBoss ? 'boss' : '' }
 }
 
 // node.enemy(+miniboss/boss) id들을 순서대로 positions에 배치한 placement 배열을 만든다.
