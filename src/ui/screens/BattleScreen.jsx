@@ -155,7 +155,7 @@ export default function BattleScreen({ nodeId, mock = false, battleCategory = nu
   const resolvedMapDef = useMemo(() => {
     const assignedMapId = node?.battleMapId || nodeMaps?.[node?.id]
     return testBattleMap
-      || pickCategoryMap(battleCategory)
+      || pickCategoryMap(battleCategory, node?.terrain)
       || (assignedMapId && battleMaps[assignedMapId])
       || (activeMapId && battleMaps[activeMapId])
       || null

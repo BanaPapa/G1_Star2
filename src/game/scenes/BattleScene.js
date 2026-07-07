@@ -411,7 +411,8 @@ export default class BattleScene extends Phaser.Scene {
 
     // 에디터 맵: 카메라/팬을 "이미지 영역 안"으로 제한한다.
     // - 최대 축소(min zoom) = 이미지 전체가 화면에 들어오는 contain-fit. 그 바깥으론 줌아웃/팬 불가(쓸데없는 배경 안 보임).
-    // - 전투 시작은 이미지 전체 조감, 함대 이동/공격 시 줌인·추적.
+    // - 전투 시작은 아군 스폰 지점의 "전술 줌"(config combat.camera). 통상 행동은 팬만, 조감은 토글.
+    this.zoomLevel = null // 씬 재시작 시 이전 전투의 줌이 남지 않도록 초기화 (아래에서 재설정)
     if (this.mapDef) {
       const img = this.mapDef.imageSize ?? { width: 2560, height: 1440 }
       // cover-fit: 이미지가 화면(상단 제외 전 영역)을 가득 채운다(여백 없음). 최소 줌도 이 값이라 바깥이 안 보임.
@@ -423,6 +424,21 @@ export default class BattleScene extends Phaser.Scene {
       this.overviewCenter = { x: img.width / 2, y: img.height / 2 }
       this._camOverview = true
       this._lastFocus = null
+
+      const camCfg = getGameConfig()?.combat?.camera ?? {}
+      const playerSpawns = this.mapDef.spawnZones?.player ?? []
+      if ((camCfg.startView ?? 'tactical') === 'tactical' && playerSpawns.length) {
+        // 아군 스폰 중심점으로 전술 줌인한 상태로 전투 시작 — 함선이 굵직하게 보이는 기본 뷰
+        const cx = playerSpawns.reduce((s, p) => s + p.x, 0) / playerSpawns.length
+        const cy = playerSpawns.reduce((s, p) => s + p.y, 0) / playerSpawns.length
+        const p = gridToScreen(this.mapDef, cx + 0.5, cy + 0.5)
+        const zoom = coverZoom * (camCfg.tacticalZoomFactor ?? 1.7)
+        this.cameras.main.setZoom(zoom)
+        this.cameras.main.centerOn(p.x, p.y)
+        this.zoomLevel = zoom
+        this._camOverview = false
+        this._lastFocus = { px: p.x, py: p.y }
+      }
     }
 
     this._isDragging   = false
@@ -493,7 +509,8 @@ export default class BattleScene extends Phaser.Scene {
     })
 
     // 마우스 휠 줌 (Ctrl+휠도 동일하게 처리). 에디터 맵은 "맞춤 줌"을 기준으로 ±범위를 잡는다.
-    this.zoomLevel = this.baseZoom ?? 1.0
+    // 전술 줌 시작(위 mapDef 블록)이 이미 zoomLevel을 정했으면 덮어쓰지 않는다.
+    this.zoomLevel = this.zoomLevel ?? this.baseZoom ?? 1.0
     this.input.on('wheel', (_p, _go, _dx, deltaY) => {
       const base = this.baseZoom ?? 1.0
       const step = (deltaY > 0 ? -0.1 : 0.1) * base
@@ -573,16 +590,45 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   // ----- 전투 카메라 연출 (에디터 맵 전용) -----
-  // 전투 시작은 전체 조감(overview), 함대가 움직이거나 공격할 때부터 그 지점으로 줌인해 따라간다.
-  // 플레이어는 토글 버튼으로 언제든 조감↔전투뷰를 오갈 수 있다.
+  // 통상 행동은 "줌 고정 + 팬만" — 줌은 조감→전술 전환 때만 바뀐다 (XCOM 문법: 팬은 자주, 줌은 드물게).
+  // 줌 변화 연출은 vfxZoomPunch(격파/크리티컬)가 전담한다. 조감↔전투뷰는 토글 버튼.
   focusCameraOnWorld(px, py) {
     if (!this.mapDef || this.overviewCenter == null) return
-    const zoom = Math.min((this.baseZoom ?? 1) * 2.1, 3.5)
     const cam = this.cameras.main
+    const camCfg = getGameConfig()?.combat?.camera ?? {}
+    const panMs = camCfg.followPanMs ?? 300
     this._lastFocus = { px, py }
-    cam.pan(px, py, 300, 'Sine.easeInOut')
-    cam.zoomTo(zoom, 300, 'Sine.easeInOut')
+    cam.pan(px, py, panMs, 'Sine.easeInOut')
+    if (this._camOverview) {
+      // 조감에서 처음 진입할 때만 전술 줌으로 줌인 — 이후에는 사용자가 휠로 잡은 줌을 존중해 팬만 한다.
+      const zoom = (this.baseZoom ?? 1) * (camCfg.tacticalZoomFactor ?? 1.7)
+      cam.zoomTo(zoom, panMs, 'Sine.easeInOut')
+      this.zoomLevel = zoom
+    }
     this._camOverview = false
+  }
+
+  // 줌 펀치 — 격파/크리티컬 순간에만 현재 줌에서 짧게 확대했다 복귀 (통상 줌 변경 금지 원칙의 유일한 예외).
+  // vfxIntensity full에서만. 카메라 줌 이펙트가 이미 도는 중이면 건너뛰어 줌 드리프트를 막는다.
+  // 복귀·플래그 해제는 이펙트 콜백이 아니라 delayedCall로 — 다른 zoomTo(조감 토글 등)가 끼어들어
+  // 이펙트가 교체되더라도 플래그가 영구히 잠기지 않는다.
+  vfxZoomPunch(strength = 1) {
+    if (!this.mapDef || this._vfxScale() < 1) return
+    const cfg = getGameConfig()?.combat?.camera?.punch ?? {}
+    if (cfg.enabled === false) return
+    const cam = this.cameras.main
+    if (this._zoomPunchActive || cam.zoomEffect?.isRunning) return
+    const rest = this.zoomLevel ?? cam.zoom
+    const target = Math.min(rest * (1 + (cfg.scale ?? 0.1) * strength), (this.baseZoom ?? 1) * 5)
+    const inMs = cfg.inMs ?? 90
+    const outMs = cfg.outMs ?? 160
+    this._zoomPunchActive = true
+    cam.zoomTo(target, inMs, 'Sine.easeOut', true)
+    this.time.delayedCall(inMs, () => {
+      // 조감 전환 등이 줌을 가로챘으면 복귀 생략 (마지막 명령 우선)
+      if (this.cameras?.main && !this._camOverview) cam.zoomTo(rest, outMs, 'Sine.easeInOut', true)
+    })
+    this.time.delayedCall(inMs + outMs + 60, () => { this._zoomPunchActive = false })
   }
 
   focusCameraOnUnit(unit) {
@@ -3188,6 +3234,7 @@ export default class BattleScene extends Phaser.Scene {
     // 타격감 공통 레이어 (WO-1) — 피격 플래시 + 셰이크. 격파의 heavy 셰이크/히트스톱은 destroyUnit이 담당.
     this._flashUnit(defender)
     if (!lethal) this.vfxShake(isCrit ? 'medium' : 'light')
+    if (!lethal && isCrit) this.vfxZoomPunch(1)
     if ((weaponData.tier ?? 0) >= 5) this.vfxHitStop()
 
     this.showFloatingText(defender, hitLabel, hitColor, () => {
@@ -3409,11 +3456,13 @@ export default class BattleScene extends Phaser.Scene {
     if (visual === 'annihilate' && this._vfxScale() > 0) {
       playAnnihilateShards(this, wx, wy)
       this.vfxShake('medium')
+      this.vfxZoomPunch(1.2)
       unit.container.destroy()
     } else if (visual === 'explode' && this._vfxScale() > 0) {
       playDestruction(this, wx, wy)
       this.vfxShake('heavy')
       this.vfxHitStop()
+      this.vfxZoomPunch(1.5)
       // 유닛은 본 폭발 시점에 맞춰 페이드아웃 (로직상으로는 이미 제거됨)
       const c = unit.container
       c.disableInteractive()

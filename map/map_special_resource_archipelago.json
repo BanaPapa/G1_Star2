@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "id": "map_special_resource_archipelago",
+  "name": "Resource Archipelago",
+  "background": "/__maps/file/Resource%20Archipelago.png",
+  "imageSize": {
+    "width": 1672,
+    "height": 941
+  },
+  "grid": {
+    "type": "isometric",
+    "cols": 15,
+    "rows": 12,
+    "corners": {
+      "top": {
+        "x": 836.0,
+        "y": 28.23
+      },
+      "right": {
+        "x": 1621.84,
+        "y": 470.5
+      },
+      "bottom": {
+        "x": 836.0,
+        "y": 912.77
+      },
+      "left": {
+        "x": 50.16,
+        "y": 470.5
+      }
+    }
+  },
+  "tiles": {
+    "default": "playable",
+    "overrides": {
+      "0,0": "void",
+      "5,0": "void",
+      "6,0": "void",
+      "9,0": "spawn_enemy",
+      "10,0": "spawn_enemy",
+      "11,0": "spawn_enemy",
+      "12,0": "void",
+      "13,0": "void",
+      "14,0": "void",
+      "0,1": "void",
+      "3,1": "special_zone",
+      "6,1": "void",
+      "7,1": "void",
+      "10,1": "spawn_enemy",
+      "11,1": "void",
+      "12,1": "void",
+      "13,1": "void",
+      "14,1": "void",
+      "0,2": "void",
+      "1,2": "void",
+      "6,2": "void",
+      "7,2": "void",
+      "11,2": "spawn_enemy",
+      "12,2": "void",
+      "13,2": "void",
+      "14,2": "spawn_enemy",
+      "1,3": "void",
+      "2,3": "void",
+      "6,3": "void",
+      "7,3": "void",
+      "12,3": "spawn_enemy",
+      "13,3": "spawn_enemy",
+      "14,3": "spawn_enemy",
+      "2,4": "void",
+      "3,4": "void",
+      "4,4": "void",
+      "7,4": "playable",
+      "14,4": "spawn_enemy",
+      "3,5": "playable",
+      "8,5": "void",
+      "12,5": "void",
+      "2,6": "void",
+      "3,6": "void",
+      "9,6": "void",
+      "10,6": "void",
+      "13,6": "void",
+      "3,7": "void",
+      "9,7": "void",
+      "14,7": "void",
+      "0,8": "spawn_player",
+      "1,8": "spawn_player",
+      "4,8": "void",
+      "5,8": "void",
+      "7,8": "void",
+      "8,8": "void",
+      "9,8": "void",
+      "12,8": "special_zone",
+      "0,9": "spawn_player",
+      "1,9": "special_zone",
+      "2,9": "spawn_player",
+      "5,9": "void",
+      "9,9": "void",
+      "0,10": "spawn_player",
+      "1,10": "spawn_player",
+      "2,10": "spawn_player",
+      "3,10": "spawn_player",
+      "4,10": "void",
+      "10,10": "void",
+      "11,10": "void",
+      "12,10": "void",
+      "13,10": "void",
+      "14,10": "void",
+      "0,11": "void",
+      "1,11": "void",
+      "2,11": "void",
+      "3,11": "void",
+      "4,11": "void",
+      "10,11": "void",
+      "11,11": "void",
+      "12,11": "void",
+      "13,11": "void",
+      "14,11": "void"
+    }
+  },
+  "spawnZones": {
+    "player": [
+      {
+        "x": 0,
+        "y": 8
+      },
+      {
+        "x": 1,
+        "y": 8
+      },
+      {
+        "x": 0,
+        "y": 9
+      },
+      {
+        "x": 2,
+        "y": 9
+      },
+      {
+        "x": 0,
+        "y": 10
+      },
+      {
+        "x": 1,
+        "y": 10
+      },
+      {
+        "x": 2,
+        "y": 10
+      },
+      {
+        "x": 3,
+        "y": 10
+      }
+    ],
+    "enemy": [
+      {
+        "x": 9,
+        "y": 0
+      },
+      {
+        "x": 10,
+        "y": 0
+      },
+      {
+        "x": 11,
+        "y": 0
+      },
+      {
+        "x": 10,
+        "y": 1
+      },
+      {
+        "x": 11,
+        "y": 2
+      },
+      {
+        "x": 14,
+        "y": 2
+      },
+      {
+        "x": 12,
+        "y": 3
+      },
+      {
+        "x": 13,
+        "y": 3
+      },
+      {
+        "x": 14,
+        "y": 3
+      },
+      {
+        "x": 14,
+        "y": 4
+      }
+    ],
+    "neutral": [],
+    "boss": []
+  },
+  "objects": [],
+  "metadata": {
+    "biome": "distortion_zone",
+    "difficulty": "standard",
+    "type": "special",
+    "terrains": [
+      "distortion",
+      "mine"
+    ]
+  }
+}

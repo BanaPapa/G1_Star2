@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "id": "map_boss_solar_bastion",
+  "name": "Solar Bastion",
+  "background": "/__maps/file/Solar%20Bastion.png",
+  "imageSize": {
+    "width": 1672,
+    "height": 941
+  },
+  "grid": {
+    "type": "isometric",
+    "cols": 11,
+    "rows": 9,
+    "corners": {
+      "top": {
+        "x": 836.0,
+        "y": 28.23
+      },
+      "right": {
+        "x": 1621.84,
+        "y": 470.5
+      },
+      "bottom": {
+        "x": 836.0,
+        "y": 912.77
+      },
+      "left": {
+        "x": 50.16,
+        "y": 470.5
+      }
+    }
+  },
+  "tiles": {
+    "default": "playable",
+    "overrides": {
+      "0,0": "void",
+      "7,0": "spawn_enemy",
+      "8,0": "spawn_enemy",
+      "9,0": "spawn_enemy",
+      "10,0": "spawn_enemy",
+      "6,1": "spawn_boss",
+      "8,1": "spawn_enemy",
+      "9,1": "spawn_enemy",
+      "10,1": "spawn_enemy",
+      "6,2": "spawn_boss",
+      "7,2": "spawn_boss",
+      "10,2": "spawn_enemy",
+      "0,6": "spawn_player",
+      "0,7": "spawn_player",
+      "1,7": "spawn_player",
+      "0,8": "spawn_player",
+      "1,8": "spawn_player",
+      "2,8": "spawn_player",
+      "10,8": "void"
+    }
+  },
+  "spawnZones": {
+    "player": [
+      {
+        "x": 0,
+        "y": 6
+      },
+      {
+        "x": 0,
+        "y": 7
+      },
+      {
+        "x": 1,
+        "y": 7
+      },
+      {
+        "x": 0,
+        "y": 8
+      },
+      {
+        "x": 1,
+        "y": 8
+      },
+      {
+        "x": 2,
+        "y": 8
+      }
+    ],
+    "enemy": [
+      {
+        "x": 7,
+        "y": 0
+      },
+      {
+        "x": 8,
+        "y": 0
+      },
+      {
+        "x": 9,
+        "y": 0
+      },
+      {
+        "x": 10,
+        "y": 0
+      },
+      {
+        "x": 8,
+        "y": 1
+      },
+      {
+        "x": 9,
+        "y": 1
+      },
+      {
+        "x": 10,
+        "y": 1
+      },
+      {
+        "x": 10,
+        "y": 2
+      }
+    ],
+    "neutral": [],
+    "boss": [
+      {
+        "x": 6,
+        "y": 1
+      },
+      {
+        "x": 6,
+        "y": 2
+      },
+      {
+        "x": 7,
+        "y": 2
+      }
+    ]
+  },
+  "objects": [],
+  "metadata": {
+    "biome": "mining_belt",
+    "difficulty": "boss",
+    "type": "boss",
+    "terrains": [
+      "mine",
+      "nebula"
+    ]
+  }
+}

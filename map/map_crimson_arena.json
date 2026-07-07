@@ -185,6 +185,11 @@
   "objects": [],
   "metadata": {
     "biome": "space_platform",
-    "difficulty": "standard"
+    "difficulty": "standard",
+    "type": "boss",
+    "terrains": [
+      "nebula",
+      "mine"
+    ]
   }
 }

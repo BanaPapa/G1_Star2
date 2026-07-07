@@ -597,6 +597,10 @@
   "objects": [],
   "metadata": {
     "biome": "space_platform",
-    "difficulty": "standard"
+    "difficulty": "standard",
+    "type": "normal",
+    "terrains": [
+      "nebula"
+    ]
   }
 }

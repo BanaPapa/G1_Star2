@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "id": "map_elite_amber_stronghold",
+  "name": "Amber Stronghold",
+  "background": "/__maps/file/Amber%20Stronghold.png",
+  "imageSize": {
+    "width": 1672,
+    "height": 941
+  },
+  "grid": {
+    "type": "isometric",
+    "cols": 15,
+    "rows": 12,
+    "corners": {
+      "top": {
+        "x": 836.0,
+        "y": 28.23
+      },
+      "right": {
+        "x": 1621.84,
+        "y": 470.5
+      },
+      "bottom": {
+        "x": 836.0,
+        "y": 912.77
+      },
+      "left": {
+        "x": 50.16,
+        "y": 470.5
+      }
+    }
+  },
+  "tiles": {
+    "default": "playable",
+    "overrides": {
+      "0,0": "void",
+      "1,0": "void",
+      "10,0": "spawn_enemy",
+      "11,0": "spawn_enemy",
+      "12,0": "spawn_enemy",
+      "13,0": "spawn_enemy",
+      "14,0": "void",
+      "0,1": "void",
+      "12,1": "spawn_enemy",
+      "13,1": "spawn_enemy",
+      "14,1": "spawn_enemy",
+      "13,2": "spawn_enemy",
+      "14,2": "spawn_enemy",
+      "6,3": "blocked",
+      "14,3": "spawn_enemy",
+      "2,5": "blocked",
+      "11,5": "blocked",
+      "12,5": "blocked",
+      "1,6": "blocked",
+      "7,7": "blocked",
+      "12,7": "special_zone",
+      "0,9": "spawn_player",
+      "1,9": "spawn_player",
+      "0,10": "spawn_player",
+      "1,10": "spawn_player",
+      "2,10": "spawn_player",
+      "14,10": "void",
+      "0,11": "void",
+      "1,11": "spawn_player",
+      "2,11": "spawn_player",
+      "3,11": "spawn_player",
+      "13,11": "void",
+      "14,11": "void"
+    }
+  },
+  "spawnZones": {
+    "player": [
+      {
+        "x": 0,
+        "y": 9
+      },
+      {
+        "x": 1,
+        "y": 9
+      },
+      {
+        "x": 0,
+        "y": 10
+      },
+      {
+        "x": 1,
+        "y": 10
+      },
+      {
+        "x": 2,
+        "y": 10
+      },
+      {
+        "x": 1,
+        "y": 11
+      },
+      {
+        "x": 2,
+        "y": 11
+      },
+      {
+        "x": 3,
+        "y": 11
+      }
+    ],
+    "enemy": [
+      {
+        "x": 10,
+        "y": 0
+      },
+      {
+        "x": 11,
+        "y": 0
+      },
+      {
+        "x": 12,
+        "y": 0
+      },
+      {
+        "x": 13,
+        "y": 0
+      },
+      {
+        "x": 12,
+        "y": 1
+      },
+      {
+        "x": 13,
+        "y": 1
+      },
+      {
+        "x": 14,
+        "y": 1
+      },
+      {
+        "x": 13,
+        "y": 2
+      },
+      {
+        "x": 14,
+        "y": 2
+      },
+      {
+        "x": 14,
+        "y": 3
+      }
+    ],
+    "neutral": [],
+    "boss": []
+  },
+  "objects": [],
+  "metadata": {
+    "biome": "mining_belt",
+    "difficulty": "elite",
+    "type": "elite",
+    "terrains": [
+      "mine"
+    ]
+  }
+}

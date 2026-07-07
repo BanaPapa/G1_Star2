@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "id": "map_normal_eclipse_cross",
+  "name": "Eclipse Cross",
+  "background": "/__maps/file/Eclipse%20Cross.png",
+  "imageSize": {
+    "width": 1672,
+    "height": 941
+  },
+  "grid": {
+    "type": "isometric",
+    "cols": 13,
+    "rows": 10,
+    "corners": {
+      "top": {
+        "x": 836.0,
+        "y": 28.23
+      },
+      "right": {
+        "x": 1621.84,
+        "y": 470.5
+      },
+      "bottom": {
+        "x": 836.0,
+        "y": 912.77
+      },
+      "left": {
+        "x": 50.16,
+        "y": 470.5
+      }
+    }
+  },
+  "tiles": {
+    "default": "playable",
+    "overrides": {
+      "0,0": "void",
+      "5,0": "void",
+      "6,0": "void",
+      "8,0": "spawn_enemy",
+      "9,0": "spawn_enemy",
+      "10,0": "spawn_enemy",
+      "11,0": "spawn_enemy",
+      "12,0": "void",
+      "10,1": "spawn_enemy",
+      "11,1": "spawn_enemy",
+      "12,1": "spawn_enemy",
+      "11,2": "spawn_enemy",
+      "12,2": "spawn_enemy",
+      "4,3": "hazard",
+      "8,3": "hazard",
+      "12,3": "spawn_enemy",
+      "0,4": "void",
+      "12,4": "void",
+      "0,5": "void",
+      "12,5": "void",
+      "4,6": "hazard",
+      "8,6": "hazard",
+      "0,7": "spawn_player",
+      "1,7": "spawn_player",
+      "0,8": "spawn_player",
+      "1,8": "spawn_player",
+      "2,8": "spawn_player",
+      "0,9": "void",
+      "1,9": "spawn_player",
+      "2,9": "spawn_player",
+      "3,9": "spawn_player",
+      "6,9": "void",
+      "7,9": "void",
+      "12,9": "void"
+    }
+  },
+  "spawnZones": {
+    "player": [
+      {
+        "x": 0,
+        "y": 7
+      },
+      {
+        "x": 1,
+        "y": 7
+      },
+      {
+        "x": 0,
+        "y": 8
+      },
+      {
+        "x": 1,
+        "y": 8
+      },
+      {
+        "x": 2,
+        "y": 8
+      },
+      {
+        "x": 1,
+        "y": 9
+      },
+      {
+        "x": 2,
+        "y": 9
+      },
+      {
+        "x": 3,
+        "y": 9
+      }
+    ],
+    "enemy": [
+      {
+        "x": 8,
+        "y": 0
+      },
+      {
+        "x": 9,
+        "y": 0
+      },
+      {
+        "x": 10,
+        "y": 0
+      },
+      {
+        "x": 11,
+        "y": 0
+      },
+      {
+        "x": 10,
+        "y": 1
+      },
+      {
+        "x": 11,
+        "y": 1
+      },
+      {
+        "x": 12,
+        "y": 1
+      },
+      {
+        "x": 11,
+        "y": 2
+      },
+      {
+        "x": 12,
+        "y": 2
+      },
+      {
+        "x": 12,
+        "y": 3
+      }
+    ],
+    "neutral": [],
+    "boss": []
+  },
+  "objects": [],
+  "metadata": {
+    "biome": "distortion_zone",
+    "difficulty": "standard",
+    "type": "normal",
+    "terrains": [
+      "distortion",
+      "mine"
+    ]
+  }
+}

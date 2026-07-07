@@ -24,8 +24,10 @@ export const PREDEFINED_MAP_TYPES = {
   'Starpoint Field': 'normal', 'Twin Expanse': 'normal', 'Violet Frontier': 'normal',
   'Cross Nexus': 'special', 'Crossfire Gate': 'special', 'Frontier Outpost': 'special',
   'Highground Citadel': 'special', 'Linebreaker': 'special', 'Longfront Passage': 'special',
+  'Resource Archipelago': 'special', 'Twin Outpost': 'special',
   'Amber Stronghold': 'elite', 'Bastion Guard': 'elite', 'Celestial Bastion': 'elite',
   'Central Dominion': 'elite', 'Classic Nexus': 'elite', 'Starforge Citadel': 'elite',
+  'Crimson Arena': 'boss', 'Solar Bastion': 'boss', 'Violet Rampart': 'boss',
 }
 function loadMapCategories() {
   try {
@@ -42,9 +44,28 @@ function persistMapCategories(mc) {
 const CATEGORY_IDS = MAP_TYPE_IDS
 const emptyCategoryMaps = () => Object.fromEntries(CATEGORY_IDS.map((id) => [id, []]))
 // 전투 종류 → 사용할 맵 유형 매핑(전투 진행은 기존 planet/space 식별자를 그대로 넘김).
-const BATTLE_CATEGORY_TO_TYPE = {
-  planet_normal: 'normal', space_normal: 'normal',
-  planet_boss: 'boss', space_elite: 'elite',
+// 별계 정복전(planet_normal)은 지형 문법이 뚜렷한 특수형도 함께 뽑아 경험을 다양화한다.
+const BATTLE_CATEGORY_TO_TYPES = {
+  planet_normal: ['normal', 'special'], space_normal: ['normal'],
+  planet_boss: ['boss'], space_elite: ['elite'],
+}
+
+// 내장 맵의 기본 유형 — metadata.type > 이미지 기본 분류(name) > id 접두사(map_<type>_...).
+function builtinTypeOf(m) {
+  if (CATEGORY_IDS.includes(m?.metadata?.type)) return m.metadata.type
+  if (CATEGORY_IDS.includes(PREDEFINED_MAP_TYPES[m?.name])) return PREDEFINED_MAP_TYPES[m.name]
+  const prefixed = CATEGORY_IDS.find((t) => String(m?.id ?? '').startsWith(`map_${t}_`))
+  return prefixed ?? null
+}
+
+// 새 설치에서도 배정이 비어 있지 않도록 내장 맵으로 유형별 기본 풀을 구성한다.
+function defaultCategoryMaps() {
+  const base = emptyCategoryMaps()
+  for (const m of Object.values(BUILTIN_MAPS)) {
+    const t = builtinTypeOf(m)
+    if (t) base[t].push(m.id)
+  }
+  return base
 }
 
 function loadMaps() {
@@ -87,22 +108,43 @@ function loadNodeMaps() {
   return {}
 }
 
+// 저장본은 "사용자가 손댄 맵"만 기본값과 다르게 만든다:
+// 저장 목록(또는 명시적 미배정 unassigned)에 등장하는 맵은 사용자 배정을 따르고,
+// 등장하지 않는 내장 맵은 기본 풀(defaultCategoryMaps)에 남는다.
 function loadCategoryMaps() {
-  const base = emptyCategoryMaps()
+  const base = defaultCategoryMaps()
   try {
     const raw = JSON.parse(localStorage.getItem(CATMAP_KEY) ?? 'null')
-    if (raw && typeof raw === 'object') for (const id of CATEGORY_IDS) if (Array.isArray(raw[id])) base[id] = raw[id]
+    if (raw && typeof raw === 'object') {
+      const touched = new Set([
+        ...(Array.isArray(raw.unassigned) ? raw.unassigned : []),
+        ...CATEGORY_IDS.flatMap((id) => (Array.isArray(raw[id]) ? raw[id] : [])),
+      ])
+      for (const id of CATEGORY_IDS) {
+        const kept = base[id].filter((mid) => !touched.has(mid))
+        const stored = Array.isArray(raw[id]) ? raw[id] : []
+        base[id] = [...kept, ...stored]
+      }
+    }
   } catch { /* 무시 */ }
   return base
 }
-function persistCategoryMaps(cm) {
-  try { localStorage.setItem(CATMAP_KEY, JSON.stringify(cm)) } catch { /* 무시 */ }
+function loadUnassignedMaps() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(CATMAP_KEY) ?? 'null')
+    if (raw && Array.isArray(raw.unassigned)) return raw.unassigned
+  } catch { /* 무시 */ }
+  return []
+}
+function persistCategoryMaps(cm, unassigned = []) {
+  try { localStorage.setItem(CATMAP_KEY, JSON.stringify({ ...cm, unassigned })) } catch { /* 무시 */ }
 }
 export const useMapStore = create((set, get) => ({
   maps: loadMaps(),            // { [id]: mapDefinition }
   activeMapId: loadActive(),   // 다음 전투에서 사용할 맵 id (null이면 레거시 기본 전장)
   nodeMaps: loadNodeMaps(),    // { [nodeId]: mapId } — (레거시) 노드별 고정 전투맵, BattleScreen 폴백용
   categoryMaps: loadCategoryMaps(), // { [type]: [mapId] } — 맵 유형(일반/특수/전략/보스)별 배정. 한 맵=한 유형.
+  unassignedMaps: loadUnassignedMaps(), // 사용자가 명시적으로 미배정(✕)한 맵 id — 기본 풀 부활 방지 표식.
   mapCategories: loadMapCategories(), // { [이미지basename]: 'normal'|'special'|'elite'|'boss' } — 맵 유형 오버라이드
   testBattleMap: null,         // 에디터 "모의 전투" 1회용 맵(영구저장·활성맵에 영향 없음)
   mockNonce: 0,                // 모의 전투 "요청" 카운터 — 같은 맵을 다시 눌러도 재진입되도록 식별
@@ -126,9 +168,14 @@ export const useMapStore = create((set, get) => ({
     if (!mapId) return
     const cm = { ...get().categoryMaps }
     for (const c of CATEGORY_IDS) cm[c] = (cm[c] ?? []).filter((id) => id !== mapId)
-    if (type && CATEGORY_IDS.includes(type)) cm[type] = [...(cm[type] ?? []), mapId]
-    persistCategoryMaps(cm)
-    set({ categoryMaps: cm })
+    const valid = type && CATEGORY_IDS.includes(type)
+    if (valid) cm[type] = [...(cm[type] ?? []), mapId]
+    // 미배정(✕)은 명시 표식으로 남겨 다음 로드에서 기본 풀로 부활하지 않게 한다.
+    const unassigned = valid
+      ? get().unassignedMaps.filter((id) => id !== mapId)
+      : [...new Set([...get().unassignedMaps, mapId])]
+    persistCategoryMaps(cm, unassigned)
+    set({ categoryMaps: cm, unassignedMaps: unassigned })
   },
 
   // 맵 완전 삭제 — maps·categoryMaps에서 모두 제거.
@@ -136,10 +183,11 @@ export const useMapStore = create((set, get) => ({
     const maps = { ...get().maps }; delete maps[mapId]; persistMaps(maps)
     const cm = { ...get().categoryMaps }
     for (const c of CATEGORY_IDS) cm[c] = (cm[c] ?? []).filter((id) => id !== mapId)
-    persistCategoryMaps(cm)
+    const unassigned = [...new Set([...get().unassignedMaps, mapId])]
+    persistCategoryMaps(cm, unassigned)
     const activeMapId = get().activeMapId === mapId ? null : get().activeMapId
     if (get().activeMapId === mapId) persistActive(null)
-    set({ maps, categoryMaps: cm, activeMapId })
+    set({ maps, categoryMaps: cm, activeMapId, unassignedMaps: unassigned })
   },
 
   // 맵 유형(일반/특수/전략/보스) 오버라이드 지정. type=null이면 오버라이드 해제(기본 분류로).
@@ -160,11 +208,12 @@ export const useMapStore = create((set, get) => ({
     delete maps[oldId]
     maps[newId] = m
     persistMaps(maps)
-    // 전투 카테고리 할당도 새 id로 갱신
+    // 전투 카테고리 할당·미배정 표식도 새 id로 갱신
     const cm = { ...get().categoryMaps }
     for (const c of CATEGORY_IDS) cm[c] = (cm[c] ?? []).map((id) => (id === oldId ? newId : id))
-    persistCategoryMaps(cm)
-    set({ maps, categoryMaps: cm })
+    const unassigned = get().unassignedMaps.map((id) => (id === oldId ? newId : id))
+    persistCategoryMaps(cm, unassigned)
+    set({ maps, categoryMaps: cm, unassignedMaps: unassigned })
   },
 
 }))
@@ -176,11 +225,16 @@ export const mapTypeOf = (basename, overrides) => {
 }
 
 // 전투 종류(planet_normal 등)에 맞는 맵 유형의 배정 맵 중 랜덤 1개. 배정 없으면 null(→ 호출측 폴백).
-export const pickCategoryMap = (battleCategory) => {
+// terrain(성계 지형: asteroid/nebula/mine/distortion)을 주면 metadata.terrains가 일치하는 맵을
+// 우선 뽑는다 — 아르카디아=소행성, 오르페우스=성운처럼 성계별 전장 테마가 유지된다 (Phase 7-1).
+// 일치하는 맵이 하나도 없으면 유형 전체 풀로 폴백(전투는 항상 성립).
+export const pickCategoryMap = (battleCategory, terrain = null) => {
   if (!battleCategory) return null
-  const type = BATTLE_CATEGORY_TO_TYPE[battleCategory] ?? battleCategory
+  const types = BATTLE_CATEGORY_TO_TYPES[battleCategory] ?? [battleCategory]
   const { categoryMaps, maps } = useMapStore.getState()
-  const ids = (categoryMaps[type] ?? []).filter((id) => maps[id])
+  const ids = types.flatMap((t) => categoryMaps[t] ?? []).filter((id) => maps[id])
   if (!ids.length) return null
-  return maps[ids[Math.floor(Math.random() * ids.length)]] ?? null
+  const themed = terrain ? ids.filter((id) => maps[id]?.metadata?.terrains?.includes(terrain)) : []
+  const pool = themed.length ? themed : ids
+  return maps[pool[Math.floor(Math.random() * pool.length)]] ?? null
 }

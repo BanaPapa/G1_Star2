@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "id": "map_special_cross_nexus",
+  "name": "Cross Nexus",
+  "background": "/__maps/file/Cross%20Nexus.png",
+  "imageSize": {
+    "width": 1672,
+    "height": 941
+  },
+  "grid": {
+    "type": "isometric",
+    "cols": 15,
+    "rows": 12,
+    "corners": {
+      "top": {
+        "x": 836.0,
+        "y": 28.23
+      },
+      "right": {
+        "x": 1621.84,
+        "y": 470.5
+      },
+      "bottom": {
+        "x": 836.0,
+        "y": 912.77
+      },
+      "left": {
+        "x": 50.16,
+        "y": 470.5
+      }
+    }
+  },
+  "tiles": {
+    "default": "playable",
+    "overrides": {
+      "0,0": "void",
+      "5,0": "void",
+      "6,0": "void",
+      "7,0": "void",
+      "8,0": "void",
+      "9,0": "void",
+      "11,0": "spawn_enemy",
+      "12,0": "spawn_enemy",
+      "13,0": "spawn_enemy",
+      "14,0": "spawn_enemy",
+      "6,1": "void",
+      "7,1": "void",
+      "8,1": "void",
+      "12,1": "spawn_enemy",
+      "13,1": "spawn_enemy",
+      "14,1": "spawn_enemy",
+      "13,2": "spawn_enemy",
+      "14,2": "spawn_enemy",
+      "14,3": "spawn_enemy",
+      "0,4": "void",
+      "1,4": "void",
+      "14,4": "void",
+      "0,5": "void",
+      "1,5": "void",
+      "2,5": "void",
+      "6,5": "special_zone",
+      "8,5": "special_zone",
+      "13,5": "void",
+      "14,5": "void",
+      "0,6": "void",
+      "1,6": "void",
+      "6,6": "special_zone",
+      "7,6": "blocked",
+      "8,6": "special_zone",
+      "12,6": "void",
+      "13,6": "void",
+      "14,6": "void",
+      "0,7": "void",
+      "13,7": "void",
+      "14,7": "void",
+      "0,9": "spawn_player",
+      "0,10": "spawn_player",
+      "1,10": "spawn_player",
+      "2,10": "spawn_player",
+      "6,10": "void",
+      "7,10": "void",
+      "8,10": "void",
+      "0,11": "spawn_player",
+      "1,11": "spawn_player",
+      "2,11": "spawn_player",
+      "3,11": "spawn_player",
+      "5,11": "void",
+      "6,11": "void",
+      "7,11": "void",
+      "8,11": "void",
+      "9,11": "void",
+      "14,11": "void"
+    }
+  },
+  "spawnZones": {
+    "player": [
+      {
+        "x": 0,
+        "y": 9
+      },
+      {
+        "x": 0,
+        "y": 10
+      },
+      {
+        "x": 1,
+        "y": 10
+      },
+      {
+        "x": 2,
+        "y": 10
+      },
+      {
+        "x": 0,
+        "y": 11
+      },
+      {
+        "x": 1,
+        "y": 11
+      },
+      {
+        "x": 2,
+        "y": 11
+      },
+      {
+        "x": 3,
+        "y": 11
+      }
+    ],
+    "enemy": [
+      {
+        "x": 11,
+        "y": 0
+      },
+      {
+        "x": 12,
+        "y": 0
+      },
+      {
+        "x": 13,
+        "y": 0
+      },
+      {
+        "x": 14,
+        "y": 0
+      },
+      {
+        "x": 12,
+        "y": 1
+      },
+      {
+        "x": 13,
+        "y": 1
+      },
+      {
+        "x": 14,
+        "y": 1
+      },
+      {
+        "x": 13,
+        "y": 2
+      },
+      {
+        "x": 14,
+        "y": 2
+      },
+      {
+        "x": 14,
+        "y": 3
+      }
+    ],
+    "neutral": [],
+    "boss": []
+  },
+  "objects": [],
+  "metadata": {
+    "biome": "nebula",
+    "difficulty": "standard",
+    "type": "special",
+    "terrains": [
+      "nebula",
+      "asteroid"
+    ]
+  }
+}

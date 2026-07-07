@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "id": "map_special_longfront_passage",
+  "name": "Longfront Passage",
+  "background": "/__maps/file/Longfront%20Passage.png",
+  "imageSize": {
+    "width": 1672,
+    "height": 941
+  },
+  "grid": {
+    "type": "isometric",
+    "cols": 15,
+    "rows": 10,
+    "corners": {
+      "top": {
+        "x": 836.0,
+        "y": 28.23
+      },
+      "right": {
+        "x": 1621.84,
+        "y": 470.5
+      },
+      "bottom": {
+        "x": 836.0,
+        "y": 912.77
+      },
+      "left": {
+        "x": 50.16,
+        "y": 470.5
+      }
+    }
+  },
+  "tiles": {
+    "default": "playable",
+    "overrides": {
+      "0,0": "void",
+      "1,0": "void",
+      "2,0": "void",
+      "3,0": "void",
+      "4,0": "void",
+      "5,0": "void",
+      "6,0": "void",
+      "7,0": "void",
+      "10,0": "spawn_enemy",
+      "11,0": "spawn_enemy",
+      "12,0": "spawn_enemy",
+      "13,0": "spawn_enemy",
+      "14,0": "spawn_enemy",
+      "0,1": "void",
+      "1,1": "void",
+      "2,1": "void",
+      "3,1": "void",
+      "4,1": "void",
+      "5,1": "void",
+      "6,1": "void",
+      "12,1": "spawn_enemy",
+      "13,1": "spawn_enemy",
+      "14,1": "spawn_enemy",
+      "0,2": "void",
+      "1,2": "void",
+      "2,2": "void",
+      "3,2": "void",
+      "4,2": "void",
+      "13,2": "spawn_enemy",
+      "14,2": "spawn_enemy",
+      "0,3": "void",
+      "1,3": "void",
+      "2,3": "void",
+      "3,3": "void",
+      "0,4": "void",
+      "1,4": "void",
+      "10,4": "blocked",
+      "14,4": "void",
+      "0,5": "void",
+      "4,5": "blocked",
+      "13,5": "void",
+      "14,5": "void",
+      "11,6": "void",
+      "12,6": "void",
+      "13,6": "void",
+      "14,6": "void",
+      "0,7": "spawn_player",
+      "10,7": "void",
+      "11,7": "void",
+      "12,7": "void",
+      "13,7": "void",
+      "14,7": "void",
+      "0,8": "spawn_player",
+      "1,8": "spawn_player",
+      "2,8": "spawn_player",
+      "8,8": "void",
+      "9,8": "void",
+      "10,8": "void",
+      "11,8": "void",
+      "12,8": "void",
+      "13,8": "void",
+      "14,8": "void",
+      "0,9": "spawn_player",
+      "1,9": "spawn_player",
+      "2,9": "spawn_player",
+      "3,9": "spawn_player",
+      "7,9": "void",
+      "8,9": "void",
+      "9,9": "void",
+      "10,9": "void",
+      "11,9": "void",
+      "12,9": "void",
+      "13,9": "void",
+      "14,9": "void"
+    }
+  },
+  "spawnZones": {
+    "player": [
+      {
+        "x": 0,
+        "y": 7
+      },
+      {
+        "x": 0,
+        "y": 8
+      },
+      {
+        "x": 1,
+        "y": 8
+      },
+      {
+        "x": 2,
+        "y": 8
+      },
+      {
+        "x": 0,
+        "y": 9
+      },
+      {
+        "x": 1,
+        "y": 9
+      },
+      {
+        "x": 2,
+        "y": 9
+      },
+      {
+        "x": 3,
+        "y": 9
+      }
+    ],
+    "enemy": [
+      {
+        "x": 10,
+        "y": 0
+      },
+      {
+        "x": 11,
+        "y": 0
+      },
+      {
+        "x": 12,
+        "y": 0
+      },
+      {
+        "x": 13,
+        "y": 0
+      },
+      {
+        "x": 14,
+        "y": 0
+      },
+      {
+        "x": 12,
+        "y": 1
+      },
+      {
+        "x": 13,
+        "y": 1
+      },
+      {
+        "x": 14,
+        "y": 1
+      },
+      {
+        "x": 13,
+        "y": 2
+      },
+      {
+        "x": 14,
+        "y": 2
+      }
+    ],
+    "neutral": [],
+    "boss": []
+  },
+  "objects": [],
+  "metadata": {
+    "biome": "asteroid_field",
+    "difficulty": "standard",
+    "type": "special",
+    "terrains": [
+      "asteroid",
+      "nebula"
+    ]
+  }
+}

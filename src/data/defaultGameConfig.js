@@ -154,6 +154,15 @@ export const DEFAULT_GAME_CONFIG = {
       hitFlash: { durationMs: 90 },                   // 피격 유닛 백색 틴트
     },
 
+    // 전투 카메라 (Phase 7-1) — 전술 줌 고정 + 팬 추적. 통상 행동에서 줌은 바뀌지 않고,
+    // 줌 변화는 격파/크리티컬 "줌 펀치"(짧은 확대→복귀)에만 허용한다 (XCOM 액션캠 원칙).
+    camera: {
+      startView: 'tactical',     // 'tactical' = 아군 스폰 줌인으로 시작 | 'overview' = 조감으로 시작
+      tacticalZoomFactor: 1.7,   // 전술 줌 배율 (조감 줌 × 배율)
+      followPanMs: 300,          // 행동 유닛 팬 추적 시간(ms)
+      punch: { enabled: true, scale: 0.1, inMs: 90, outMs: 160 }, // 줌 펀치 — vfxIntensity full에서만
+    },
+
     // 무기 계열별 고유 메커니즘 수치 (MASTER_PLAN Phase 4 · weapons_master_plan.md)
     weaponEffects: {
       laser: {
