@@ -1,0 +1,138 @@
+/* 스토리 대사 오버레이 (Phase 6-2) — 하단 대화 상자, 비주얼 노벨식 */
+
+.story-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 6, 15, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 600; /* EventModal(500)보다 위 — 대사가 결과 팝업을 덮는다 */
+  cursor: pointer;
+  animation: story-fade-in 0.25s ease-out;
+}
+
+@keyframes story-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.story-box {
+  position: relative;
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  width: min(760px, 94vw);
+  margin-bottom: 6vh;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 20px 24px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.55);
+  animation: story-slide-up 0.25s ease-out;
+}
+
+@keyframes story-slide-up {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* 내레이션 — 초상화 없이 중앙 정렬, 이탤릭 */
+.story-box--narrator .story-text-area { text-align: center; }
+.story-box--narrator .story-text { font-style: italic; color: var(--muted, #9aa8c7); }
+
+.story-portrait {
+  flex: 0 0 84px;
+  width: 84px;
+  height: 84px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.story-portrait-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* AssetImage의 이모지 폴백도 크게 보이도록 */
+.story-portrait span,
+.story-portrait-emoji {
+  font-size: 44px;
+  line-height: 1;
+}
+
+.story-text-area {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.story-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.5px;
+}
+
+.story-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--text);
+  white-space: pre-line;
+  min-height: 54px;
+}
+
+.story-advance {
+  align-self: flex-end;
+  font-size: 12px;
+  color: var(--muted, #9aa8c7);
+  animation: story-blink 1.1s ease-in-out infinite;
+}
+
+@keyframes story-blink {
+  0%, 100% { opacity: 0.9; }
+  50%      { opacity: 0.25; }
+}
+
+.story-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.story-choice-btn {
+  font-family: inherit;
+  font-size: 14px;
+  text-align: left;
+  padding: 10px 16px;
+  background: rgba(0, 224, 255, 0.07);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.story-choice-btn:hover {
+  background: rgba(0, 224, 255, 0.16);
+  border-color: var(--gold);
+}
+
+.story-page-count {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  font-size: 11px;
+  color: var(--muted, #9aa8c7);
+}

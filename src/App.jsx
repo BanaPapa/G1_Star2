@@ -13,6 +13,8 @@ import PlaceScreen from './ui/screens/PlaceScreen'
 import EndingScreen from './ui/screens/EndingScreen'
 import SaveScreen from './ui/screens/SaveScreen'
 import TopStatusBar from './ui/components/TopStatusBar'
+import StoryDialog from './ui/components/StoryDialog'
+import { useStoryStore } from './state/useStoryStore'
 import SystemControlRoom from './ui/devroom/SystemControlRoom'
 import './App.css'
 
@@ -97,7 +99,10 @@ function App() {
     return <LoadingScreen progress={progress} currentKey={currentKey} status={status} />
   }
 
-  function handleNewGame()  { navigate('main') }
+  function handleNewGame() {
+    navigate('main')
+    useStoryStore.getState().trigger('newGame') // 프롤로그 — 최초 1회만 재생 (Phase 6-2)
+  }
   function handleContinue() { setOverlay('save') }
   function handleSettings() { setOverlay('save') }
   function handleGameOver() { navigate('gameover') }
@@ -205,6 +210,9 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* 스토리 대사 오버레이 — useStoryStore.active가 있을 때만 스스로 표시 (Phase 6-2) */}
+      <StoryDialog />
 
       {/* 개발자 설정 관제실 — F9 / 백틱(`) / ⚙ 버튼으로 토글. 어느 화면에서나 접근 가능. */}
       {devRoomOpen && (

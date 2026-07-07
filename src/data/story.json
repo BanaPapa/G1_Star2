@@ -1,0 +1,33 @@
+{
+  "_comment": "스토리 대사 이벤트 (Phase 6-2). useStoryStore.trigger(키)가 trigger 필드로 조회해 1회만 재생(seenIds는 세이브 포함). 트리거 키 규칙: 'newGame' | 'enter:노드id'(최초 진입) | 'conquer:노드id'(정복) | 'preboss:s4' 등 — 새 연출은 여기 데이터만 추가하면 된다. speaker: 'narrator'(내레이션, 초상화 없음) | 에이스 id(kai/sera/mila/raven — aces.json에서 이름·초상화 자동 해석) | 그 외 문자열(페이지의 name/emoji/portrait 필드로 표시). choices는 마지막 페이지에만 — 선택 시 trigger(key, onDone)의 onDone(choiceId)로 전달된다.",
+  "events": [
+    {
+      "id": "prologue",
+      "trigger": "newGame",
+      "pages": [
+        {
+          "speaker": "narrator",
+          "text": "오래전, 번영했던 성간 문명이 무너졌다.\n인류는 제한된 기술로 다시 우주를 개척하고 있다."
+        },
+        {
+          "speaker": "kai",
+          "text": "지휘관님, 미개척 구역에서 대형 구조물 반응입니다.\n…이건 정거장인데요. 그것도 엄청나게 오래된."
+        },
+        {
+          "speaker": "narrator",
+          "text": "폐허가 된 고대 정거장 — \"다이달로스\".\n기능 대부분이 정지해 있지만, 중앙 데이터 코어만은 아직 살아 있다."
+        },
+        {
+          "speaker": "voice",
+          "name": "다이달로스 데이터 코어",
+          "emoji": "🛰️",
+          "text": "……별들은 사라지지 않았다."
+        },
+        {
+          "speaker": "kai",
+          "text": "\"별들은 사라지지 않았다\"…?\n이 메시지, 추적해볼 가치가 있겠는데요. 여기를 우리 모항으로 삼죠."
+        }
+      ]
+    }
+  ]
+}

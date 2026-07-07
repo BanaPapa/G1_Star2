@@ -5,6 +5,7 @@ import { useResearchStore } from './useResearchStore'
 import { useDevelopmentStore } from './useDevelopmentStore'
 import { useResourceStore } from './useResourceStore'
 import { useBuildingStore } from './useBuildingStore'
+import { useStoryStore } from './useStoryStore'
 
 // 세이브 슬롯 1~3 — 모든 게임 상태를 localStorage에 JSON 직렬화(MOD-12).
 const PREFIX = '7star_save_'
@@ -62,6 +63,7 @@ export const useSaveStore = create((set) => ({
       development: { developed:   d.developed   },
       resources:   { wallet:      res.wallet    },
       buildings:   { buildings: b.buildings, uniqueResources: b.uniqueResources },
+      story:       { seenIds: useStoryStore.getState().seenIds },
     })
 
     set((s) => ({ rev: s.rev + 1 }))
@@ -95,6 +97,8 @@ export const useSaveStore = create((set) => ({
     if (data.buildings) {
       useBuildingStore.getState().loadState(data.buildings)
     }
+    // 구버전 세이브(story 없음)는 빈 목록 — 대사가 다시 나올 뿐 진행에는 영향 없음
+    useStoryStore.setState({ seenIds: data.story?.seenIds ?? [], active: null })
 
     set((s) => ({ loadRev: s.loadRev + 1 }))
     return true
