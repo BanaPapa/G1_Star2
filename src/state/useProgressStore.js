@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { useResourceStore } from './useResourceStore'
 import { useStoryStore } from './useStoryStore'
+import systemsData from '../data/systems.json'
 
 // 성단 진행 상태 — 현재 위치(currentNodeId)와 정복한 노드 집합(conqueredNodeIds)을 영구 보관한다(MOD-6).
 // MOD-8: miningDeposits — 채굴 노드별 잔여 매장량. 없으면 systems.json의 mining.deposit 값이 기본.
@@ -36,6 +37,11 @@ export const useProgressStore = create((set, get) => ({
     }))
     // 노드 정복 대사 (Phase 6-3) — 전투 승리(BattleScreen)·자동 정복 어느 경로든 여기로 모인다
     useStoryStore.getState().trigger(`conquer:${nodeId}`)
+    // 스토리 합류 에이스 지급 (Phase 6-4) — systems.json reward.ace/aceCondition.
+    // 레이븐(recruit 필드)은 여기가 아니라 전투 승리 선택지(raven:offer)로만 영입된다.
+    const node = systemsData.systems?.find((s) => s.id === nodeId)
+    const joinAce = node?.reward?.ace ?? node?.reward?.aceCondition
+    if (joinAce) get().recruitAce(joinAce)
   },
 
   // 채굴 가능 여부 — 해당 노드에 mining 데이터가 있고 매장량이 남아 있을 때

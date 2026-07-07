@@ -10,18 +10,26 @@ const EVENTS = storyData.events ?? []
 export const useStoryStore = create((set, get) => ({
   seenIds: [],
   active: null, // { event, onDone } — StoryDialog가 구독해 표시
+  queue: [],    // 다른 대사가 재생 중일 때 들어온 트리거 — 닫히면 순서대로 이어진다 (정복 대사→영입 제안 등)
 
   trigger: (key, onDone = null) => {
     const ev = EVENTS.find((e) => e.trigger === key)
-    if (!ev || get().active || get().seenIds.includes(ev.id)) return false
-    set({ active: { event: ev, onDone } })
+    if (!ev || get().seenIds.includes(ev.id)) return false
+    const { active, queue } = get()
+    if (active) {
+      if (active.event.id === ev.id || queue.some((q) => q.event.id === ev.id)) return false
+      set({ queue: [...queue, { event: ev, onDone }] })
+    } else {
+      set({ active: { event: ev, onDone } })
+    }
     return true
   },
 
   close: (choiceId = null) => {
-    const { active, seenIds } = get()
+    const { active, seenIds, queue } = get()
     if (!active) return
-    set({ seenIds: [...seenIds, active.event.id], active: null })
+    const [next, ...rest] = queue
+    set({ seenIds: [...seenIds, active.event.id], active: next ?? null, queue: rest })
     active.onDone?.(choiceId)
   },
 }))
