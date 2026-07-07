@@ -21,9 +21,11 @@ export const useSettingsStore = create((set) => ({
   soundVolume:   saved.soundVolume   ?? 70,
   battleSpeed:   saved.battleSpeed   ?? 'normal', // 'normal' | 'fast'
   summaryBattle: saved.summaryBattle ?? false,    // true: 요약전투(맵에서 즉시 결과), false: 전술전투
+  vfxIntensity:  saved.vfxIntensity  ?? 'full',   // 'off' | 'low' | 'full' — 전투 연출 강도 (셰이크/히트스톱/플래시, 사진 민감성 대비)
 
   setCutinEnabled:  (v) => { set({ cutinEnabled: v });  persist({ cutinEnabled: v })  },
   setSoundVolume:   (v) => { set({ soundVolume: v });   persist({ soundVolume: v })   },
   setBattleSpeed:   (v) => { set({ battleSpeed: v });   persist({ battleSpeed: v })   },
   setSummaryBattle: (v) => { set({ summaryBattle: v }); persist({ summaryBattle: v }) },
+  setVfxIntensity:  (v) => { set({ vfxIntensity: v });  persist({ vfxIntensity: v })  },
 }))

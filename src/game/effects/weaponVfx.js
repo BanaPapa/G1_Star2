@@ -137,6 +137,75 @@ export function playAntimatterFlash(scene, x, y, color = FAMILY_COLOR.antimatter
   scene.tweens.add({ targets: flash, scale: 1.8, alpha: 0, duration: 180, onComplete: () => flash.destroy() })
 }
 
+// ── 격파 연출 — 선행 폭발 1~2회 → 본 폭발(섬광+링) → 파편 비산 (WO-2) ──
+// 파괴 판정은 즉시, 연출은 fire-and-forget. 유닛 스프라이트 페이드는 호출부(destroyUnit) 담당.
+export function playDestruction(scene, x, y, color = 0xff9a3d) {
+  for (let i = 0; i < 2; i++) {
+    scene.time.delayedCall(i * 85, () => {
+      const ox = x + (Math.random() - 0.5) * 28
+      const oy = y + (Math.random() - 0.5) * 22
+      const pop = scene.add.circle(ox, oy, 7, 0xffffff, 0.9).setDepth(9)
+      scene.tweens.add({ targets: pop, scale: 2.0, alpha: 0, duration: 160, ease: 'Cubic.easeOut', onComplete: () => pop.destroy() })
+    })
+  }
+  scene.time.delayedCall(170, () => {
+    playPlasmaExplosion(scene, x, y, color)
+    for (let i = 0; i < 9; i++) {
+      const ang = Math.random() * Math.PI * 2
+      const dist = 30 + Math.random() * 40
+      const size = 1.6 + Math.random() * 2.4
+      const p = scene.add.circle(x, y, size, i % 3 === 0 ? 0xffffff : color, 0.95).setDepth(9)
+      scene.tweens.add({
+        targets: p, x: x + Math.cos(ang) * dist, y: y + Math.sin(ang) * dist,
+        alpha: 0, duration: 420 + Math.random() * 260, ease: 'Cubic.easeOut',
+        onComplete: () => p.destroy(),
+      })
+    }
+  })
+}
+
+// ── Antimatter 완전 소멸 — 폭발이 아니라 "존재가 지워지는" 파편화. 중력 없이 감속만 (WO-6) ──
+export function playAnnihilateShards(scene, x, y, color = FAMILY_COLOR.antimatter) {
+  playAntimatterFlash(scene, x, y, color)
+  const n = 8 + Math.floor(Math.random() * 5)
+  for (let i = 0; i < n; i++) {
+    const ang = Math.random() * Math.PI * 2
+    const dist = 26 + Math.random() * 46
+    const s = 2 + Math.random() * 4
+    const shard = scene.add
+      .rectangle(x + (Math.random() - 0.5) * 14, y + (Math.random() - 0.5) * 14, s, s, i % 3 === 0 ? 0xffffff : color, 0.95)
+      .setDepth(9)
+      .setAngle(Math.random() * 90)
+    scene.tweens.add({
+      targets: shard,
+      x: shard.x + Math.cos(ang) * dist, y: shard.y + Math.sin(ang) * dist,
+      angle: shard.angle + (Math.random() - 0.5) * 180,
+      alpha: 0, scale: 0.2,
+      duration: 480 + Math.random() * 240, ease: 'Cubic.easeOut',
+      onComplete: () => shard.destroy(),
+    })
+  }
+}
+
+// ── Ion 잔류 스파크 — 명중 후 0.5초간 대상 주변이 지지직거린다 (WO-4) ──
+export function playIonSparks(scene, x, y, color = FAMILY_COLOR.ion) {
+  for (let i = 0; i < 5; i++) {
+    scene.time.delayedCall(i * 90 + Math.random() * 40, () => {
+      const ox = x + (Math.random() - 0.5) * 44
+      const oy = y + (Math.random() - 0.5) * 36
+      const g = scene.add.graphics().setDepth(9)
+      g.lineStyle(1.5, color, 0.95)
+      g.beginPath()
+      g.moveTo(ox - 5, oy)
+      g.lineTo(ox - 1, oy - 4)
+      g.lineTo(ox + 1, oy + 3)
+      g.lineTo(ox + 5, oy - 2)
+      g.strokePath()
+      scene.tweens.add({ targets: g, alpha: 0, duration: 140, delay: 60, onComplete: () => g.destroy() })
+    })
+  }
+}
+
 // ── 기본 포: 총구 섬광 + 예광탄 ──
 export function playCannonTracer(scene, from, to, color = FAMILY_COLOR.basic, onArrive) {
   const muzzle = scene.add.circle(from.x, from.y, 8, 0xffffff, 0.9).setDepth(9)

@@ -66,9 +66,11 @@ function SettingsPanel() {
   const cutinEnabled = useSettingsStore((s) => s.cutinEnabled)
   const soundVolume  = useSettingsStore((s) => s.soundVolume)
   const battleSpeed  = useSettingsStore((s) => s.battleSpeed)
+  const vfxIntensity = useSettingsStore((s) => s.vfxIntensity)
   const setCutin     = useSettingsStore((s) => s.setCutinEnabled)
   const setVolume    = useSettingsStore((s) => s.setSoundVolume)
   const setSpeed     = useSettingsStore((s) => s.setBattleSpeed)
+  const setVfx       = useSettingsStore((s) => s.setVfxIntensity)
 
   return (
     <div className="settings-panel">
@@ -99,6 +101,24 @@ function SettingsPanel() {
             className={`settings-toggle-btn${battleSpeed === 'fast' ? ' active' : ''}`}
             onClick={() => setSpeed('fast')}
           >빠름</button>
+        </div>
+      </div>
+
+      <div className="settings-row">
+        <span className="settings-label">전투 이펙트 강도</span>
+        <div className="settings-toggle-group">
+          <button
+            className={`settings-toggle-btn${vfxIntensity === 'full' ? ' active' : ''}`}
+            onClick={() => setVfx('full')}
+          >풀</button>
+          <button
+            className={`settings-toggle-btn${vfxIntensity === 'low' ? ' active' : ''}`}
+            onClick={() => setVfx('low')}
+          >약하게</button>
+          <button
+            className={`settings-toggle-btn${vfxIntensity === 'off' ? ' active' : ''}`}
+            onClick={() => setVfx('off')}
+          >끔</button>
         </div>
       </div>
 
