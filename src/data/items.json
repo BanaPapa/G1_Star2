@@ -59,6 +59,78 @@
       "materials": { "ti": 70, "dm": 5, "sc": 150 },
       "requires": "module_craft",
       "note": "모듈 조합학 연구 해금 후 제작 가능 — 정예 무기공학(연구) 없이 얻는 대체 경로"
+    },
+    {
+      "id": "craft_laser_pierce",
+      "result": "wpn_laser_pierce",
+      "name": "관통 빔 조합",
+      "materials": { "ti": 30, "ec": 25, "sc": 90 },
+      "requires": "module_craft",
+      "note": "레이저 T3 — 연구 없이 얻는 대체 경로 (워크샵 Lv3)"
+    },
+    {
+      "id": "craft_laser_deflection",
+      "result": "wpn_laser_deflection",
+      "name": "굴절 빔 조합",
+      "materials": { "ti": 45, "ec": 45, "dm": 3, "sc": 150 },
+      "requires": "module_craft",
+      "note": "레이저 T4 — 워크샵 Lv4 필요"
+    },
+    {
+      "id": "craft_shield_nullifier",
+      "result": "wpn_shield_nullifier",
+      "name": "쉴드 무력화기 조합",
+      "materials": { "ti": 25, "ec": 30, "sc": 90 },
+      "requires": "module_craft",
+      "note": "이온 T3 — 연구 없이 얻는 대체 경로 (워크샵 Lv3)"
+    },
+    {
+      "id": "craft_iff_scrambler",
+      "result": "wpn_iff_scrambler",
+      "name": "피아식별 교란기 조합",
+      "materials": { "ti": 35, "ec": 50, "dm": 3, "sc": 150 },
+      "requires": "module_craft",
+      "note": "이온 T4 — 워크샵 Lv4 필요"
+    },
+    {
+      "id": "craft_plasma_burst",
+      "result": "wpn_plasma_burst",
+      "name": "플라즈마 버스트 조합",
+      "materials": { "ti": 50, "ec": 10, "sc": 100 },
+      "requires": "module_craft",
+      "note": "플라즈마 T3 — 연구 없이 얻는 대체 경로 (워크샵 Lv3)"
+    },
+    {
+      "id": "craft_gravity_well",
+      "result": "wpn_gravity_well",
+      "name": "중력 우물 조합",
+      "materials": { "ti": 45, "dm": 3, "sc": 100 },
+      "requires": "module_craft",
+      "note": "중력 T3 — 연구 없이 얻는 대체 경로 (워크샵 Lv3)"
+    },
+    {
+      "id": "craft_gravity_collapse",
+      "result": "wpn_gravity_collapse",
+      "name": "중력 붕괴 조합",
+      "materials": { "ti": 65, "dm": 6, "sc": 160 },
+      "requires": "module_craft",
+      "note": "중력 T4 — 워크샵 Lv4 필요"
+    },
+    {
+      "id": "craft_antimatter_field",
+      "result": "wpn_antimatter_field",
+      "name": "반물질 에너지장 조합",
+      "materials": { "ti": 35, "dm": 5, "sc": 110 },
+      "requires": "module_craft",
+      "note": "반물질 T3 — 연구 없이 얻는 대체 경로 (워크샵 Lv3)"
+    },
+    {
+      "id": "craft_micro_singularity",
+      "result": "wpn_micro_singularity",
+      "name": "미소 특이점 조합",
+      "materials": { "ti": 50, "dm": 9, "sc": 160 },
+      "requires": "module_craft",
+      "note": "반물질 T4 — 워크샵 Lv4 필요"
     }
   ]
 }

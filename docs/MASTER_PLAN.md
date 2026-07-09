@@ -401,7 +401,16 @@
       정상 인식돼 적용됨. **구현은 opus-coder 위임 + Codex 리뷰 2건 반영**(증원 실패 시 플래그 미설정으로 재시도·거짓 HUD
       방지 / 소환 shipId를 요청 enemyId로 authoritative화). 검증: vitest 190 통과, E2E — 가르 정면 17→측후방 25 피해,
       워든 void_command 증원, 텔레그래프 충전턴 0피해→발동턴 30(=ATK×0.5) 확인, 콘솔 에러 0.
-- [ ] 7-4 조합 레시피 확충 (계열별 1~2개), 유령시장·떠돌이상인 재고 조정
+- [x] 7-4 조합 레시피 확충 (계열별 1~2개), 유령시장·떠돌이상인 재고 조정 (2026-07-08)
+      — 순수 데이터 작업(로직 미변경). **레시피**: items.json recipes 1→10개, 5계열 전부 T3+T4 커버(레이저/이온/중력/반물질
+      각 T3+T4, 플라즈마 T3 추가 + 기존 헬파이어 T4). 전부 `requires: module_craft` + 워크샵 티어 게이트(결과물 tier,
+      `recipeRequiredTier`가 자동 강제 — T5는 제외해 연구/유령시장 전용 유지). 재료는 계열 테마(레이저·이온=ec, 플라즈마·중력=ti,
+      반물질=dm)+티어 스케일, SC 저렴(재료가 실제 관문 — 연구 없이 얻는 대체 경로). **상점**: ghost_market=T5 exotic 3종
+      (event_horizon·total_annihilation·armor_annihilator)+T4+프리미엄 모듈(고가 1.6× dm/sc 소비처, 연구 없이 최종 티어),
+      wandering_merchant=소모품 4종+중티어 무기 2종+모듈(랜덤 보급). **구현 opus-coder 위임 + Codex 리뷰 3건은 모두 오탐 판정**
+      (티어 게이트는 requires가 아니라 결과물 tier×워크샵 레벨로 강제 / 참조 무기는 전부 기존 카탈로그 존재 — 신규 정합성
+      테스트가 이미 커버). 검증: vitest 198 통과(recipes.test.js 8개 신설 — result/inventory 존재·자원·연구 게이트·tier≤4·계열
+      커버), npm run build 통과, 앱 클린 부팅 콘솔 에러 0.
 - [ ] 7-5 밸런스 전체 패스: 관제실로 난이도 곡선 조정 → Export → defaultGameConfig 반영
 - [ ] 7-6 완주 플레이테스트 1회 (새 게임→엔딩, 시간 측정, 막히는 곳 기록)
 

@@ -17,13 +17,13 @@
     {
       "id": "ghost_market", "name": "유령 시장(비밀상점)", "type": "secret", "priceMultiplier": 1.6,
       "unlockCondition": "s3 도달 + 조건",
-      "inventory": ["wpn_micro_singularity","drone_bay"], "rareStock": { "dm": "대량 거래 가능" },
-      "note": "유니크급 장비·고가"
+      "inventory": ["wpn_event_horizon","wpn_total_annihilation","wpn_armor_annihilator","wpn_micro_singularity","shield_gen","drone_bay"], "rareStock": { "dm": "대량 거래 가능" },
+      "note": "유니크급·T5 exotic 장비 — 고가(1.6×), 연구 없이 최종 티어 확보"
     },
     {
       "id": "wandering_merchant", "name": "떠돌이 상인", "type": "event", "priceMultiplier": 1.3,
-      "inventory": ["wpn_ion_jammer","nano_kit","tp_injector"], "rareStock": { "blueprint": "랜덤 청사진", "dm": "거래" },
-      "haggle": true, "note": "랜덤 조우·흥정 선택지"
+      "inventory": ["nano_kit","tp_injector","smoke","emp_grenade","wpn_core_melter","wpn_spatial_displacer","targeting_comp"], "rareStock": { "blueprint": "랜덤 청사진", "dm": "거래" },
+      "haggle": true, "note": "랜덤 조우·흥정 — 소모품과 중티어 장비 보급"
     }
   ]
 }
