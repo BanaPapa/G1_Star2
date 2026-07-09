@@ -390,7 +390,17 @@
       잠복 버그 동시 수정). 성계 조합: s2=이온 교란(호위함 추가), s3=중력·물량(견인함 추가), s4=정점 6종(소거함·견인함).
       검증: vitest 176(정합성·weapon 통과 테스트 7개 신설), E2E — 적 이온 공격으로 아군에 ion_jammer 부착·
       쉴드 흡수 확인, 중력 충각 에러 0, 적 카드에 무기명 표시.
-- [ ] 7-3 미니보스 가르 / 최종보스 워든 패턴 강화 (보스 예외 레이어 활용)
+- [x] 7-3 미니보스 가르 / 최종보스 워든 패턴 강화 (보스 예외 레이어 활용) (2026-07-08)
+      — 순수 모듈 `game/combat/bossPatterns.js`(4함수 + 테스트 14개)로 로직 분리, 수치는 전부 `combat.boss.*` config.
+      **가르**: 측후방(측면 판정) 피격 시 유효 DEF -50% 약점(`garr.weakpointDefReductionPct`) + 전면 대상 주포 피해
+      +30%(`garr.frontalDamageBonusPct`) — 데이터의 "측후방 DEF -50%·전면 강력 주포"를 실제 구현, 포위 기동 보상.
+      **워든**: 1페이즈 지휘함 증원 1회(`warden.phase1SummonTurn/SummonId`, 데이터 behavior 실현) + 2페이즈 차원 파동
+      텔레그래프(`warden.aoeTelegraphEnabled` — 1턴 충전 예고 후 다음 턴 발동, 회피·방어 카운터플레이) + 파동 피해
+      config화(`phase2AoeAtkMult`). void_rift/void_command 소환을 공통 헬퍼 `_summonEnemy`로 통합(encounter.resolveEnemyShip
+      재사용·export). 보스 예외 레이어(플레이어 무기→보스 변환)는 Phase 4에서 이미 배선됨을 확인, 가르·워든이 bossesById로
+      정상 인식돼 적용됨. **구현은 opus-coder 위임 + Codex 리뷰 2건 반영**(증원 실패 시 플래그 미설정으로 재시도·거짓 HUD
+      방지 / 소환 shipId를 요청 enemyId로 authoritative화). 검증: vitest 190 통과, E2E — 가르 정면 17→측후방 25 피해,
+      워든 void_command 증원, 텔레그래프 충전턴 0피해→발동턴 30(=ATK×0.5) 확인, 콘솔 에러 0.
 - [ ] 7-4 조합 레시피 확충 (계열별 1~2개), 유령시장·떠돌이상인 재고 조정
 - [ ] 7-5 밸런스 전체 패스: 관제실로 난이도 곡선 조정 → Export → defaultGameConfig 반영
 - [ ] 7-6 완주 플레이테스트 1회 (새 게임→엔딩, 시간 측정, 막히는 곳 기록)

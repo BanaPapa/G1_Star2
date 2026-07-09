@@ -143,6 +143,22 @@ export const DEFAULT_GAME_CONFIG = {
       maxAttacksPerTurnDefault: 1,
     },
 
+    // 보스 고유 패턴 수치 (Phase 7-3) — 순수 로직은 game/combat/bossPatterns.js
+    boss: {
+      // 미니보스 가르 — 전면 강력 주포 + 측후방 약점 (Phase 7-3)
+      garr: {
+        weakpointDefReductionPct: 50, // 측후방(측면 판정) 피격 시 유효 DEF 감소 %
+        frontalDamageBonusPct: 30,    // 전면(비측면) 대상 공격 시 가르 피해 +%
+      },
+      // 최종보스 워든 — 페이즈별 패턴 (Phase 7-3)
+      warden: {
+        phase1SummonId: 'void_command', // 1페이즈 증원 유닛(enemies.json id)
+        phase1SummonTurn: 2,            // 이 턴 수 이상일 때 1회 증원
+        phase2AoeAtkMult: 0.5,          // 2페이즈 차원 파동 = ATK × 배율
+        aoeTelegraphEnabled: true,      // true면 파동 1턴 예고 후 다음 턴 발동
+      },
+    },
+
     // 전투 타격감 연출 (Phase 10-1) — 강도 자체는 설정(vfxIntensity: off/low/full)이 곱해진다.
     vfx: {
       shake: {

@@ -6,7 +6,8 @@ import { getGameConfig } from '../../state/useGameConfigStore'
 import { pickTarget, inAttackRange, planApproach } from '../../core/ai'
 import { collectLineTargets } from '../../core/skills'
 import { getEffectiveShip, applyEquipment, getUnitFinishers, xpRewardForVictory, canPromote } from '../../core/growth'
-import { buildEncounterPlacements } from '../../core/encounter'
+import { buildEncounterPlacements, resolveEnemyShip } from '../../core/encounter'
+import { garrWeakpointArmorMult, garrFrontalDamageMult, wardenShouldSummonPhase1, wardenAoeDamage } from '../combat/bossPatterns'
 import { useFleetStore } from '../../state/useFleetStore'
 import { useResourceStore } from '../../state/useResourceStore'
 import { useProgressStore } from '../../state/useProgressStore'
@@ -3142,6 +3143,11 @@ export default class BattleScene extends Phaser.Scene {
     // ── 명중/피해 계산을 데이터 주도 combatMath로 처리 (요청서 14·15·18·21장) ──
     const config = getGameConfig()
 
+    // 미니보스 가르 — 전면(비측면) 대상에게 강력한 주포 피해 (Phase 7-3)
+    const garrFrontalMult = attacker.ship.id === 'garr'
+      ? garrFrontalDamageMult({ isFlank, cfg: config?.combat?.boss?.garr })
+      : 1
+
     // 손상 단계 보정 — 공격자 명중, 방어자 회피 (요청서 21장)
     const atkState = getDamageState(attacker.maxHp > 0 ? attacker.hp / attacker.maxHp : 1, config)
     const defState = getDamageState(defender.maxHp > 0 ? defender.hp / defender.maxHp : 1, config)
@@ -3209,15 +3215,20 @@ export default class BattleScene extends Phaser.Scene {
     const heatPct = onHeatZone ? (config?.combat?.weaponEffects?.plasma?.heatZoneArmorPct ?? -50) : 0
     const modDefPct = Math.max(-100, sumStat(defender.modifiers, 'defPct') + heatPct)
     const effArmor = Math.max(0, Math.round((defender.armor ?? 0) * (1 + modDefPct / 100)))
+    // 미니보스 가르 — 측후방(측면 판정) 피격 시 유효 DEF 감소 약점 (Phase 7-3)
+    const garrWeakMult = defender.ship.id === 'garr'
+      ? garrWeakpointArmorMult({ isFlank, cfg: config?.combat?.boss?.garr })
+      : 1
+    const effArmorFinal = Math.round(effArmor * garrWeakMult)
     const finalDamage = calculateDamage(
       { atk: effAtk }, null,
-      { counterMultiplier: counter, damageMultiplier: flankMult * critMult * owDmgMult * extraMult },
+      { counterMultiplier: counter, damageMultiplier: flankMult * critMult * owDmgMult * extraMult * garrFrontalMult },
       config,
     )
     const shieldBefore = defender.shield
     const pipe = resolveDamagePipeline(
       {
-        defender: { shield: defender.shield, armor: effArmor, armorDurability: defender.armorDurability, hp: defender.hp },
+        defender: { shield: defender.shield, armor: effArmorFinal, armorDurability: defender.armorDurability, hp: defender.hp },
         finalDamage,
         // 아이템 pierce는 %(0~100) — 파이프라인은 0~1 비율을 기대 (예전엔 pierce≥1이 전부 100% 우회되던 버그)
         shieldPierce: (weaponData.pierce ?? 0) / 100,
@@ -3241,7 +3252,7 @@ export default class BattleScene extends Phaser.Scene {
 
     const hitColor  = toShield ? SHIELD_TEXT_COLOR : (isCrit ? '#ff6b35' : DAMAGE_TEXT_COLOR)
     const hitLabel  = toShield ? `🛡-${shieldAbsorbed}` : (isCrit ? `💥${pipe.hpDamage}!` : `-${pipe.hpDamage}`)
-    const bonusTxt  = [isFlank ? '측면' : null, isCrit ? '크리티컬!' : null].filter(Boolean).join(' · ')
+    const bonusTxt  = [isFlank ? '측면' : null, garrWeakMult < 1 ? '🎯약점' : null, isCrit ? '크리티컬!' : null].filter(Boolean).join(' · ')
     const bonusPart = bonusTxt ? ` [${bonusTxt}]` : ''
 
     // 타격감 공통 레이어 (WO-1) — 피격 플래시 + 셰이크. 격파의 heavy 셰이크/히트스톱은 destroyUnit이 담당.
@@ -3525,24 +3536,8 @@ export default class BattleScene extends Phaser.Scene {
         `⚡ "${unit.ship.name}" 2페이즈 전환! ${bossData.phases[1]?.behavior ?? '강화 패턴 활성화'} — ATK +${boost}!`,
       )
 
-      // 차원 균열(void_rift) 소환 — 빈 슬롯에 1기
-      const riftDef = this.enemiesById.get('void_rift')
-      if (riftDef?.stats) {
-        const riftShip = {
-          ...riftDef.stats,
-          id: 'void_rift',
-          name: riftDef.name,
-          sprite: riftDef.sprite,
-          tpPerTurn: riftDef.stats.tpPerTurn ?? 0,
-          weapon: riftDef.weapon ?? null, // 소환 유닛도 무기 계열 메커니즘 사용 (Phase 7-2)
-        }
-        const spawnPos = (this.enemySpawnPositions ?? []).find(
-          (pos) => !this.units.some((u) => u.gridX === pos.x && u.gridY === pos.y),
-        )
-        if (spawnPos) {
-          this.spawnUnit({ side: 'enemy', shipId: 'void_rift', ship: riftShip, x: spawnPos.x, y: spawnPos.y })
-        }
-      }
+      // 차원 균열(void_rift) 소환 — 빈 슬롯에 1기 (Phase 7-3: 공통 소환 헬퍼 사용)
+      this._summonEnemy('void_rift')
     }
 
     this.cutinManager.playBossPhase({
@@ -3555,12 +3550,29 @@ export default class BattleScene extends Phaser.Scene {
     })
   }
 
+  // 공통 적 소환 헬퍼 (Phase 7-3) — enemies.json/bosses 정의를 encounter.resolveEnemyShip으로 합성해
+  // 빈 스폰칸에 1기 스폰한다. base 참조형(void_command)·stats 명시형(void_rift) 모두 동일 경로로 처리.
+  // 빈 칸이 없으면 스킵(null 반환). void_rift 2페이즈 소환·워든 1페이즈 증원이 이 헬퍼를 공유.
+  _summonEnemy(enemyId) {
+    if (!enemyId) return null
+    const def = this.enemiesById.get(enemyId) ?? this.bossesById.get(enemyId)
+    if (!def) return null
+    const ship = resolveEnemyShip(def, this.shipsById, this.node?.threatLevel ?? 1)
+    if (!ship) return null
+    const spawnPos = (this.enemySpawnPositions ?? []).find(
+      (pos) => !this.units.some((u) => u.gridX === pos.x && u.gridY === pos.y),
+    )
+    if (!spawnPos) return null
+    // shipId는 요청한 enemyId를 authoritative하게 사용 (resolveEnemyShip 변경에도 안전).
+    return this.spawnUnit({ side: 'enemy', shipId: enemyId, ship, x: spawnPos.x, y: spawnPos.y }) ?? null
+  }
+
   // 보스 2페이즈 광역 차원 파동 — ATK×0.5 피해를 아군 전원에게 동시 적용
   executeWardenAoe(unit, onDone) {
     const allies = [...this.units.filter((u) => u.side === 'ally')]
     if (!allies.length) { onDone(); return }
 
-    const rawDamage = Math.floor(unit.ship.atk * 0.5)
+    const rawDamage = wardenAoeDamage({ atk: unit.ship.atk, cfg: getGameConfig()?.combat?.boss?.warden })
     this.refreshHud(`⚡ ${unit.ship.name} — 차원 파동! 아군 전원에게 ${rawDamage} 광역 피해!`)
     this.busy = true
 
@@ -4099,15 +4111,39 @@ export default class BattleScene extends Phaser.Scene {
 
   // unit이 AP를 모두 쓰거나 더 할 행동이 없을 때까지 이동→공격을 반복한다.
   takeEnemyTurn(unit, onDone) {
-    // MOD-11: 보스 2페이즈 — 매 턴 첫 AP를 광역 차원 파동에 소모
+    // 최종보스 워든 1페이즈 증원 — 진입 직후 1회, 지휘함을 전장에 합류 (Phase 7-3)
+    if (unit.ship.id === 'warden') {
+      const wcfg = getGameConfig()?.combat?.boss?.warden ?? {}
+      if (wardenShouldSummonPhase1({ turnNumber: this.turnNumber, alreadySummoned: !!unit.phase1Summoned, bossPhase: unit.bossPhase, cfg: wcfg })) {
+        // 빈 스폰칸이 없어 소환 실패(null)하면 플래그를 세우지 않아 다음 턴 재시도한다 — 거짓 HUD 방지.
+        const summoned = this._summonEnemy(wcfg.phase1SummonId)
+        if (summoned) {
+          unit.phase1Summoned = true
+          this.refreshHud(`⚡ ${unit.ship.name} — 증원 소환! 지휘함이 전장에 합류합니다.`)
+        }
+      }
+    }
+
+    // MOD-11: 보스 2페이즈 — 매 턴 첫 AP를 광역 차원 파동에 소모 (Phase 7-3: 텔레그래프 예고 지원)
     if (unit.bossPhase === 2 && !unit.aoeFiredThisTurn && unit.ap >= 1) {
-      unit.aoeFiredThisTurn = true
-      this.spendAp(unit, 1)
-      this.executeWardenAoe(unit, () => {
-        if (!this.battleEnded) this.takeEnemyTurn(unit, onDone)
-        else onDone()
-      })
-      return
+      const wcfg = getGameConfig()?.combat?.boss?.warden ?? {}
+      if ((wcfg.aoeTelegraphEnabled ?? true) && !unit.aoeCharging) {
+        // 예고 턴 — 이번 턴은 충전만(1AP 소모), 다음 턴에 발동. return하지 않고 아래 step()으로 일반 행동 계속.
+        unit.aoeCharging = true
+        unit.aoeFiredThisTurn = true
+        this.spendAp(unit, 1)
+        this.refreshHud(`⚠️ ${unit.ship.name} — 차원 파동 충전! 다음 턴 아군 전원 광역 피해. 흩어지거나 방어하세요!`)
+      } else {
+        // 발동 (텔레그래프 꺼짐 또는 충전 완료)
+        unit.aoeCharging = false
+        unit.aoeFiredThisTurn = true
+        this.spendAp(unit, 1)
+        this.executeWardenAoe(unit, () => {
+          if (!this.battleEnded) this.takeEnemyTurn(unit, onDone)
+          else onDone()
+        })
+        return
+      }
     }
 
     const step = () => {

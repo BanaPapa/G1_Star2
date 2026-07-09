@@ -12,7 +12,7 @@ const THREAT_BASE = 0.7
 // enemies.json 한 항목을 스폰 가능한 "함선 데이터" 형태로 합성한다.
 // base 참조형은 ships.json 스탯을 threatLevel 스케일로 조정해 사용.
 // stats 명시형(unique/boss)은 그 stats를 그대로 씀 — 이름·스프라이트만 적 고유로 교체.
-function resolveEnemyShip(enemyDef, shipsById, threatLevel = 1) {
+export function resolveEnemyShip(enemyDef, shipsById, threatLevel = 1) {
   const base = enemyDef.base ? shipsById.get(enemyDef.base) : null
   const source = base ?? enemyDef.stats
   if (!source) return null
