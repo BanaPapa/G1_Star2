@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, lazy, Suspense } from 'react'
 import { useDataStore } from './state/useDataStore'
 import { useSettingsStore } from './state/useSettingsStore'
 import { useMapStore } from './state/useMapStore'
@@ -7,7 +7,6 @@ import { soundManager } from './core/soundManager'
 import LoadingScreen from './ui/screens/LoadingScreen'
 import TitleScreen from './ui/screens/TitleScreen'
 import StrategyMapScreen from './ui/screens/StrategyMapScreen'
-import BattleScreen from './ui/screens/BattleScreen'
 import FleetScreen from './ui/screens/FleetScreen'
 import PlaceScreen from './ui/screens/PlaceScreen'
 import EndingScreen from './ui/screens/EndingScreen'
@@ -15,9 +14,26 @@ import SaveScreen from './ui/screens/SaveScreen'
 import TopStatusBar from './ui/components/TopStatusBar'
 import StoryDialog from './ui/components/StoryDialog'
 import { useStoryStore } from './state/useStoryStore'
-import SystemControlRoom from './ui/devroom/SystemControlRoom'
 import ScreenTransition, { useScreenTransition } from './ui/components/ScreenTransition'
 import './App.css'
+
+// Phaser·BattleScene을 끌고 가는 유일한 정적 경로였던 BattleScreen을 lazy 분리 →
+// Phaser가 별도 청크로 빠져 초기 index 번들이 줄어든다. 전투 진입은 warp 전환(out ~420ms)이
+// 화면을 덮으므로 fallback 노출 시간은 짧다.
+const BattleScreen = lazy(() => import('./ui/screens/BattleScreen'))
+// 개발자 관제실(15탭)도 F9로 열 때만 필요 → lazy 분리.
+const SystemControlRoom = lazy(() => import('./ui/devroom/SystemControlRoom'))
+
+// 전투 청크 로딩 중 표시하는 경량 인디케이터 (LoadingScreen 대비 초경량, 디자인 토큰 --mono/--cyan).
+function BattleLoadingFallback() {
+  return (
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#05020a', zIndex: 5 }}>
+      <div style={{ fontFamily: 'var(--mono)', fontSize: 16, letterSpacing: 2, color: 'var(--cyan, #38bdf8)', textShadow: '0 0 20px rgba(56,189,248,0.5)' }}>
+        전투 준비 중...
+      </div>
+    </div>
+  )
+}
 
 // 화면 3계층: main(성단맵) / place(장소맵) / battle(전투맵) + title/ending/gameover (스펙 §1)
 const BGM_FOR_SCREEN = {
@@ -104,6 +120,16 @@ function App() {
   useEffect(() => {
     const bgmKey = BGM_FOR_SCREEN[nav.screen]
     if (bgmKey) soundManager.playBgm(bgmKey)
+  }, [nav.screen])
+
+  // 성단맵 진입 후 idle에 전투 청크(Phaser)를 미리 받아 첫 전투 진입 딜레이 제거. 실패는 무시.
+  const battlePrefetched = useRef(false)
+  useEffect(() => {
+    if (nav.screen !== 'main' || battlePrefetched.current) return
+    battlePrefetched.current = true
+    const prefetch = () => import('./ui/screens/BattleScreen').catch(() => {})
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(prefetch)
+    else setTimeout(prefetch, 1500)
   }, [nav.screen])
 
   if (status !== 'ready') {
@@ -198,7 +224,9 @@ function App() {
             )}
 
             {nav.screen === 'battle' && (
-              <BattleScreen nodeId={activeNodeId} mock={mockBattle} battleCategory={battleCategory} onExit={handleExitBattle} onEnding={handleEnding} onGameOver={handleGameOver} />
+              <Suspense fallback={<BattleLoadingFallback />}>
+                <BattleScreen nodeId={activeNodeId} mock={mockBattle} battleCategory={battleCategory} onExit={handleExitBattle} onEnding={handleEnding} onGameOver={handleGameOver} />
+              </Suspense>
             )}
 
             {nav.screen === 'ending' && <EndingScreen onRestart={() => window.location.reload()} />}
@@ -230,9 +258,11 @@ function App() {
       {/* 화면 전환 연출 오버레이 (Phase 10-2) — navigate 경유 전환에만 표시, StoryDialog보다 위 */}
       <ScreenTransition transition={transition} />
 
-      {/* 개발자 설정 관제실 — F9 / 백틱(`) / ⚙ 버튼으로 토글. 어느 화면에서나 접근 가능. */}
+      {/* 개발자 설정 관제실 — F9 / 백틱(`) / ⚙ 버튼으로 토글. 어느 화면에서나 접근 가능. (lazy) */}
       {devRoomOpen && (
-        <SystemControlRoom onClose={() => setDevRoomOpen(false)} inBattle={inBattle} initialTab={devRoomTab} />
+        <Suspense fallback={null}>
+          <SystemControlRoom onClose={() => setDevRoomOpen(false)} inBattle={inBattle} initialTab={devRoomTab} />
+        </Suspense>
       )}
     </>
   )

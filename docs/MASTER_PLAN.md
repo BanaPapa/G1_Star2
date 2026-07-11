@@ -483,7 +483,12 @@
       경고+로드 비활성. 테스트 9개(saveMigrations.test.js). 구현 opus-coder 위임 + Codex 2건(빈 슬롯 에러 초기화
       반영 / alert 도달불가는 스토리지 경합 방어코드로 유지 판정). E2E: v1 세이브(필드 누락) 심고 로드 →
       마이그레이션·지갑 777 반영·에러 0, 미래 버전(v99) 슬롯 경고+비활성 확인. vitest 207·빌드 통과.
-- [ ] 11-2 번들 분할 (Phaser 청크 1.8MB → dynamic import), 로딩 화면 개선
+- [x] 11-2 번들 분할 (Phaser 청크 1.8MB → dynamic import), 로딩 화면 개선 (2026-07-08)
+      — BattleScreen(→Phaser 전량)·SystemControlRoom을 React.lazy+Suspense 분리: 메인 청크 **1,948→419kB(-78%)**,
+      Phaser는 전투 진입 시에만 로드(워프 전환이 로드 시간 흡수, 경량 "전투 준비 중" 폴백). 성단맵 진입 후 idle
+      프리페치로 첫 전투 딜레이 제거. dataLoader glob eager 전환으로 INEFFECTIVE_DYNAMIC_IMPORT 경고 2건 소멸
+      (진행바 인터페이스 유지). 잔여 500kB 경고는 Phaser 본체 청크 고유(실분리 불가, 숨김 처리 안 함).
+      구현 opus-coder 위임, Codex 지적 0건. E2E: 부팅·관제실 lazy·전투 진입 정상, vitest 207·빌드 통과.
 - [ ] 11-3 대형 파일 리팩토링 (BattleScene 2,000줄 / StrategyMapScreen 1,700줄 분할)
 - [ ] 11-4 E2E 테스트: 새 게임→정복→입항→저장→로드 스모크 자동화 (browse/Playwright)
 - [ ] 11-5 완주 QA 2회차 + 크래시/진행불가 0건 확인
