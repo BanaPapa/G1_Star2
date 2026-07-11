@@ -16,6 +16,7 @@ import TopStatusBar from './ui/components/TopStatusBar'
 import StoryDialog from './ui/components/StoryDialog'
 import { useStoryStore } from './state/useStoryStore'
 import SystemControlRoom from './ui/devroom/SystemControlRoom'
+import ScreenTransition, { useScreenTransition } from './ui/components/ScreenTransition'
 import './App.css'
 
 // 화면 3계층: main(성단맵) / place(장소맵) / battle(전투맵) + title/ending/gameover (스펙 §1)
@@ -46,10 +47,17 @@ function App() {
   const [battleCategory, setBattleCategory] = useState(null)
   const navRef = useRef(nav)
   useEffect(() => { navRef.current = nav }, [nav])
+  const { transition, startTransition } = useScreenTransition()
 
-  function navigate(screen, placeId = null) {
-    setPrevNav(navRef.current)
-    setNav({ screen, placeId })
+  // navigate: 전환 오버레이(kind별 연출)를 거쳐 화면을 교체한다.
+  // 같은 화면(screen+placeId)으로의 이동은 전환을 생략. prevNav는 덮인 순간(=실제 교체 시점) 갱신.
+  function navigate(screen, placeId = null, kind = 'fade') {
+    const cur = navRef.current
+    if (cur && cur.screen === screen && cur.placeId === placeId) return
+    startTransition(kind, () => {
+      setPrevNav(navRef.current)
+      setNav({ screen, placeId })
+    })
   }
 
   // 에디터 "모의 전투" — testBattleMap이 설정되면(스토어 구독) 관제실을 닫고 테스트 전투로 진입.
@@ -62,9 +70,12 @@ function App() {
     setMockBattle(true)
     setBattleCategory(null)
     setActiveNodeId(node?.id ?? null)
-    setPrevNav(navRef.current)
-    setNav({ screen: 'battle', placeId: null })
-  }), [])
+    // 모의 전투 진입도 warp 전환 경유(즉시 하드컷 방지).
+    startTransition('warp', () => {
+      setPrevNav(navRef.current)
+      setNav({ screen: 'battle', placeId: null })
+    })
+  }), [startTransition])
 
   useEffect(() => { init() }, [init])
 
@@ -100,41 +111,43 @@ function App() {
   }
 
   function handleNewGame() {
-    navigate('main')
+    navigate('main', null, 'fade')
     useStoryStore.getState().trigger('newGame') // 프롤로그 — 최초 1회만 재생 (Phase 6-2)
   }
   function handleContinue() { setOverlay('save') }
   function handleSettings() { setOverlay('save') }
-  function handleGameOver() { navigate('gameover') }
+  function handleGameOver() { navigate('gameover', null, 'fade') }
 
   function handleEnterBattle(nodeId, category = null) {
     setActiveNodeId(nodeId)
     setBattleCategory(category)
     setMockBattle(false)
-    navigate('battle')
+    navigate('battle', null, 'warp')
   }
 
   function handleExitBattle() {
     setActiveNodeId(null)
     if (mockBattle) {
-      // 모의 전투는 테스트 — 끝나면 메인맵이 아니라 에디터(관제실)로 복귀한다.
-      setMockBattle(false)
-      useMapStore.getState().clearTestBattleMap()
-      setNav(prevNav ?? { screen: 'main', placeId: null })
-      setDevRoomTab('mapeditor')
-      setDevRoomOpen(true)
+      // 모의 전투는 테스트 — 끝나면 메인맵이 아니라 에디터(관제실)로 복귀한다(fade).
+      startTransition('fade', () => {
+        setMockBattle(false)
+        useMapStore.getState().clearTestBattleMap()
+        setNav(prevNav ?? { screen: 'main', placeId: null })
+        setDevRoomTab('mapeditor')
+        setDevRoomOpen(true)
+      })
       return
     }
-    navigate('main')
+    navigate('main', null, 'fade')
   }
 
   function handleEnding() {
     setActiveNodeId(null)
-    navigate('ending')
+    navigate('ending', null, 'slowfade')
   }
 
-  function handleEnterPlace(placeId) { navigate('place', placeId) }
-  function handleExitPlace()         { navigate('main') }
+  function handleEnterPlace(placeId) { navigate('place', placeId, 'dock') }
+  function handleExitPlace()         { navigate('main', null, 'dock') }
 
   const inBattle = nav.screen === 'battle'
 
@@ -213,6 +226,9 @@ function App() {
 
       {/* 스토리 대사 오버레이 — useStoryStore.active가 있을 때만 스스로 표시 (Phase 6-2) */}
       <StoryDialog />
+
+      {/* 화면 전환 연출 오버레이 (Phase 10-2) — navigate 경유 전환에만 표시, StoryDialog보다 위 */}
+      <ScreenTransition transition={transition} />
 
       {/* 개발자 설정 관제실 — F9 / 백틱(`) / ⚙ 버튼으로 토글. 어느 화면에서나 접근 가능. */}
       {devRoomOpen && (

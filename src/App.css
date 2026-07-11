@@ -1065,3 +1065,153 @@
 }
 .app-overlay-close:hover { background: rgba(255, 255, 255, 0.12); }
 .app-overlay-body { flex: 1; overflow-y: auto; }
+
+/* ════════════════════════════════════════════════════════════════
+   화면 전환 연출 (Phase 10-2) — 입항/출항·전투 진입 트랜지션
+   z-index: StoryDialog(600)·전역오버레이(900)보다 위, 관제실(9000)보다 아래.
+   타이밍은 ScreenTransition.jsx의 TRANSITIONS 상수와 반드시 일치.
+   ════════════════════════════════════════════════════════════════ */
+.screen-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  pointer-events: auto; /* 전환 중 입력 차단 */
+  overflow: hidden;
+}
+
+/* ── fade / slowfade — 단순 검정 페이드 ── */
+.st-fade {
+  position: absolute;
+  inset: 0;
+  background: #000;
+}
+@keyframes st-fade-out { from { opacity: 0; } to { opacity: 1; } }
+@keyframes st-fade-in  { from { opacity: 1; } to { opacity: 0; } }
+.st--fade.st--out .st-fade     { animation: st-fade-out 240ms ease both; }
+.st--fade.st--in  .st-fade     { animation: st-fade-in  240ms ease both; }
+.st--slowfade.st--out .st-fade { animation: st-fade-out 900ms ease both; }
+.st--slowfade.st--in  .st-fade { animation: st-fade-in  600ms ease both; }
+
+/* ── warp — 전투 진입: 시안→화이트 방사형 플래시 + 워프 스트릭 ── */
+/* 컨테이너 자체를 화이트 베일로 사용해 덮인 순간 전체가 가려지도록(모서리까지) 보장. */
+@keyframes st-warp-veil-out {
+  0%, 55% { background-color: rgba(255, 255, 255, 0); }
+  100%    { background-color: #ffffff; }
+}
+@keyframes st-warp-veil-in {
+  0%   { background-color: #ffffff; }
+  100% { background-color: rgba(255, 255, 255, 0); }
+}
+.st--warp.st--out { animation: st-warp-veil-out 420ms ease-in both; }
+.st--warp.st--in  { animation: st-warp-veil-in  320ms ease-out both; }
+
+.st-warp-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%,
+    #ffffff 0%,
+    rgba(180, 255, 246, 0.92) 16%,
+    rgba(58, 214, 196, 0.42) 38%,
+    rgba(6, 8, 24, 0) 72%);
+}
+@keyframes st-warp-flash-out {
+  0%   { opacity: 0; transform: scale(0.55); }
+  70%  { opacity: 0.9; }
+  100% { opacity: 1; transform: scale(1.18); }
+}
+@keyframes st-warp-flash-in {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+.st--warp.st--out .st-warp-flash { animation: st-warp-flash-out 420ms ease-in both; }
+.st--warp.st--in  .st-warp-flash { animation: st-warp-flash-in  320ms ease-out both; }
+
+.st-warp-streaks {
+  position: absolute;
+  inset: -25%;
+  background: repeating-conic-gradient(from 0deg at 50% 50%,
+    rgba(255, 255, 255, 0) 0deg,
+    rgba(255, 255, 255, 0) 1.05deg,
+    rgba(180, 255, 246, 0.55) 1.45deg,
+    rgba(255, 255, 255, 0) 1.85deg);
+  mix-blend-mode: screen;
+}
+@keyframes st-warp-streaks-out {
+  0%   { opacity: 0; transform: scale(0.2) rotate(0deg); }
+  100% { opacity: 0.9; transform: scale(1.6) rotate(8deg); }
+}
+@keyframes st-warp-streaks-in {
+  0%   { opacity: 0.9; transform: scale(1.6) rotate(8deg); }
+  100% { opacity: 0; transform: scale(2.5) rotate(15deg); }
+}
+.st--warp.st--out .st-warp-streaks { animation: st-warp-streaks-out 420ms ease-in both; }
+.st--warp.st--in  .st-warp-streaks { animation: st-warp-streaks-in  320ms ease-out both; }
+
+/* ── dock — 입항/출항: 상하 도킹 셔터 바 + 가운데 시안 라인 글로우 ── */
+.st-dock-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50vh;
+}
+.st-dock-bar--top {
+  top: 0;
+  background: linear-gradient(180deg, #0d1430 0%, #080b1c 68%, #05060f 100%);
+  border-bottom: 1px solid rgba(58, 214, 196, 0.18);
+}
+.st-dock-bar--bottom {
+  bottom: 0;
+  background: linear-gradient(0deg, #0d1430 0%, #080b1c 68%, #05060f 100%);
+  border-top: 1px solid rgba(58, 214, 196, 0.18);
+}
+@keyframes st-dock-top-out { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+@keyframes st-dock-bot-out { from { transform: translateY(100%); }  to { transform: translateY(0); } }
+@keyframes st-dock-top-in  { from { transform: translateY(0); } to { transform: translateY(-100%); } }
+@keyframes st-dock-bot-in  { from { transform: translateY(0); } to { transform: translateY(100%); } }
+.st--dock.st--out .st-dock-bar--top    { animation: st-dock-top-out 380ms cubic-bezier(0.4, 0, 0.2, 1) both; }
+.st--dock.st--out .st-dock-bar--bottom { animation: st-dock-bot-out 380ms cubic-bezier(0.4, 0, 0.2, 1) both; }
+.st--dock.st--in  .st-dock-bar--top    { animation: st-dock-top-in  380ms cubic-bezier(0.4, 0, 0.2, 1) both; }
+.st--dock.st--in  .st-dock-bar--bottom { animation: st-dock-bot-in  380ms cubic-bezier(0.4, 0, 0.2, 1) both; }
+
+.st-dock-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  box-shadow: 0 0 12px 2px rgba(58, 214, 196, 0.7);
+  filter: blur(0.4px);
+}
+@keyframes st-dock-line-out {
+  0%, 45% { opacity: 0; transform: translateY(-50%) scaleX(0.3); }
+  100%    { opacity: 1; transform: translateY(-50%) scaleX(1); }
+}
+@keyframes st-dock-line-in {
+  0%   { opacity: 1; transform: translateY(-50%) scaleX(1); }
+  100% { opacity: 0; transform: translateY(-50%) scaleX(0.3); }
+}
+.st--dock.st--out .st-dock-line { animation: st-dock-line-out 380ms ease both; }
+.st--dock.st--in  .st-dock-line { animation: st-dock-line-in  380ms ease both; }
+
+/* ── prefers-reduced-motion: warp/dock의 스트릭·셔터 연출을 제거하고 단순 페이드로 감쇄 ── */
+@media (prefers-reduced-motion: reduce) {
+  .st--warp .st-warp-streaks,
+  .st--warp .st-warp-flash,
+  .st--dock .st-dock-bar,
+  .st--dock .st-dock-line {
+    display: none;
+    animation: none;
+  }
+  .st--warp.st--out,
+  .st--dock.st--out {
+    background-color: #04060f;
+    animation: st-fade-out 240ms ease both;
+  }
+  .st--warp.st--in,
+  .st--dock.st--in {
+    background-color: #04060f;
+    animation: st-fade-in 240ms ease both;
+  }
+}
