@@ -11,14 +11,12 @@ import { getBattlefieldSizeByTier, getPlayerWeaponTier } from '../../core/combat
 import { calculateRetreatChance, calculateNegotiationChance } from '../../core/combatMath/flagship'
 import { useGameConfigStore } from '../../state/useGameConfigStore'
 import { useMapStore, pickCategoryMap } from '../../state/useMapStore'
+import { ShipGlyph, AtkIcon, MovIcon, WeaponIcon } from './battleIcons'
 
 // 함선 전투력(카드덱 정렬 기준) — 화력 비중을 크게, 기함은 최상위.
 function shipStrength(u) {
   return (u.atk ?? 0) * 6 + (u.maxHp ?? 0) + (u.maxShield ?? 0) + (u.isFlagship ? 100000 : 0)
 }
-
-// 무기 계열 아이콘 — 카드/HUD에서 장착 무기를 한눈에 구분
-const FAMILY_ICON = { laser: '🔦', ion: '⚡', plasma: '🔥', gravity: '🌀', antimatter: '🕳️' }
 
 // ── 좌측 플로팅 액션 버튼 (호버 시 이름·설명 펼침) ──
 function BtlFab({ emoji, label, desc, color, onClick, disabled, active }) {
@@ -79,8 +77,8 @@ function ShipCard({ u, side, index, count, active }) {
           )}
         </div>
         <div className="btl-card-statgrid">
-          <div className="btl-card-stat"><i>⚔</i><b>{u.atk}</b><small>ATK</small></div>
-          <div className="btl-card-stat"><i>🚀</i><b>{u.mov}</b><small>MOV</small></div>
+          <div className="btl-card-stat"><i className="btl-card-svg"><AtkIcon /></i><b>{u.atk}</b><small>ATK</small></div>
+          <div className="btl-card-stat"><i className="btl-card-svg"><MovIcon /></i><b>{u.mov}</b><small>MOV</small></div>
           <div className="btl-card-stat btl-card-stat--ap">
             <small>AP {u.ap}/{apMax}</small>
             <div className="btl-card-pips">
@@ -92,7 +90,7 @@ function ShipCard({ u, side, index, count, active }) {
           <div className="btl-card-weapons">
             {weapons.map((w, i) => (
               <div key={i} className="btl-card-weapon" title={`티어 ${w.tier} · AP ${w.apCost}`}>
-                <span className="btl-card-wicon">{FAMILY_ICON[w.family] ?? '🗡'}</span>
+                <span className="btl-card-wicon"><WeaponIcon family={w.family} /></span>
                 <span className="btl-card-wname">{w.name}</span>
                 <small>T{w.tier}{w.cd > 0 ? ` ⏳${w.cd}` : ''}</small>
               </div>
@@ -101,7 +99,7 @@ function ShipCard({ u, side, index, count, active }) {
         ) : (isAlly && (
           <div className="btl-card-weapons">
             <div className="btl-card-weapon btl-card-weapon--none">
-              <span className="btl-card-wicon">🗡</span>
+              <span className="btl-card-wicon"><WeaponIcon family={null} /></span>
               <span className="btl-card-wname">기본 포 · 미장착</span>
             </div>
           </div>
@@ -111,8 +109,8 @@ function ShipCard({ u, side, index, count, active }) {
       {/* 미니카드 — 평소 노출(배지 · 이름 · HP바) */}
       <div className="btl-card-mini">
         <span className="btl-card-badge">
-          {u.sprite}
-          {u.isFlagship && <i className="btl-card-crown">👑</i>}
+          <ShipGlyph shipClass={u.shipClass} />
+          {u.isFlagship && <i className="btl-card-crown" title="기함" />}
         </span>
         <span className={`btl-card-name${u.aceName ? ' btl-card-name--ace' : ''}`}>{u.name}</span>
         <div className="btl-card-hp"><span style={{ width: hpPct + '%' }} /></div>

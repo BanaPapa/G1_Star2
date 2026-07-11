@@ -3962,6 +3962,8 @@ export default class BattleScene extends Phaser.Scene {
         side:       u.side,
         name:       u.ship.name,
         sprite:     getEmojiFallback(u.ship.sprite),
+        // 함급 키(gunship/frigate/…) — 카드가 함급별 SVG 실루엣을 고르는 데 사용. 적은 base(플레이어 함급)로 매핑.
+        shipClass:  u.baseShip?.base ?? u.baseShip?.id ?? null,
         hp:         u.hp,
         maxHp:      u.maxHp,
         shield:     u.shield,
