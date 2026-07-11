@@ -21,6 +21,18 @@ function SlotCard({ slot, rev, onLoaded }) {
   // rev가 바뀌면 재렌더 — 슬롯 데이터를 직접 읽는다
   void rev
   const meta = getSlotMeta(slot)
+  const incompatible = meta?.incompatible
+
+  const handleLoad = () => {
+    const ok = load(slot)
+    if (ok) { onLoaded?.(); return }
+    const reason = useSaveStore.getState().lastLoadError
+    alert(
+      reason === 'newer'
+        ? '상위 버전 세이브입니다 — 최신 빌드가 필요합니다.'
+        : '세이브 데이터가 손상되어 불러올 수 없습니다.'
+    )
+  }
 
   return (
     <div className={`save-slot${meta ? ' save-slot--used' : ''}`}>
@@ -38,6 +50,9 @@ function SlotCard({ slot, rev, onLoaded }) {
               .map(([k, v]) => `${RESOURCE_LABEL[k] ?? k} ${v}`)
               .join(' · ')}
           </span>
+          {incompatible && (
+            <span className="save-slot-warning">⚠ 상위 버전 세이브 — 최신 빌드가 필요합니다</span>
+          )}
         </div>
       ) : (
         <p className="save-slot-empty">— 빈 슬롯 —</p>
@@ -49,7 +64,11 @@ function SlotCard({ slot, rev, onLoaded }) {
         </button>
         {meta && (
           <>
-            <button className="save-btn save-btn--load" onClick={() => { load(slot); onLoaded?.() }}>
+            <button
+              className="save-btn save-btn--load"
+              onClick={handleLoad}
+              disabled={incompatible}
+            >
               📂 불러오기
             </button>
             <button className="save-btn save-btn--delete" onClick={() => del(slot)}>

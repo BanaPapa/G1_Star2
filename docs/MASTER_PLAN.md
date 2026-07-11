@@ -475,7 +475,14 @@
 
 ### Phase 11 — QA·최적화·안정화
 
-- [ ] 11-1 세이브 스키마 버전 + 마이그레이션 프레임 (출시 후 패치 대비)
+- [x] 11-1 세이브 스키마 버전 + 마이그레이션 프레임 (출시 후 패치 대비) (2026-07-08)
+      — 순수 모듈 `core/saveMigrations.js`: SAVE_SCHEMA_VERSION=2, 버전 체인 MIGRATIONS(v1→v2 — 기존 load()의
+      `??` 임기응변 폴백을 데이터 정규화로 정착, resources.wallet 포함), migrateSave()가 미래 버전 'newer' 거부·
+      손상 'corrupt' 거부(원본 보존, 비파괴 로드 — write-back 없음). useSaveStore: save에 schemaVersion 기록,
+      load는 마이그레이션 경유(내부 폴백 제거로 단일 출처화), lastLoadError 상태. SaveScreen: 상위 버전 슬롯
+      경고+로드 비활성. 테스트 9개(saveMigrations.test.js). 구현 opus-coder 위임 + Codex 2건(빈 슬롯 에러 초기화
+      반영 / alert 도달불가는 스토리지 경합 방어코드로 유지 판정). E2E: v1 세이브(필드 누락) 심고 로드 →
+      마이그레이션·지갑 777 반영·에러 0, 미래 버전(v99) 슬롯 경고+비활성 확인. vitest 207·빌드 통과.
 - [ ] 11-2 번들 분할 (Phaser 청크 1.8MB → dynamic import), 로딩 화면 개선
 - [ ] 11-3 대형 파일 리팩토링 (BattleScene 2,000줄 / StrategyMapScreen 1,700줄 분할)
 - [ ] 11-4 E2E 테스트: 새 게임→정복→입항→저장→로드 스모크 자동화 (browse/Playwright)

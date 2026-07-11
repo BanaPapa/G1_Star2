@@ -101,10 +101,21 @@
   padding: 6px 0;
 }
 
+.save-slot-warning {
+  font-family: var(--kr);
+  font-size: 11px;
+  color: #e0a355;
+}
+
 .save-slot-actions {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+.save-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .save-btn {

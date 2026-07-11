@@ -6,6 +6,7 @@ import { useDevelopmentStore } from './useDevelopmentStore'
 import { useResourceStore } from './useResourceStore'
 import { useBuildingStore } from './useBuildingStore'
 import { useStoryStore } from './useStoryStore'
+import { SAVE_SCHEMA_VERSION, migrateSave } from '../core/saveMigrations'
 
 // 세이브 슬롯 1~3 — 모든 게임 상태를 localStorage에 JSON 직렬화(MOD-12).
 const PREFIX = '7star_save_'
@@ -26,16 +27,21 @@ function eraseSlot(slot) {
 export function getSlotMeta(slot) {
   const data = readSlot(slot)
   if (!data) return null
+  const schemaVersion = data.schemaVersion ?? 1
   return {
     timestamp: data.timestamp,
     conqueredCount: data.progress?.conqueredNodeIds?.length ?? 0,
     wallet: data.resources?.wallet ?? {},
+    schemaVersion,
+    // 미래 빌드가 만든 상위 버전 세이브 — 현재 빌드로는 로드 불가(SaveScreen이 비활성화 표시).
+    incompatible: schemaVersion > SAVE_SCHEMA_VERSION,
   }
 }
 
 export const useSaveStore = create((set) => ({
   rev: 0, // 저장/삭제 시 증가 → SaveScreen이 구독해 재렌더
   loadRev: 0, // 로드 시 증가 — App이 StrategyMapScreen의 key로 사용해 로드 직후 리마운트(위치 반영)
+  lastLoadError: null, // 마지막 load 실패 사유('newer'|'corrupt') — 성공 시 null
 
   save: (slot) => {
     const p = useProgressStore.getState()
@@ -46,6 +52,7 @@ export const useSaveStore = create((set) => ({
     const b = useBuildingStore.getState()
 
     writeSlot(slot, {
+      schemaVersion: SAVE_SCHEMA_VERSION,
       timestamp: Date.now(),
       progress: {
         currentNodeId:    p.currentNodeId,
@@ -70,37 +77,51 @@ export const useSaveStore = create((set) => ({
   },
 
   load: (slot) => {
-    const data = readSlot(slot)
-    if (!data) return false
+    const raw = readSlot(slot)
+    if (!raw) {
+      set({ lastLoadError: null }) // 빈 슬롯 — 이전 실패 사유가 남아 UI를 오도하지 않게 초기화
+      return false
+    }
 
+    // 세이브를 현재 스키마 버전으로 마이그레이션(순수 변환, 원본 불변).
+    // 디스크 write-back은 하지 않는다 — 로드는 비파괴(구세이브 원본 보존).
+    // 매 로드 시 메모리 마이그레이션 비용은 무시 가능하다.
+    const result = migrateSave(raw)
+    if (!result.ok) {
+      set({ lastLoadError: result.reason })
+      return false
+    }
+    const data = result.data
+
+    // 마이그레이션으로 데이터가 정규화됐으므로 아래 setState의 `??` 폴백은 제거(단일 출처: 마이그레이션).
     useProgressStore.setState({
       currentNodeId:    data.progress.currentNodeId,
       conqueredNodeIds: data.progress.conqueredNodeIds,
-      miningDeposits:   data.progress.miningDeposits   ?? {},
-      obtainedHiddens:  data.progress.obtainedHiddens  ?? [],
-      recruitedAces:    data.progress.recruitedAces    ?? [],
-      fleetPos:         data.progress.fleetPos         ?? null,
+      miningDeposits:   data.progress.miningDeposits,
+      obtainedHiddens:  data.progress.obtainedHiddens,
+      recruitedAces:    data.progress.recruitedAces,
+      fleetPos:         data.progress.fleetPos,
     })
     useFleetStore.setState({
       roster:     data.fleet.roster,
-      ownedItems: data.fleet.ownedItems ?? {},
+      ownedItems: data.fleet.ownedItems,
     })
     useResearchStore.setState({
-      unlockedIds: data.research?.unlockedIds ?? [],
+      unlockedIds: data.research.unlockedIds,
     })
     useDevelopmentStore.setState({
-      developed: data.development?.developed ?? [],
+      developed: data.development.developed,
     })
     useResourceStore.setState({
       wallet: data.resources.wallet,
     })
+    // buildings는 구세이브에 없을 수 있어 존재 분기를 유지(마이그레이션이 채우지 않음).
     if (data.buildings) {
       useBuildingStore.getState().loadState(data.buildings)
     }
-    // 구버전 세이브(story 없음)는 빈 목록 — 대사가 다시 나올 뿐 진행에는 영향 없음
-    useStoryStore.setState({ seenIds: data.story?.seenIds ?? [], choices: data.story?.choices ?? {}, active: null, queue: [] })
+    useStoryStore.setState({ seenIds: data.story.seenIds, choices: data.story.choices, active: null, queue: [] })
 
-    set((s) => ({ loadRev: s.loadRev + 1 }))
+    set((s) => ({ loadRev: s.loadRev + 1, lastLoadError: null }))
     return true
   },
 
