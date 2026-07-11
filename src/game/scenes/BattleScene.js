@@ -273,6 +273,9 @@ export default class BattleScene extends Phaser.Scene {
     // 개발 모드 전용 — E2E/헤드리스 QA가 씬을 직접 구동할 수 있는 훅 (프로덕션 빌드 제외)
     if (import.meta.env.DEV) window.__battleScene = this
 
+    // 전투 시작 시 액션 로그 초기화 (표시 전용 스트림, 승패 기록과 별개)
+    useBattleStore.getState().clearActionLog()
+
     // ── 아이소메트릭 타일 크기 계산 ─────────────────────────────────
     // 그리드 시각 폭: (COLS + ROWS - 2) * hw = 20 * hw
     // 그리드 시각 높: (COLS + ROWS) * hh     = 22 * hh  (각 타일 상하 팁 포함)
@@ -2672,6 +2675,14 @@ export default class BattleScene extends Phaser.Scene {
     return {
       name: item.name, tier: item.tier ?? 0, family: item.family ?? null, apCost: item.apCost ?? 1,
       cd: this._weaponOnCooldown(unit, slot), // 남은 재장전 턴 (쿨타임 토글 OFF면 0)
+      // ── 리치 툴팁용 상세 (Phase 10-4) — 아이템 정의 값 그대로 표시 ──
+      atk: item.mods?.atk ?? 0,
+      rangeBonus: item.rangeBonus ?? 0,
+      accuracy: item.accuracy ?? null,
+      pierce: item.pierce ?? 0,
+      area: item.area ?? 'none',
+      cooldown: item.cooldown ?? 0, // 무기 정격 쿨타임(설계값, cd=현재 남은 턴과 별개)
+      extra: item.extra ?? null,
     }
   }
 
@@ -3291,12 +3302,16 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   showFloatingText(unit, text, color, onComplete) {
-    // 데미지 숫자(-N, 💥N)는 크고 흔들리게, 나머지는 작고 조용하게
-    const isBigHit = text.startsWith('-') || text.startsWith('💥')
+    // 데미지 숫자(-N, 💥N)는 크고 흔들리게, 쉴드 흡수(🛡)는 중형, 나머지는 작고 조용하게
+    const isCrit   = text.startsWith('💥')          // 크리티컬
+    const isDmg    = text.startsWith('-')            // 일반 빅히트
+    const isShield = text.startsWith('🛡-')          // 쉴드 "흡수"만 (방어 태세 🛡 +N%는 소형 유지)
+    const isBigHit = isDmg || isCrit
+    const bigTreat = isBigHit || isShield            // 흔들기·상승 연출 대상
     const isMiss = text === '회피!'
-    const fontSize = isBigHit ? '62px' : isMiss ? '36px' : '20px'
-    const strokeThick = isBigHit ? 8 : isMiss ? 5 : 3
-    const fontFamily = (isBigHit || isMiss) ? 'Bangers, Impact, sans-serif' : 'Share Tech Mono, monospace'
+    const fontSize = isCrit ? '68px' : isDmg ? '62px' : isShield ? '44px' : isMiss ? '36px' : '20px'
+    const strokeThick = isBigHit ? 8 : isShield ? 6 : isMiss ? 5 : 3
+    const fontFamily = (bigTreat || isMiss) ? 'Bangers, Impact, sans-serif' : 'Share Tech Mono, monospace'
 
     const popup = this.add
       .text(unit.container.x, unit.container.y - CELL * 0.88, text, {
@@ -3310,7 +3325,14 @@ export default class BattleScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(10)
 
-    if (isBigHit) {
+    // 등장 스케일 팝 — 크리티컬 1.35, 일반 빅히트/쉴드 1.15 (Back.easeOut, 흔들기와 동시 진행)
+    const popScale = isCrit ? 1.35 : bigTreat ? 1.15 : 0
+    if (popScale) {
+      popup.setScale(popScale)
+      this.tweens.add({ targets: popup, scale: 1.0, duration: 120, ease: 'Back.easeOut' })
+    }
+
+    if (bigTreat) {
       // 피격 유닛 좌우 흔들기
       this._shakeUnit(unit)
 
@@ -4342,5 +4364,7 @@ export default class BattleScene extends Phaser.Scene {
         : '적이 행동 중입니다...'
     const text = message ?? fallback
     this.hudText.setText(`MOD-4 · 턴 ${this.turnNumber} (${phaseLabel})  —  ${text}`)
+    // 전투 액션 로그 스트림에도 적재 (연속 중복은 스토어에서 스킵). 표시 전용.
+    useBattleStore.getState().pushActionLog(text, this.turnNumber)
   }
 }

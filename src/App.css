@@ -332,9 +332,61 @@
 /* 무기 칩 */
 .btl-card-weapons { display: flex; flex-direction: column; gap: 4px; }
 .btl-card-weapon {
+  position: relative;
   display: flex; align-items: center; gap: 5px; padding: 4px 6px; border-radius: 6px;
   background: rgba(0,0,0,0.3); border: 1px solid var(--line);
 }
+
+/* ── 무기 리치 툴팁 (무기칩 hover) ── */
+.btl-wtip {
+  position: absolute; left: 0; right: 0; bottom: calc(100% + 6px);
+  z-index: 600; text-align: left; pointer-events: none;
+  padding: 7px 9px; border-radius: 8px;
+  background: linear-gradient(0deg, var(--panel-2), var(--panel-2)), rgba(6, 10, 28, 0.97);
+  border: 1px solid var(--wfam, var(--line));
+  box-shadow: 0 10px 26px rgba(0,0,0,0.62), 0 0 0 1px rgba(0,0,0,0.4);
+  animation: btl-wtip-in 0.12s ease-out both;
+}
+@keyframes btl-wtip-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.btl-wtip-head { display: flex; align-items: baseline; gap: 6px; margin-bottom: 5px; }
+.btl-wtip-name { font-family: var(--disp); font-size: 12px; font-weight: 700; color: var(--wfam); }
+.btl-wtip-tier { font-family: var(--mono); font-size: 9px; color: var(--wfam); opacity: 0.85; }
+.btl-wtip-rows { display: flex; flex-direction: column; gap: 2px; }
+.btl-wtip-row { display: flex; justify-content: space-between; gap: 12px; font-family: var(--mono); font-size: 10px; line-height: 1.35; }
+.btl-wtip-row span { color: var(--dim); }
+.btl-wtip-row b { color: #eaf2ff; font-weight: 600; }
+.btl-wtip-extra {
+  margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--line);
+  font-family: var(--kr); font-size: 10px; line-height: 1.4; color: var(--gold);
+}
+
+/* ── 전투 액션 로그 패널 (좌측 하단, 접이식) ── */
+.btl-log {
+  position: absolute; left: 10px; bottom: 262px; width: 340px; max-width: 42vw;
+  z-index: 9; display: flex; flex-direction: column;
+  font-family: var(--mono); pointer-events: auto;
+}
+.btl-log-scroll {
+  max-height: 180px; overflow-y: auto; overflow-x: hidden;
+  padding: 7px 9px; border-radius: 8px 8px 0 0;
+  background: linear-gradient(0deg, var(--panel-2), var(--panel-2)), rgba(6, 10, 28, 0.92);
+  border: 1px solid var(--line); border-bottom: none;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.btl-log-line { font-size: 11px; line-height: 1.4; color: #cdd8f5; word-break: break-word; }
+.btl-log-turn { color: var(--dim); font-size: 10px; margin-right: 3px; }
+.btl-log-empty { font-size: 11px; color: var(--dim); }
+.btl-log-bar {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  padding: 5px 9px; border-radius: 0 0 8px 8px;
+  background: linear-gradient(0deg, var(--panel-2), var(--panel-2)), rgba(6, 10, 28, 0.86);
+  border: 1px solid var(--line);
+  color: #cdd8f5; font-family: var(--mono); font-size: 11px; text-align: left; cursor: pointer;
+}
+.btl-log:not(.btl-log--open) .btl-log-bar { border-radius: 8px; }
+.btl-log-bar:hover { background: linear-gradient(0deg, var(--panel-2), var(--panel-2)), rgba(16, 24, 52, 0.92); }
+.btl-log-ico { flex: 0 0 auto; color: var(--dim); font-size: 9px; }
+.btl-log-last { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .btl-card-wicon { flex: 0 0 auto; display: inline-flex; color: rgba(var(--fam), 0.95); }
 .btl-card-wicon svg { width: 13px; height: 13px; }
 .btl-card-wname { flex: 1 1 auto; min-width: 0; font-family: var(--kr); font-size: 10px; color: #dfe7ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

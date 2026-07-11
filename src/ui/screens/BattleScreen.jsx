@@ -42,12 +42,64 @@ function BtlFab({ emoji, label, desc, color, onClick, disabled, active }) {
   )
 }
 
+// ── 무기 계열색 (툴팁 헤더 톤 · 표시 전용) ──
+const FAMILY_COLOR = {
+  laser:      '#ff5a5a',
+  ion:        '#4fb8ff',
+  plasma:     '#ff9a3d',
+  gravity:    '#b18cff',
+  antimatter: '#ff5ce1',
+}
+
+// ── 광역(area) 코드 → 한글 라벨 ──
+const AREA_LABELS = {
+  burst5x5:   '5×5 폭발',
+  burst3x3:   '3×3 폭발',
+  field5x5:   '5×5 필드',
+  scatter3x3: '3×3 산탄',
+}
+function areaLabel(area) {
+  if (!area || area === 'none') return null
+  if (AREA_LABELS[area]) return AREA_LABELS[area]
+  if (area.startsWith('line')) return '직선 관통'
+  return area
+}
+
+// ── 무기 리치 툴팁 — 무기칩 hover 시 상세 스탯 카드가 위로 뜬다 ──
+function WeaponTooltip({ w }) {
+  const color = FAMILY_COLOR[w.family] ?? '#7fd4ff'
+  const rows = []
+  rows.push(['피해', `+${w.atk ?? 0}`])
+  rows.push(['AP', w.apCost])
+  if (w.rangeBonus > 0)       rows.push(['사거리 보너스', `+${w.rangeBonus}`])
+  if (w.accuracy != null)     rows.push(['명중', `${w.accuracy}%`])
+  if (w.pierce > 0)           rows.push(['관통', `${w.pierce}%`])
+  const al = areaLabel(w.area)
+  if (al)                     rows.push(['광역', al])
+  if (w.cooldown > 0)         rows.push(['쿨타임', `${w.cooldown}턴`])
+  return (
+    <div className="btl-wtip" style={{ '--wfam': color }}>
+      <div className="btl-wtip-head">
+        <span className="btl-wtip-name">{w.name}</span>
+        <span className="btl-wtip-tier">T{w.tier}</span>
+      </div>
+      <div className="btl-wtip-rows">
+        {rows.map(([k, v], i) => (
+          <div key={i} className="btl-wtip-row"><span>{k}</span><b>{v}</b></div>
+        ))}
+      </div>
+      {w.extra && <div className="btl-wtip-extra">{w.extra}</div>}
+    </div>
+  )
+}
+
 // ── 하단 함선 카드 (카드덱 스타일) ──
 // 평소엔 컴팩트 미니카드(배지·이름·HP바)가 화면 안에 온전히 보이고,
 // 호버/행동 중이면 살짝 솟으며 위쪽으로 상세 패널(스탯·무기)이 우아하게 펼쳐진다.
 // index 0 = 가장 강함(가장 바깥쪽). 안쪽(중앙) 기준선에서 약함→강함 순으로 바깥에 깔린다.
 function ShipCard({ u, side, index, count, active }) {
   const [hov, setHov] = useState(false)
+  const [hovWeapon, setHovWeapon] = useState(-1)
   const raised = hov || active
   const isAlly = side === 'ally'
   const hpPct = u.maxHp > 0 ? Math.max(0, (u.hp / u.maxHp) * 100) : 0
@@ -99,10 +151,13 @@ function ShipCard({ u, side, index, count, active }) {
         {weapons.length ? (
           <div className="btl-card-weapons">
             {weapons.map((w, i) => (
-              <div key={i} className="btl-card-weapon" title={`티어 ${w.tier} · AP ${w.apCost}`}>
+              <div key={i} className="btl-card-weapon"
+                onMouseEnter={() => setHovWeapon(i)}
+                onMouseLeave={() => setHovWeapon((c) => (c === i ? -1 : c))}>
                 <span className="btl-card-wicon"><WeaponIcon family={w.family} /></span>
                 <span className="btl-card-wname">{w.name}</span>
                 <small>T{w.tier}{w.cd > 0 ? ` ⏳${w.cd}` : ''}</small>
+                {hovWeapon === i && <WeaponTooltip w={w} />}
               </div>
             ))}
           </div>
@@ -126,6 +181,38 @@ function ShipCard({ u, side, index, count, active }) {
         <div className="btl-card-hp"><span style={{ width: hpPct + '%' }} /></div>
         {u.maxShield > 0 && <div className="btl-card-sh"><span style={{ width: shPct + '%' }} /></div>}
       </div>
+    </div>
+  )
+}
+
+// ── 전투 액션 로그 패널 (좌측 하단, 접이식) ──
+// 접힌 상태: 최근 1줄만 얇은 바로 표시. 펼치면 최근 로그 스크롤 뷰(최신이 아래, 자동 스크롤).
+function BattleLogPanel() {
+  const log = useBattleStore((s) => s.actionLog)
+  const [open, setOpen] = useState(false)
+  const scrollRef = useRef(null)
+  useEffect(() => {
+    if (open && scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+  }, [log, open])
+  const last = log[log.length - 1]
+  return (
+    <div className={`btl-log${open ? ' btl-log--open' : ''}`}>
+      {open && (
+        <div className="btl-log-scroll" ref={scrollRef}>
+          {log.length === 0
+            ? <div className="btl-log-empty">전투 로그가 여기에 표시됩니다.</div>
+            : log.map((e) => (
+                <div key={e.id} className="btl-log-line">
+                  <span className="btl-log-turn">[T{e.turn}]</span> {e.text}
+                </div>
+              ))}
+        </div>
+      )}
+      <button className="btl-log-bar" onClick={() => setOpen((o) => !o)}
+        title={open ? '전투 로그 접기' : '전투 로그 펼치기'}>
+        <span className="btl-log-ico">{open ? '▾' : '▸'}</span>
+        <span className="btl-log-last">{last ? `[T${last.turn}] ${last.text}` : '전투 로그'}</span>
+      </button>
     </div>
   )
 }
@@ -438,6 +525,9 @@ export default function BattleScreen({ nodeId, mock = false, battleCategory = nu
           ))}
         </div>
       </div>
+
+      {/* ── 전투 액션 로그 (좌측 하단, 접이식) ── */}
+      <BattleLogPanel />
 
       {/* ── 도망 모달 ── */}
       {fleeModal && (
