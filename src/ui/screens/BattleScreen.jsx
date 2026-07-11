@@ -35,7 +35,8 @@ function BtlFab({ emoji, label, desc, color, onClick, disabled, active }) {
 }
 
 // ── 하단 함선 카드 (카드덱 스타일) ──
-// 평소엔 이름이 적힌 상단만 보이고, 호버/행동 중이면 카드 전체가 올라온다.
+// 평소엔 컴팩트 미니카드(배지·이름·HP바)가 화면 안에 온전히 보이고,
+// 호버/행동 중이면 살짝 솟으며 위쪽으로 상세 패널(스탯·무기)이 우아하게 펼쳐진다.
 // index 0 = 가장 강함(가장 바깥쪽). 안쪽(중앙) 기준선에서 약함→강함 순으로 바깥에 깔린다.
 function ShipCard({ u, side, index, count, active }) {
   const [hov, setHov] = useState(false)
@@ -43,58 +44,79 @@ function ShipCard({ u, side, index, count, active }) {
   const isAlly = side === 'ally'
   const hpPct = u.maxHp > 0 ? Math.max(0, (u.hp / u.maxHp) * 100) : 0
   const shPct = u.maxShield > 0 ? Math.max(0, (u.shield / u.maxShield) * 100) : 0
-  const STEP = 92 // 카드 간 가로 간격(겹침 줄임)
+  const STEP = 80 // 카드 간 가로 간격(6척 × 40% 폭에 들어오게)
   // 안쪽(중앙 기준선)에 가장 약한 카드, 강한 카드일수록 바깥(화면 끝)으로.
   // distFromInner: 안쪽 기준선에서 바깥으로의 거리. 가장 약한 카드(가장 큰 index) = 0.
   const distFromInner = (count - 1 - index) * STEP
   const pos = isAlly ? { right: distFromInner } : { left: distFromInner }
-  // 바깥(강한) 카드가 위로 오게 z-index. 올라온 카드는 최상위.
-  const z = raised ? 500 : (count - index)
+  // 겹침은 '안쪽(텍스트 없는 쪽)' 방향으로 — 안쪽(약한, 큰 index) 카드가 위에 와서
+  // 바깥(강한) 카드의 안쪽 모서리만 살짝 덮는다. 배지·이름은 바깥쪽에 두어 항상 노출.
+  const z = raised ? 500 : index + 1
+  // 용량은 maxAp에서만 (현재 AP에서 파생하지 않음 — AP 소진 시 0/0 오표기 방지). pip는 과다 DOM 방지로 상한.
+  const apMax = Math.max(u.maxAp ?? 0, u.ap ?? 0)
+  const apPips = Array.from({ length: Math.min(apMax, 8) }, (_, i) => i < (u.ap ?? 0))
+  const weapons = [u.weapon1, u.weapon2].filter(Boolean)
   return (
     <div
-      className={`btl-card btl-card--${side}${raised ? ' btl-card--raised' : ''}${u.dead ? ' btl-card--dead' : ''}`}
+      className={`btl-card btl-card--${side}${raised ? ' btl-card--raised' : ''}${active ? ' btl-card--active' : ''}${u.dead ? ' btl-card--dead' : ''}`}
       style={{ ...pos, zIndex: z }}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
     >
-      {/* 카드 상단 — 평소에 보이는 부분(이름) */}
-      <div className="btl-card-head">
-        <span className="btl-card-emoji">{u.sprite}{u.isFlagship ? '👑' : ''}</span>
-        <span className="btl-card-name">{u.name}</span>
-      </div>
-      {/* 카드 본문 — 카드가 올라왔을 때 드러나는 부분 */}
-      <div className="btl-card-body">
-        {u.aceName && <div className="btl-card-ace">{u.aceName}</div>}
-        <div className="btl-card-hpbar">
-          <div className="btl-card-hpfill" style={{ width: hpPct + '%', background: isAlly ? '#3ad6c4' : '#e23b4e' }} />
-        </div>
-        {u.maxShield > 0 && (
-          <div className="btl-card-shbar">
-            <div className="btl-card-shfill" style={{ width: shPct + '%' }} />
+      {/* 상세 패널 — raise 시 미니카드 위쪽으로 펼쳐짐 */}
+      <div className="btl-card-detail">
+        {u.aceName && <div className="btl-card-ace">★ {u.aceName}</div>}
+        <div className="btl-card-bars">
+          <div className="btl-card-bar btl-card-bar--hp">
+            <span className="btl-card-fill" style={{ width: hpPct + '%' }} />
+            <em>{u.hp}/{u.maxHp}</em>
           </div>
-        )}
-        <div className="btl-card-stats">
-          <span title="체력">🛡 {u.hp}/{u.maxHp}</span>
-          <span title="화력">⚔ {u.atk}</span>
+          {u.maxShield > 0 && (
+            <div className="btl-card-bar btl-card-bar--sh">
+              <span className="btl-card-fill" style={{ width: shPct + '%' }} />
+              <em>{u.shield}/{u.maxShield}</em>
+            </div>
+          )}
         </div>
-        <div className="btl-card-stats btl-card-stats--sub">
-          <span title="행동력">AP {u.ap}/{u.maxAp}</span>
-          <span title="기동성">MOV {u.mov}</span>
+        <div className="btl-card-statgrid">
+          <div className="btl-card-stat"><i>⚔</i><b>{u.atk}</b><small>ATK</small></div>
+          <div className="btl-card-stat"><i>🚀</i><b>{u.mov}</b><small>MOV</small></div>
+          <div className="btl-card-stat btl-card-stat--ap">
+            <small>AP {u.ap}/{apMax}</small>
+            <div className="btl-card-pips">
+              {apPips.map((on, i) => <span key={i} className={on ? 'on' : ''} />)}
+            </div>
+          </div>
         </div>
-        {/* 장착 무기 — 아군은 미장착도 안내 (함대 편성 유도) */}
-        {(u.weapon1 || u.weapon2) ? (
+        {weapons.length ? (
           <div className="btl-card-weapons">
-            {[u.weapon1, u.weapon2].filter(Boolean).map((w, i) => (
+            {weapons.map((w, i) => (
               <div key={i} className="btl-card-weapon" title={`티어 ${w.tier} · AP ${w.apCost}`}>
-                {FAMILY_ICON[w.family] ?? '🗡'} {w.name} <small>T{w.tier}{w.cd > 0 ? ` · ⏳${w.cd}` : ''}</small>
+                <span className="btl-card-wicon">{FAMILY_ICON[w.family] ?? '🗡'}</span>
+                <span className="btl-card-wname">{w.name}</span>
+                <small>T{w.tier}{w.cd > 0 ? ` ⏳${w.cd}` : ''}</small>
               </div>
             ))}
           </div>
         ) : (isAlly && (
           <div className="btl-card-weapons">
-            <div className="btl-card-weapon btl-card-weapon--none">🗡 기본 포 — 함대 편성에서 장착</div>
+            <div className="btl-card-weapon btl-card-weapon--none">
+              <span className="btl-card-wicon">🗡</span>
+              <span className="btl-card-wname">기본 포 · 미장착</span>
+            </div>
           </div>
         ))}
+      </div>
+
+      {/* 미니카드 — 평소 노출(배지 · 이름 · HP바) */}
+      <div className="btl-card-mini">
+        <span className="btl-card-badge">
+          {u.sprite}
+          {u.isFlagship && <i className="btl-card-crown">👑</i>}
+        </span>
+        <span className={`btl-card-name${u.aceName ? ' btl-card-name--ace' : ''}`}>{u.name}</span>
+        <div className="btl-card-hp"><span style={{ width: hpPct + '%' }} /></div>
+        {u.maxShield > 0 && <div className="btl-card-sh"><span style={{ width: shPct + '%' }} /></div>}
       </div>
     </div>
   )
