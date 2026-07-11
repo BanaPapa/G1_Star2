@@ -1,0 +1,150 @@
+/* 튜토리얼 스텝 카드 오버레이 (Phase 10-3) — 절제된 다크 SF 톤 */
+
+.tut-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 800; /* 오버레이류(app-overlay 900) 아래 · 스토리(600) 위 */
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none; /* 카드/스크림만 클릭 받음 */
+}
+
+/* 뒷배경 — 어둡게 깔고 클릭 통과 차단. 중앙 하단만 살짝 밝게. */
+.tut-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  background:
+    radial-gradient(60% 42% at 50% 82%, rgba(58, 214, 196, 0.06), transparent 70%),
+    rgba(4, 6, 14, 0.5);
+  animation: tut-scrim-in 0.2s ease-out;
+}
+
+@keyframes tut-scrim-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.tut-card {
+  position: relative;
+  pointer-events: auto;
+  width: min(420px, 92vw);
+  margin-bottom: 12vh;
+  padding: 18px 20px 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 14px 48px rgba(0, 0, 0, 0.6),
+    0 0 22px -6px var(--tut-accent);
+  animation: tut-card-in 0.22s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+@keyframes tut-card-in {
+  from { transform: translateY(18px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.tut-skip {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  padding: 2px 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  color: var(--muted, #9aa8c7);
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.15s, color 0.15s;
+}
+.tut-skip:hover { opacity: 1; color: var(--text, #e6ecff); }
+
+.tut-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 48px; /* 건너뛰기 버튼 회피 */
+  min-height: 84px;
+  animation: tut-step-in 0.2s ease-out;
+}
+
+@keyframes tut-step-in {
+  from { transform: translateY(6px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+
+.tut-icon {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.tut-title {
+  margin: 0;
+  font-family: var(--disp);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--tut-accent);
+}
+
+.tut-text {
+  margin: 0;
+  font-family: var(--kr);
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text, #d7e0f5);
+}
+
+.tut-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+
+.tut-dots {
+  display: flex;
+  gap: 7px;
+}
+
+.tut-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  transition: background 0.2s, transform 0.2s;
+}
+.tut-dot--done { background: color-mix(in srgb, var(--tut-accent) 45%, transparent); }
+.tut-dot--on {
+  background: var(--tut-accent);
+  transform: scale(1.35);
+  box-shadow: 0 0 8px var(--tut-accent);
+}
+
+.tut-next {
+  font-family: var(--disp);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 8px 20px;
+  color: #041018;
+  background: var(--tut-accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.08s;
+}
+.tut-next:hover { filter: brightness(1.12); }
+.tut-next:active { transform: translateY(1px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tut-scrim,
+  .tut-card,
+  .tut-body { animation: none; }
+  .tut-dot { transition: none; }
+}

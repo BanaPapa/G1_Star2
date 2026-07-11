@@ -5,6 +5,8 @@ import { useBuildingStore } from '../../state/useBuildingStore'
 import { useGameConfigStore } from '../../state/useGameConfigStore'
 import { getPlaceFacilities } from '../../data/placeFacilities'
 import { pickBark } from '../../state/useStoryStore'
+import { useSettingsStore } from '../../state/useSettingsStore'
+import TutorialOverlay from '../components/TutorialOverlay'
 import ResearchPanel from '../facilities/ResearchPanel'
 import ShopPanel from '../facilities/ShopPanel'
 import CraftPanel from '../facilities/CraftPanel'
@@ -22,6 +24,13 @@ const FACILITY_LABEL = {
   repair:   '🛠️ 수리',
 }
 
+// 첫 입항 안내 스텝 (Phase 10-3) — 최초 입항 시 1회.
+const PLACE_TUTORIAL_STEPS = [
+  { icon: '🛰', title: '입항 완료', body: '모항/거점에서는 함대를 정비할 수 있습니다.' },
+  { icon: '🗂', title: '시설 탭', body: '조선소(함선 구매·수리), 상점(무기·장비), 연구소(기술 해금), 워크샵(조합) 등 상단 탭으로 이동하세요.' },
+  { icon: '🚀', title: '출항', body: '정비가 끝나면 출항 버튼으로 성단 맵에 복귀합니다.' },
+]
+
 
 export default function PlaceScreen({ placeId, onExit }) {
   const systems = useDataStore((s) => s.data?.systems?.systems)
@@ -31,6 +40,12 @@ export default function PlaceScreen({ placeId, onExit }) {
   const initOutpost = useBuildingStore((s) => s.initOutpost)
   const config = useGameConfigStore((s) => s.config)
   const [tab, setTab] = useState(null)
+
+  // ── 첫 입항 안내 (Phase 10-3) — 최초 마운트 1회만 판정 ──
+  const markTutorialSeen = useSettingsStore((s) => s.markTutorialSeen)
+  const [showPlaceTutorial, setShowPlaceTutorial] = useState(
+    () => !useSettingsStore.getState().tutorialSeen.place,
+  )
 
   const aces = useDataStore((s) => s.data?.aces?.aces)
 
@@ -107,6 +122,15 @@ export default function PlaceScreen({ placeId, onExit }) {
         <RepairPanel
           capPct={config?.economy?.repair?.outpostCapByLevel?.[getLevel(placeId, 'bld_outpost')] ?? 0.5}
           facilityName={`아웃포스트 간이수리 Lv.${getLevel(placeId, 'bld_outpost')}`}
+        />
+      )}
+
+      {/* ── 첫 입항 안내 오버레이 (Phase 10-3) ── */}
+      {showPlaceTutorial && (
+        <TutorialOverlay
+          steps={PLACE_TUTORIAL_STEPS}
+          accent="var(--gold)"
+          onDone={() => { setShowPlaceTutorial(false); markTutorialSeen('place') }}
         />
       )}
     </div>

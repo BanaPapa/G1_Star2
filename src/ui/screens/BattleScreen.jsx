@@ -11,7 +11,17 @@ import { getBattlefieldSizeByTier, getPlayerWeaponTier } from '../../core/combat
 import { calculateRetreatChance, calculateNegotiationChance } from '../../core/combatMath/flagship'
 import { useGameConfigStore } from '../../state/useGameConfigStore'
 import { useMapStore, pickCategoryMap } from '../../state/useMapStore'
+import { useSettingsStore } from '../../state/useSettingsStore'
+import TutorialOverlay from '../components/TutorialOverlay'
 import { ShipGlyph, AtkIcon, MovIcon, WeaponIcon } from './battleIcons'
+
+// 첫 전투 가이드 스텝 (Phase 10-3) — 실제 게임 전투 최초 진입 시 1회.
+const BATTLE_TUTORIAL_STEPS = [
+  { icon: '⚓︎', title: '함선 선택', body: '아군 함선을 클릭하면 이동 가능 칸과 공격 대상이 표시됩니다.' },
+  { icon: '⚡', title: 'AP = 행동력', body: '이동·공격·태세 모두 AP를 씁니다. 카드의 점(pip)이 남은 AP입니다.' },
+  { icon: '⏭', title: '턴 진행', body: '모든 행동을 마치면 스페이스(또는 턴종료)로 적 턴으로 넘어갑니다.' },
+  { icon: '🗺', title: '카메라·자동전투', body: '우측 상단 미니맵 버튼으로 조감↔전투뷰 전환, 좌측 🤖 버튼으로 자동전투를 켤 수 있습니다.' },
+]
 
 // 함선 전투력(카드덱 정렬 기준) — 화력 비중을 크게, 기함은 최상위.
 function shipStrength(u) {
@@ -184,6 +194,18 @@ export default function BattleScreen({ nodeId, mock = false, battleCategory = nu
   // 카메라 조감↔전투뷰 토글 + 미니맵
   const [camOverview, setCamOverview] = useState(true)
   const minimapViewRef = useRef(null)
+
+  // ── 첫 전투 튜토리얼 (Phase 10-3) — 실전(!mock)에서만, 워프 연출과 안 겹치게 지연 후 표시 ──
+  const tutorialSeenBattle = useSettingsStore((s) => s.tutorialSeen.battle)
+  const markTutorialSeen   = useSettingsStore((s) => s.markTutorialSeen)
+  const [showBattleTutorial, setShowBattleTutorial] = useState(false)
+  useEffect(() => {
+    if (mock || tutorialSeenBattle) return
+    const t = setTimeout(() => setShowBattleTutorial(true), 800)
+    return () => clearTimeout(t)
+    // 최초 마운트 1회만 판정 (tutorialSeenBattle이 도중에 true가 돼도 재예약하지 않음)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── 도망/협상 모달 ──
   const [fleeModal,      setFleeModal]      = useState(null)
@@ -534,6 +556,14 @@ export default function BattleScreen({ nodeId, mock = false, battleCategory = nu
             )}
           </div>
         </div>
+      )}
+
+      {/* ── 첫 전투 가이드 오버레이 (Phase 10-3) ── */}
+      {showBattleTutorial && (
+        <TutorialOverlay
+          steps={BATTLE_TUTORIAL_STEPS}
+          onDone={() => { setShowBattleTutorial(false); markTutorialSeen('battle') }}
+        />
       )}
 
     </div>
