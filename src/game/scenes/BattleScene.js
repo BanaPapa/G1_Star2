@@ -198,8 +198,11 @@ export default class BattleScene extends Phaser.Scene {
       this.load.image('map_bg_custom', this.mapDef.background)
     }
     // 방향별 함선 스프라이트 — PNG가 있을 때만 실제 렌더링에 사용됨(없으면 이모지 폴백).
-    for (const dir of ['ne', 'nw', 'se', 'sw']) {
-      this.load.image(`hull_gunship_${dir}`, `/assets/hull_gunship_${dir}.png`)
+    const hullClasses = ['gunship', 'frigate', 'destroyer', 'cruiser', 'battlecruiser', 'battleship']
+    for (const hullClass of hullClasses) {
+      for (const dir of ['ne', 'nw', 'se', 'sw']) {
+        this.load.image(`hull_${hullClass}_${dir}`, `/assets/hull_${hullClass}_${dir}.png`)
+      }
     }
     // 이펙트 텍스처 (WO-7/8) — 파일이 없으면 로드 실패해도 무해: 각 연출이 프로시저럴로 폴백한다.
     this.load.image('fx_glow_soft', '/assets/fx_glow_soft.png')

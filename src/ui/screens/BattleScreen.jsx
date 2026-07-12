@@ -335,6 +335,8 @@ export default function BattleScreen({ nodeId, mock = false, battleCategory = nu
       height: h,
       backgroundColor: '#0a0e27',
     })
+    // dev 전용 디버그 훅 — E2E/브라우저 검증에서 씬 상태 조회용
+    if (import.meta.env.DEV) window.__game = game
     // 우선순위: 모의 전투 맵 → 카테고리 할당(랜덤) → 노드 정적 battleMapId → 노드 할당(레거시) → 전역 미리보기
     const mapDefinition = resolvedMapDef
 

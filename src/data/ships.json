@@ -11,31 +11,31 @@
     },
     {
       "id": "frigate", "name": "프리깃", "hp": 78, "atk": 36, "def": 17, "shield": 35, "maxShield": 35, "armor": 17, "armorDurability": 80, "maxArmorDurability": 80, "acc": 80, "eva": 22, "mov": 3, "rng": [1, 2], "ap": 3, "tpPerTurn": 1, "cost": 320,
-      "role": "다목적 중형 주력", "unlock": "start", "sprite": "unit_frigate_ally",
+      "role": "다목적 중형 주력", "unlock": "start", "sprite": "unit_frigate_ally", "hull": "hull_frigate",
       "growth": { "xpToNextLevel": { "base": 50, "perLevel": 15 }, "perLevelGain": { "hp": [3, 5], "atk": [2, 3], "def": [1, 2], "acc": [1, 2], "eva": [0, 1] } },
       "promotion": { "requireLevel": 5, "name": "돌격기", "statBonus": { "hp": 22, "atk": 9, "def": 5, "acc": 5, "eva": 3 }, "unlockSkill": "berserker_charge" }
     },
     {
       "id": "destroyer", "name": "디스트로이어", "hp": 92, "atk": 44, "def": 22, "shield": 30, "maxShield": 30, "armor": 24, "armorDurability": 100, "maxArmorDurability": 100, "acc": 80, "eva": 12, "mov": 2, "rng": [1, 2], "ap": 3, "tpPerTurn": 1, "cost": 520,
-      "role": "중형 화력지원·호위", "unlock": "progress:s1", "sprite": "unit_destroyer_ally",
+      "role": "중형 화력지원·호위", "unlock": "progress:s1", "sprite": "unit_destroyer_ally", "hull": "hull_destroyer",
       "growth": { "xpToNextLevel": { "base": 50, "perLevel": 15 }, "perLevelGain": { "hp": [3, 5], "atk": [2, 4], "def": [1, 2], "acc": [1, 2], "eva": [0, 1] } },
       "promotion": { "requireLevel": 6, "name": "강습구축함", "statBonus": { "hp": 25, "atk": 10, "def": 6, "acc": 5, "eva": 2 }, "unlockSkill": "siege_lance" }
     },
     {
       "id": "cruiser", "name": "크루저 (헬리온급)", "hp": 66, "atk": 38, "def": 13, "shield": 45, "maxShield": 45, "armor": 14, "armorDurability": 70, "maxArmorDurability": 70, "acc": 85, "eva": 20, "mov": 2, "rng": [2, 4], "ap": 3, "tpPerTurn": 1, "cost": 450,
-      "role": "주력 전투함 (플라즈마포+미사일)", "unlock": "start", "sprite": "unit_cruiser_ally",
+      "role": "주력 전투함 (플라즈마포+미사일)", "unlock": "start", "sprite": "unit_cruiser_ally", "hull": "hull_cruiser",
       "growth": { "xpToNextLevel": { "base": 50, "perLevel": 15 }, "perLevelGain": { "hp": [2, 4], "atk": [2, 3], "def": [1, 2], "acc": [1, 2], "eva": [0, 1] } },
       "promotion": { "requireLevel": 5, "name": "포격순양함", "statBonus": { "hp": 18, "atk": 8, "def": 4, "acc": 8, "eva": 3 }, "unlockSkill": "orbital_barrage" }
     },
     {
       "id": "battlecruiser", "name": "배틀크루저", "hp": 130, "atk": 50, "def": 26, "shield": 60, "maxShield": 60, "armor": 28, "armorDurability": 130, "maxArmorDurability": 130, "acc": 75, "eva": 12, "mov": 3, "rng": [1, 2], "ap": 3, "tpPerTurn": 2, "cost": 880,
-      "role": "대형 기동 전투함·기함", "unlock": "research:battlecruiser_ops", "sprite": "unit_battlecruiser_ally",
+      "role": "대형 기동 전투함·기함", "unlock": "research:battlecruiser_ops", "sprite": "unit_battlecruiser_ally", "hull": "hull_battlecruiser",
       "growth": { "xpToNextLevel": { "base": 50, "perLevel": 15 }, "perLevelGain": { "hp": [4, 6], "atk": [2, 3], "def": [1, 2], "acc": [1, 2], "eva": [0, 1] } },
       "promotion": { "requireLevel": 7, "name": "기함", "statBonus": { "hp": 35, "atk": 12, "def": 8, "acc": 5, "eva": 3 }, "unlockSkill": "fleet_command" }
     },
     {
       "id": "battleship", "name": "배틀십", "hp": 165, "atk": 64, "def": 34, "shield": 50, "maxShield": 50, "armor": 36, "armorDurability": 160, "maxArmorDurability": 160, "acc": 70, "eva": 5, "mov": 1, "rng": [1, 2], "ap": 2, "tpPerTurn": 1, "cost": 800,
-      "role": "최상위 화력·장갑", "unlock": "progress:s2", "sprite": "unit_battleship_ally",
+      "role": "최상위 화력·장갑", "unlock": "progress:s2", "sprite": "unit_battleship_ally", "hull": "hull_battleship",
       "growth": { "xpToNextLevel": { "base": 50, "perLevel": 15 }, "perLevelGain": { "hp": [5, 8], "atk": [2, 3], "def": [2, 3], "acc": [0, 1], "eva": [0, 1] } },
       "promotion": { "requireLevel": 7, "name": "공성전함", "statBonus": { "hp": 40, "atk": 12, "def": 10, "acc": 5, "eva": 2 }, "unlockSkill": "siege_cannon" }
     }
