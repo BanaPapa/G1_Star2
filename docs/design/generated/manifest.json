@@ -639,6 +639,33 @@
    "generation_id": "609853b3-8340-48cb-82c3-e253fac90a24",
    "cdn_file": "hf_20260712_142843_609853b3-8340-48cb-82c3-e253fac90a24.png",
    "prompt_note": "행성 아웃포스트 HoMM 부감 맵 — 사각 기초 플랫폼(건물 슬롯) 4곳 + 시안 홀로 마커"
+  },
+  {
+   "file": "bld_command_center_lv1_src.png",
+   "model": "nano_banana_2_lite",
+   "category": "building_homm",
+   "target": "bld_command_center_lv1.png",
+   "generation_id": "30195af9-4006-4528-bca9-c6399c6eed0d",
+   "cdn_file": "hf_20260712_150445_30195af9-4006-4528-bca9-c6399c6eed0d.png",
+   "prompt_note": "사령부 Lv1 — 마젠타 크로마키(백색 건물), 모항 배경(bg_place_daedalus_src)을 image_references로 사용, scripts/process_buildings.py 가공"
+  },
+  {
+   "file": "bld_research_lab_lv1_src.png",
+   "model": "nano_banana_2_lite",
+   "category": "building_homm",
+   "target": "bld_research_lab_lv1.png",
+   "generation_id": "c55d4796-a5df-4320-acb8-dbbc89fd8cec",
+   "cdn_file": "hf_20260712_150449_c55d4796-a5df-4320-acb8-dbbc89fd8cec.png",
+   "prompt_note": "연구소 Lv1 — 육각 글래스 돔+센서 디시, 마젠타 크로마키, 모항 배경 레퍼런스"
+  },
+  {
+   "file": "bld_workshop_lv1_src.png",
+   "model": "nano_banana_2_lite",
+   "category": "building_homm",
+   "target": "bld_workshop_lv1.png",
+   "generation_id": "19174fbf-d598-4959-b440-059349674a9f",
+   "cdn_file": "hf_20260712_150453_19174fbf-d598-4959-b440-059349674a9f.png",
+   "prompt_note": "워크샵 Lv1 — 배럴볼트 공작동+크레인 암+크레이트, 마젠타 크로마키, 모항 배경 레퍼런스"
   }
  ]
 }
