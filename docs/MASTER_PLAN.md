@@ -460,7 +460,10 @@
       비주얼: 계열 틴트 프레임(--fam CSS 변수)·그라데이션 HP/실드 바+수치·AP pip 점·스탯 그리드·무기칩,
       토큰(--disp/--mono/--cyan/--red) 사용. 구현 opus-coder(세션한도로 중단→메인 마무리) + Codex 리뷰
       3건(P3 pip 상한·P2 AP 폴백 반영, P2 collapsed는 의도된 설계로 판정). 잔여: 이모지 스프라이트→실제 초상화(Phase 8 아트).
-- [ ] 8-7 배경: bg_space 교체(현재 로드 에러), 장소맵 배경(모항/행성), 타이틀 아트
+- [~] 8-7 배경: bg_space 교체(현재 로드 에러), 장소맵 배경(모항/행성), 타이틀 아트
+      **필수 4장 완료 (2026-07-12, HoMM 단계 A)** — bg_space.jpg(로드 에러 해소) · bg_title.png(TitleScreen CSS 적용,
+      화살촉 자체 함선 디자인) · bg_place_daedalus.png(건물 슬롯 5곳 부감) · bg_place_planet.png(슬롯 4곳 부감).
+      1920×1080, 원본 docs/design/generated/bg_*_src.png. 잔여: 성계별 전투맵 배경 5장(HoMM 단계 E).
 - [ ] 8-8 모듈/소모품/유니크 아이콘 13종
 - [ ] 8-9 장소맵 행성·건물 (사용자 비전 2026-07-12: **HoMM 스타일 — 맵 배경 위에 건물이 실제로 세워져 보이는 뷰**.
       화면 설계 변경 동반: PlaceScreen 카드 UI → 부감 맵+건물 오브젝트. 건물 5종은 07_buildings.md의 패널 아이콘이 아닌

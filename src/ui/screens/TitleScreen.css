@@ -9,15 +9,22 @@
   overflow: hidden;
 }
 
-/* 별빛·성운 배경 */
+/* 별빛·성운 배경 + 타이틀 아트 */
 .title-bg {
   position: absolute;
   inset: 0;
   background:
+    /* 상단→하단 은은한 어두운 오버레이 (가독성 확보) */
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.30) 45%, rgba(0, 0, 0, 0.50) 100%),
+    /* 기존 성운 그라데이션 (이미지 위에 은은히 겹침 / 이미지 실패 시 폴백) */
     radial-gradient(ellipse at 15% 20%, rgba(79, 184, 255, 0.08) 0%, transparent 55%),
     radial-gradient(ellipse at 85% 80%, rgba(58, 214, 196, 0.06) 0%, transparent 50%),
     radial-gradient(ellipse at 50% 50%, rgba(255, 209, 102, 0.04) 0%, transparent 60%),
-    radial-gradient(ellipse at 70% 15%, rgba(120, 80, 255, 0.05) 0%, transparent 45%);
+    radial-gradient(ellipse at 70% 15%, rgba(120, 80, 255, 0.05) 0%, transparent 45%),
+    /* 타이틀 배경 이미지 (다양한 창 크기에서 잘림 허용하며 채움) */
+    url('/assets/bg_title.png') center center / cover no-repeat,
+    /* 최종 폴백 단색 (이미지 로드 실패 시 기존 다크 톤 유지) */
+    #05060f;
   pointer-events: none;
   animation: title-pulse 8s ease-in-out infinite alternate;
 }

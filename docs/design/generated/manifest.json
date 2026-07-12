@@ -603,6 +603,42 @@
    "target": "hull_battleship_antimatter_n.png",
    "generation_id": "afeefe16-ce9e-4ef9-ba39-e58e0a117508",
    "cdn_file": "hf_20260712_133317_afeefe16-ce9e-4ef9-ba39-e58e0a117508.png"
+  },
+  {
+   "file": "bg_space_src.png",
+   "model": "nano_banana_2_lite",
+   "category": "background",
+   "target": "bg_space.jpg",
+   "generation_id": "9cb370d5-8169-4554-9425-6c92d0580210",
+   "cdn_file": "hf_20260712_142830_9cb370d5-8169-4554-9425-6c92d0580210.png",
+   "prompt_note": "성단/전투 우주 배경 — 어둡고 저대비, BattleScene bg_space 로드 에러 해소"
+  },
+  {
+   "file": "bg_title_src.png",
+   "model": "nano_banana_2_lite",
+   "category": "background",
+   "target": "bg_title.png",
+   "generation_id": "e8f08151-38a8-46a1-b2f8-3400c38351ae",
+   "cdn_file": "hf_20260712_143307_e8f08151-38a8-46a1-b2f8-3400c38351ae.png",
+   "prompt_note": "타이틀 키아트 — 3차 채택(1차 상단 하드밴드, 2차 함선이 엔터프라이즈 유사 → 화살촉 자체 디자인으로 재생성)"
+  },
+  {
+   "file": "bg_place_daedalus_src.png",
+   "model": "nano_banana_2_lite",
+   "category": "background",
+   "target": "bg_place_daedalus.png",
+   "generation_id": "d382ae8b-be50-48bd-99f6-40ca7868d086",
+   "cdn_file": "hf_20260712_142838_d382ae8b-be50-48bd-99f6-40ca7868d086.png",
+   "prompt_note": "모항 HoMM 부감 맵 — 원형 착륙 패드(건물 슬롯) 5곳 + 시안 홀로 마커"
+  },
+  {
+   "file": "bg_place_planet_src.png",
+   "model": "nano_banana_2_lite",
+   "category": "background",
+   "target": "bg_place_planet.png",
+   "generation_id": "609853b3-8340-48cb-82c3-e253fac90a24",
+   "cdn_file": "hf_20260712_142843_609853b3-8340-48cb-82c3-e253fac90a24.png",
+   "prompt_note": "행성 아웃포스트 HoMM 부감 맵 — 사각 기초 플랫폼(건물 슬롯) 4곳 + 시안 홀로 마커"
   }
  ]
 }
