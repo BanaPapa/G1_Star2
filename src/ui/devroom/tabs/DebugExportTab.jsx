@@ -69,7 +69,7 @@ export default function DebugExportTab() {
   }
 
   // 계열 스킨 QA — 함대 전체를 지정 스킨으로 순환(기본 → laser → 기본). 제작된 스킨이 늘면 목록에 추가.
-  const SKIN_CYCLE = [null, 'laser']
+  const SKIN_CYCLE = [null, 'laser', 'ion']
   function cycleFleetSkin() {
     const fleet = useFleetStore.getState()
     const current = fleet.roster[0]?.skin ?? null
@@ -108,7 +108,7 @@ export default function DebugExportTab() {
         <div className="scr-btn-row">
           <button className="scr-btn" onClick={grantAllWeapons}>🗡 무기 25종 지급 + 데모 장착</button>
           <button className="scr-btn" onClick={grantResources}>💰 자원 지급 (+SC 10,000 외)</button>
-          <button className="scr-btn" onClick={cycleFleetSkin}>🎨 함대 스킨 순환 (기본↔laser)</button>
+          <button className="scr-btn" onClick={cycleFleetSkin}>🎨 함대 스킨 순환 ({SKIN_CYCLE.map((s) => s ?? '기본').join('↔')})</button>
         </div>
       </Section>
 

@@ -59,41 +59,49 @@
     대응은 조정 가능) → buyShip이 현재 노드 family를 roster 인스턴스 `skin`에 기록 → BattleScene이
     `hull_{함급}_{skin}_{방향}` 텍스처 존재 시 우선, 없으면 기본 폴백. QA는 개발실 Debug 탭 "🎨 함대 스킨 순환" 버튼.
     생성 절차 상세(레퍼런스 크롭→media_upload→generate→process_hulls.py)는 git log 50fa017~ 및 manifest.json 참조.
-  - 다음 작업은 아래 0번(이온 계열 라인) — 사용자가 "N단계 시작" 방식으로 단계별 트리거함.
+  - **이온 계열 라인 완성 (2026-07-12)**: 05안(아크형 EM 안테나 어레이) → 탑다운 6함급(전부 1회 생성 통과) →
+    `hull_{함급}_ion_{방향}` 24장. **주의: 초록 발광 계열이라 그린 대신 마젠타 크로마키로 생성** —
+    process_hulls.py에 배경색 스필 억제(크로마 투영 despill, 코너 샘플 배경색 기반이라 배경색 무관 동작) 구현으로
+    프린지 제거. 플라즈마(붉은 폭발)는 그린, 중력(보라)은 그린, 반물질(백/흑)은 그린 또는 마젠타 크로마키 권장 —
+    함선 발광색과 겹치지 않는 배경색을 고를 것.
+  - 다음 작업은 아래 0번(플라즈마 계열 라인) — 사용자가 "N단계 시작" 방식으로 단계별 트리거함.
 
 ---
 
 ## 대기 목록 (위에서부터 순서대로)
 
-### 0. Phase 8 — 이온 계열 함선 라인 (레이저 파이프라인 반복)
+### 0. Phase 8 — 플라즈마 계열 함선 라인 (레이저/이온 파이프라인 반복)
 
-**⏸ 트리거**: 힉스필드 MCP 연결된 세션에서 사용자가 "이온 계열 진행" 또는 "다음 계열"이라고 하면.
+**⏸ 트리거**: 힉스필드 MCP 연결된 세션에서 사용자가 "플라즈마 계열 진행" 또는 "다음 계열"이라고 하면.
 
 ```
-G1_Star2 Phase 8 이온 계열 함선 라인을 진행해줘. 레이저 계열과 동일한 파이프라인이야.
+G1_Star2 Phase 8 플라즈마 계열 함선 라인을 진행해줘. 레이저·이온 계열과 동일한 파이프라인이야.
 컨텍스트: docs/NEXT_PROMPTS.md 현재 상황 절 + docs/design/generated/style_sheets/SELECTIONS.md.
 
-1) 선정: gunship_candidates_ion.png의 9안 중 1안을 이온 컨셉(안테나/회로/초록 전자파) 기준으로
+1) 선정: gunship_candidates_plasma.png의 9안 중 1안을 플라즈마 컨셉(반응로/포대/붉은 폭발) 기준으로
    선정하고 SELECTIONS.md에 근거와 함께 기록. (탑다운 변환 적합성: 좌우 대칭·실루엣 명확·컴팩트)
-2) 크롭: 선정안을 3×3 그리드에서 크롭 + 번호 라벨을 배경색으로 지움 →
-   docs/design/generated/ion_gunship_ref_XX.png 저장.
+2) 크롭: 선정안을 3×3 그리드에서 크롭(1254px 시트, 셀 418px) + 번호 라벨을 배경색으로 지움 →
+   docs/design/generated/plasma_gunship_ref_XX.png 저장.
 3) 건십 생성: media_upload(+curl PUT+media_confirm) → generate_image(model=nano_banana_2_lite,
    thinking=HIGH, 크롭을 image_references로). 프롬프트 핵심: "referenced design exactly, strict top-down,
    nose pointing straight up, perfectly symmetrical, solid green chroma-key background, no shadow".
-   이온 모티프(antenna arrays, circuit patterns, green EM glow #7FD9FF~green) 유지.
+   플라즈마 모티프(reactor core, turret batteries, red-orange plasma glow) 유지.
+   붉은 발광이라 그린 크로마키 사용 가능 (발광색과 겹치는 배경색만 피할 것).
 4) 건십 통과 후 → 건십 생성물(job id)을 레퍼런스로 5함급 병렬 생성 (프리깃 slim/디스트로이어 flank
-   batteries/크루저 flagship graceful/배틀크루저 long spine/배틀십 fortress bulk — 레이저 때 프롬프트를
-   git log에서 재활용). 전부 docs/design/generated/ion_topdown_{함급}.png 저장 + manifest.json 갱신.
-5) 가공: scripts/process_hulls.py의 SKIN_SOURCES에 'ion' 블록 추가 →
-   python scripts/process_hulls.py ion → hull_{함급}_ion_{ne,nw,se,sw} 24장.
-6) 코드: BattleScene preload의 hullSkins 배열에 'ion' 추가 + DebugExportTab SKIN_CYCLE에 'ion' 추가.
-   (스킨 해석·건조 배정 로직은 이미 구현됨 — 추가 코드 불필요)
-7) 검증: 개발실 Debug 탭 "함대 스킨 순환"으로 ion 전환 → 모의전투 → window.__game 훅으로
-   unit.hull이 hull_{함급}_ion인지 확인 → vitest·빌드 → 커밋/푸시.
-완료 기준: 이온 스킨 6함급 전투 표시, SELECTIONS.md·MASTER_PLAN·이 문서 갱신, 테스트 통과.
+   batteries/크루저 flagship graceful/배틀크루저 long spine/배틀십 fortress bulk — 프롬프트 원문은
+   힉스필드 show_generations 히스토리(레이저·이온 세션)에서 회수해 재활용). 전부
+   docs/design/generated/plasma_topdown_{함급}.png 저장 + manifest.json 갱신.
+5) 가공: scripts/process_hulls.py의 SKIN_SOURCES에 'plasma' 블록 추가 →
+   python scripts/process_hulls.py plasma → hull_{함급}_plasma_{ne,nw,se,sw} 24장.
+   (배경 스필 억제는 despill 단계가 자동 처리 — 결과물에 프린지 남으면 SPILL_* 상수 조정)
+6) 코드: BattleScene preload의 hullSkins 배열에 'plasma' 추가 + DebugExportTab SKIN_CYCLE에 'plasma' 추가.
+   (스킨 해석·건조 배정 로직은 이미 구현됨 — 추가 코드 불필요, 버튼 라벨은 SKIN_CYCLE에서 자동 생성)
+7) 검증: 개발실 Debug 탭 "함대 스킨 순환"으로 plasma 전환 → 에디터 🧪 모의전투 → window.__battleScene 훅으로
+   unit.hull이 hull_{함급}_plasma인지 확인 → vitest·빌드 → 커밋/푸시.
+완료 기준: 플라즈마 스킨 6함급 전투 표시, SELECTIONS.md·MASTER_PLAN·이 문서 갱신, 테스트 통과.
 ```
 
-**완료 기준**: 프롬프트 내 완료 기준과 동일. 이후 플라즈마 → 중력 → 반물질 순서로 같은 항목을 복제해 반복.
+**완료 기준**: 프롬프트 내 완료 기준과 동일. 이후 중력 → 반물질 순서로 같은 항목을 복제해 반복.
 
 ### 1. WO-9 — 전투 효과음(SFX) 시스템 연동
 
