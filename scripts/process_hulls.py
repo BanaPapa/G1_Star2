@@ -23,14 +23,25 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC_DIR = os.path.join(ROOT, 'docs', 'design', 'generated')
 OUT_DIR = os.path.join(ROOT, 'public', 'assets')
 
-# 함급 → 원본 파일 (프리깃은 v2 재생성본 사용)
-SOURCES = {
-    'gunship': 'topdown_gunship.png',
-    'frigate': 'topdown_frigate_v2.png',
-    'destroyer': 'topdown_destroyer.png',
-    'cruiser': 'topdown_cruiser.png',
-    'battlecruiser': 'topdown_battlecruiser.png',
-    'battleship': 'topdown_battleship.png',
+# 스킨 → (함급 → 원본 파일). 'base'는 기본 백색 헬리온 (프리깃은 v2 재생성본).
+# 계열 스킨 출력 키는 hull_{함급}_{스킨}_{방향}, base는 hull_{함급}_{방향}.
+SKIN_SOURCES = {
+    'base': {
+        'gunship': 'topdown_gunship.png',
+        'frigate': 'topdown_frigate_v2.png',
+        'destroyer': 'topdown_destroyer.png',
+        'cruiser': 'topdown_cruiser.png',
+        'battlecruiser': 'topdown_battlecruiser.png',
+        'battleship': 'topdown_battleship.png',
+    },
+    'laser': {
+        'gunship': 'laser_topdown_gunship.png',
+        'frigate': 'laser_topdown_frigate.png',
+        'destroyer': 'laser_topdown_destroyer.png',
+        'cruiser': 'laser_topdown_cruiser.png',
+        'battlecruiser': 'laser_topdown_battlecruiser.png',
+        'battleship': 'laser_topdown_battleship.png',
+    },
 }
 
 # N(위)을 기준으로 한 화면 방향 회전각 (PIL rotate: 양수=반시계)
@@ -99,26 +110,30 @@ def _to_rotatable_square(img: Image.Image) -> Image.Image:
     return canvas
 
 
-def process(hull_class: str) -> list:
-    src_path = os.path.join(SRC_DIR, SOURCES[hull_class])
+def process(skin: str, hull_class: str) -> list:
+    src_path = os.path.join(SRC_DIR, SKIN_SOURCES[skin][hull_class])
     square = _to_rotatable_square(_crop_to_content(_cutout(Image.open(src_path))))
+    key_mid = hull_class if skin == 'base' else f'{hull_class}_{skin}'
     written = []
     for suffix, angle in DIRECTIONS.items():
         rotated = square.rotate(angle, resample=Image.BICUBIC, expand=False)
         final = rotated.resize((OUT_SIZE, OUT_SIZE), Image.LANCZOS)
-        out_path = os.path.join(OUT_DIR, f'hull_{hull_class}_{suffix}.png')
+        out_path = os.path.join(OUT_DIR, f'hull_{key_mid}_{suffix}.png')
         final.save(out_path)
         written.append(out_path)
     return written
 
 
 def main():
-    targets = sys.argv[1:] or list(SOURCES.keys())
+    # 사용: python scripts/process_hulls.py [스킨] [함급 ...]  (인자 없으면 base 전체)
+    args = sys.argv[1:]
+    skin = args[0] if args and args[0] in SKIN_SOURCES else 'base'
+    targets = [a for a in args if a not in SKIN_SOURCES] or list(SKIN_SOURCES[skin].keys())
     for hull_class in targets:
-        if hull_class not in SOURCES:
-            print(f'알 수 없는 함급: {hull_class} (가능: {", ".join(SOURCES)})')
+        if hull_class not in SKIN_SOURCES[skin]:
+            print(f'알 수 없는 함급: {hull_class} (가능: {", ".join(SKIN_SOURCES[skin])})')
             sys.exit(1)
-        for path in process(hull_class):
+        for path in process(skin, hull_class):
             print('saved', os.path.relpath(path, ROOT))
 
 

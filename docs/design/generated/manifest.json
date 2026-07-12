@@ -48,6 +48,14 @@
     { "file": "cine_battlecruiser.png", "model": "nano_banana_2", "category": "ship_cinematic", "generation_id": "7d8088ec-a738-4755-be34-0610290a5859", "cdn_file": "hf_20260711_192654_7d8088ec-a738-4755-be34-0610290a5859.png" },
     { "file": "cine_battleship.png", "model": "nano_banana_2", "category": "ship_cinematic", "generation_id": "3f012c17-06ec-4614-b837-92b47d1b4024", "cdn_file": "hf_20260711_192655_3f012c17-06ec-4614-b837-92b47d1b4024.png" },
 
-    { "file": "bg_starfield.png", "model": "nano_banana_2", "category": "background", "target": "bg_space.png", "generation_id": "ebb6fc4e-1bcb-4603-a9e9-81661e033731", "cdn_file": "hf_20260711_175931_ebb6fc4e-1bcb-4603-a9e9-81661e033731.png", "prompt_note": "16:9 1376x768, 저대비 스타필드 (UI 가독성 우선)" }
+    { "file": "bg_starfield.png", "model": "nano_banana_2", "category": "background", "target": "bg_space.png", "generation_id": "ebb6fc4e-1bcb-4603-a9e9-81661e033731", "cdn_file": "hf_20260711_175931_ebb6fc4e-1bcb-4603-a9e9-81661e033731.png", "prompt_note": "16:9 1376x768, 저대비 스타필드 (UI 가독성 우선)" },
+
+    { "file": "laser_gunship_ref_04.png", "model": null, "category": "skin_reference", "prompt_note": "레이저 계열 건십 04안 크롭 (gunship_candidates_laser.png 2행 1열, 라벨 제거). 계열 라인 생성의 스타일 앵커. 힉스필드 media_id e292d2b7-653f-4af3-b44c-c1adf6537f2f" },
+    { "file": "laser_topdown_gunship.png", "model": "nano_banana_2_lite", "category": "ship_topdown_laser", "target": "hull_gunship_laser_n.png", "generation_id": "dd62437f-182b-4654-856e-161662c61df2", "cdn_file": "hf_20260712_093944_dd62437f-182b-4654-856e-161662c61df2.png", "prompt_note": "04안 레퍼런스 → 탑다운 변환. 이후 5함급 생성의 레퍼런스로 사용됨" },
+    { "file": "laser_topdown_frigate.png", "model": "nano_banana_2_lite", "category": "ship_topdown_laser", "target": "hull_frigate_laser_n.png", "generation_id": "0775b721-75af-4870-a0ee-1ed1d3a82257", "cdn_file": "hf_20260712_094052_0775b721-75af-4870-a0ee-1ed1d3a82257.png" },
+    { "file": "laser_topdown_destroyer.png", "model": "nano_banana_2_lite", "category": "ship_topdown_laser", "target": "hull_destroyer_laser_n.png", "generation_id": "193a4d40-2ec9-4360-8ab9-809bee8f8b71", "cdn_file": "hf_20260712_094055_193a4d40-2ec9-4360-8ab9-809bee8f8b71.png" },
+    { "file": "laser_topdown_cruiser.png", "model": "nano_banana_2_lite", "category": "ship_topdown_laser", "target": "hull_cruiser_laser_n.png", "generation_id": "3d937ceb-3931-4d21-bf89-f504bd3fcc46", "cdn_file": "hf_20260712_094059_3d937ceb-3931-4d21-bf89-f504bd3fcc46.png" },
+    { "file": "laser_topdown_battlecruiser.png", "model": "nano_banana_2_lite", "category": "ship_topdown_laser", "target": "hull_battlecruiser_laser_n.png", "generation_id": "d018449e-1d80-4668-9ed4-6e40ef519637", "cdn_file": "hf_20260712_094103_d018449e-1d80-4668-9ed4-6e40ef519637.png" },
+    { "file": "laser_topdown_battleship.png", "model": "nano_banana_2_lite", "category": "ship_topdown_laser", "target": "hull_battleship_laser_n.png", "generation_id": "ac6aae72-93e1-4bde-801f-e1470c016665", "cdn_file": "hf_20260712_094106_ac6aae72-93e1-4bde-801f-e1470c016665.png" }
   ]
 }

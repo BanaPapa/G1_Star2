@@ -198,10 +198,15 @@ export default class BattleScene extends Phaser.Scene {
       this.load.image('map_bg_custom', this.mapDef.background)
     }
     // 방향별 함선 스프라이트 — PNG가 있을 때만 실제 렌더링에 사용됨(없으면 이모지 폴백).
+    // 계열 스킨(hull_{함급}_{스킨}_{방향})은 제작 완료된 계열만 목록에 추가한다 — 없는 파일은 로드 실패해도 무해.
     const hullClasses = ['gunship', 'frigate', 'destroyer', 'cruiser', 'battlecruiser', 'battleship']
+    const hullSkins = ['laser']
     for (const hullClass of hullClasses) {
       for (const dir of ['ne', 'nw', 'se', 'sw']) {
         this.load.image(`hull_${hullClass}_${dir}`, `/assets/hull_${hullClass}_${dir}.png`)
+        for (const skin of hullSkins) {
+          this.load.image(`hull_${hullClass}_${skin}_${dir}`, `/assets/hull_${hullClass}_${skin}_${dir}.png`)
+        }
       }
     }
     // 이펙트 텍스처 (WO-7/8) — 파일이 없으면 로드 실패해도 무해: 각 연출이 프로시저럴로 폴백한다.
@@ -876,8 +881,12 @@ export default class BattleScene extends Phaser.Scene {
 
     // 방향별 스프라이트 또는 이모지 폴백 — hull 필드가 있고 PNG가 로드됐을 때 이미지 사용.
     // 아군은 화면 우하(se), 적군은 화면 좌상(nw) 방향을 기본으로 설정한다.
-    const hull = ship.hull ?? null
+    // 인스턴스에 건조 행성 스킨(entry.skin)이 있고 그 계열 텍스처가 존재하면 스킨 hull을 우선 사용.
     const defaultDir = placement.side === 'ally' ? 'se' : 'nw'
+    let hull = ship.hull ?? null
+    if (hull && entry?.skin && this.textures.exists(`${hull}_${entry.skin}_${defaultDir}`)) {
+      hull = `${hull}_${entry.skin}`
+    }
     const hullSpriteKey = hull ? `${hull}_${defaultDir}` : null
     const hasHullSprite = hullSpriteKey ? this.textures.exists(hullSpriteKey) : false
 

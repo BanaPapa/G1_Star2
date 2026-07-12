@@ -18,11 +18,12 @@ const STARTING_ROSTER = [
   { instanceId: 'cruiser-1', shipId: 'cruiser', aceId: 'sera' },
 ]
 
-function freshEntry({ instanceId, shipId, aceId }) {
+function freshEntry({ instanceId, shipId, aceId, skin = null }) {
   return {
     instanceId,
     shipId,
     aceId,
+    skin,                  // 건조 행성의 기술 계열 스킨(systems.json family). null = 기본 스킨.
     level: 1,
     xp: 0,
     statGrowth: { hp: 0, atk: 0, def: 0, acc: 0, eva: 0 },
@@ -230,8 +231,17 @@ export const useFleetStore = create((set, get) => ({
     const ship = getShipById(shipId)
     if (!useResourceStore.getState().spend({ sc: ship.cost })) return false
     const instanceId = `${shipId}-${Date.now()}`
-    set((state) => ({ roster: [...state.roster, freshEntry({ instanceId, shipId, aceId: null })] }))
+    // 건조 행성의 기술 계열이 함선 스킨이 된다 (systems.json family) — 인스턴스에 영구 기록.
+    const nodeId = useProgressStore.getState().currentNodeId
+    const node = useDataStore.getState().data?.systems?.systems?.find((n) => n.id === nodeId)
+    const skin = node?.family ?? null
+    set((state) => ({ roster: [...state.roster, freshEntry({ instanceId, shipId, aceId: null, skin })] }))
     return true
+  },
+
+  // 개발실 QA 전용 — 함대 전체 스킨을 일괄 지정한다 (null = 기본 스킨 복원).
+  debugSetFleetSkin: (skin) => {
+    set((state) => ({ roster: state.roster.map((e) => ({ ...e, skin })) }))
   },
 
   // MOD-10: 에이스 배정 — 해당 함선 인스턴스의 aceId를 교체한다(null 전달 시 배정 해제).

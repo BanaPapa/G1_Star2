@@ -54,40 +54,46 @@
     선정 기록은 같은 폴더 `SELECTIONS.md` — **레이저 = 04안 확정**, 나머지 4계열 미정.
   - **생성 모델 방침**: 대량 생성은 힉스필드 `nano_banana_2_lite`(1k, thinking=HIGH, 이미지 레퍼런스 지원),
     아이콘은 `recraft_v4_1`(vector), 초상화는 soul 계열. 모델은 generate_image 호출마다 지정.
-  - 다음 작업은 아래 0번(레이저 계열 라인) — 사용자가 "N단계 시작" 방식으로 단계별 트리거함.
+  - **레이저 계열 라인 완성 (2026-07-12)**: 04안 → 탑다운 6함급(전부 1회 생성 통과) → `hull_{함급}_laser_{방향}` 24장.
+    **건조 행성 스킨 시스템 구현**(사용자 결정: 원안): systems.json family(s0 plasma/s1 laser/s2 ion/s3 gravity/s4 antimatter,
+    대응은 조정 가능) → buyShip이 현재 노드 family를 roster 인스턴스 `skin`에 기록 → BattleScene이
+    `hull_{함급}_{skin}_{방향}` 텍스처 존재 시 우선, 없으면 기본 폴백. QA는 개발실 Debug 탭 "🎨 함대 스킨 순환" 버튼.
+    생성 절차 상세(레퍼런스 크롭→media_upload→generate→process_hulls.py)는 git log 50fa017~ 및 manifest.json 참조.
+  - 다음 작업은 아래 0번(이온 계열 라인) — 사용자가 "N단계 시작" 방식으로 단계별 트리거함.
 
 ---
 
 ## 대기 목록 (위에서부터 순서대로)
 
-### 0. Phase 8 — 레이저 계열 함선 라인 (2단계 파일럿)
+### 0. Phase 8 — 이온 계열 함선 라인 (레이저 파이프라인 반복)
 
-**⏸ 트리거**: 힉스필드 MCP 연결된 세션에서 사용자가 "2단계 시작" 또는 "레이저 계열 진행"이라고 하면.
+**⏸ 트리거**: 힉스필드 MCP 연결된 세션에서 사용자가 "이온 계열 진행" 또는 "다음 계열"이라고 하면.
 
 ```
-G1_Star2 Phase 8 에셋 파이프라인 2단계(레이저 계열 라인)를 진행해줘.
-컨텍스트: docs/NEXT_PROMPTS.md 현재 상황 절 + docs/design/generated/style_sheets/SELECTIONS.md 참조.
+G1_Star2 Phase 8 이온 계열 함선 라인을 진행해줘. 레이저 계열과 동일한 파이프라인이야.
+컨텍스트: docs/NEXT_PROMPTS.md 현재 상황 절 + docs/design/generated/style_sheets/SELECTIONS.md.
 
-1) 레퍼런스 준비: docs/design/generated/style_sheets/gunship_candidates_laser.png의 04안(가운데 줄 왼쪽,
-   컴팩트 동체 + 트윈 캐논 + 창형 기수)을 크롭해서 단독 레퍼런스 이미지로 만든다.
-2) 건십 파일럿: 힉스필드 generate_image(model=nano_banana_2_lite, thinking=HIGH)에 04안 크롭을
-   이미지 레퍼런스로 넣고 "이 함선 디자인 그대로, 위에서 수직으로 내려다본 탑다운 뷰, 위(북쪽)를 향함,
-   좌우 대칭, 솔리드 그린 배경" 스타일로 생성. 원본 디자인의 창/렌즈/파란 관통선 요소 유지가 핵심.
-   품질 미달이면 프롬프트 조정 후 재생성(4~8회 정상). 결과는 docs/design/generated/에 저장하고
-   manifest.json에 항목 추가.
-3) 사용자에게 건십 결과 확인받은 뒤 → 같은 디자인 언어로 나머지 5함급(프리깃/디스트로이어/크루저/
-   배틀크루저/배틀십) 탑다운 생성. 함급이 올라갈수록 덩치·디테일 밀도 증가 (04_ships_helion.md 함급 설명 참조).
-4) 가공: scripts/process_hulls.py 재사용(SOURCES에 레이저 소스 추가 또는 CLI 인자화)해서
-   public/assets/hull_{함급}_laser_{ne,nw,se,sw}.png 24장 생성.
-5) 코드 분기: 함선 인스턴스가 계열 스킨을 갖는 구조 설계 — ships.json 함급별 기본 hull 유지 +
-   스킨 키(예: hullSkin: 'laser')가 있으면 hull_{함급}_{skin}_{방향} 텍스처 우선, 없으면 기본 폴백.
-   어느 함선이 어떤 계열 스킨을 갖는지 규칙(장착 무기 계열? 건조 행성?)은 구현 전에 사용자에게 확인할 것.
-6) 모의전투 실검증(window.__game 훅으로 hasHullSprite 확인) + vitest + 빌드 → 커밋/푸시.
-완료 기준: 레이저 스킨 6함급이 전투에서 표시, SELECTIONS.md·MASTER_PLAN 8-2 갱신, 테스트 통과.
+1) 선정: gunship_candidates_ion.png의 9안 중 1안을 이온 컨셉(안테나/회로/초록 전자파) 기준으로
+   선정하고 SELECTIONS.md에 근거와 함께 기록. (탑다운 변환 적합성: 좌우 대칭·실루엣 명확·컴팩트)
+2) 크롭: 선정안을 3×3 그리드에서 크롭 + 번호 라벨을 배경색으로 지움 →
+   docs/design/generated/ion_gunship_ref_XX.png 저장.
+3) 건십 생성: media_upload(+curl PUT+media_confirm) → generate_image(model=nano_banana_2_lite,
+   thinking=HIGH, 크롭을 image_references로). 프롬프트 핵심: "referenced design exactly, strict top-down,
+   nose pointing straight up, perfectly symmetrical, solid green chroma-key background, no shadow".
+   이온 모티프(antenna arrays, circuit patterns, green EM glow #7FD9FF~green) 유지.
+4) 건십 통과 후 → 건십 생성물(job id)을 레퍼런스로 5함급 병렬 생성 (프리깃 slim/디스트로이어 flank
+   batteries/크루저 flagship graceful/배틀크루저 long spine/배틀십 fortress bulk — 레이저 때 프롬프트를
+   git log에서 재활용). 전부 docs/design/generated/ion_topdown_{함급}.png 저장 + manifest.json 갱신.
+5) 가공: scripts/process_hulls.py의 SKIN_SOURCES에 'ion' 블록 추가 →
+   python scripts/process_hulls.py ion → hull_{함급}_ion_{ne,nw,se,sw} 24장.
+6) 코드: BattleScene preload의 hullSkins 배열에 'ion' 추가 + DebugExportTab SKIN_CYCLE에 'ion' 추가.
+   (스킨 해석·건조 배정 로직은 이미 구현됨 — 추가 코드 불필요)
+7) 검증: 개발실 Debug 탭 "함대 스킨 순환"으로 ion 전환 → 모의전투 → window.__game 훅으로
+   unit.hull이 hull_{함급}_ion인지 확인 → vitest·빌드 → 커밋/푸시.
+완료 기준: 이온 스킨 6함급 전투 표시, SELECTIONS.md·MASTER_PLAN·이 문서 갱신, 테스트 통과.
 ```
 
-**완료 기준**: 프롬프트 내 완료 기준과 동일. 완료 후 나머지 4계열(이온→플라즈마→중력→반물질)은
-같은 파이프라인 반복 — 각 계열 시작 시 후보 9안 중 1안을 컨셉 키워드 기준으로 선정해 SELECTIONS.md에 기록.
+**완료 기준**: 프롬프트 내 완료 기준과 동일. 이후 플라즈마 → 중력 → 반물질 순서로 같은 항목을 복제해 반복.
 
 ### 1. WO-9 — 전투 효과음(SFX) 시스템 연동
 

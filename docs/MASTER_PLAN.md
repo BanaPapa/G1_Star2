@@ -433,7 +433,12 @@
       **기본(백색 헬리온) 6함급 × 아이소 4방향 적용 완료 (2026-07-12)** — 힉스필드 생성 원본(`docs/design/generated/topdown_*.png`,
       프리깃은 v2)을 `scripts/process_hulls.py`(그린스크린 플러드필 제거 → bbox 크롭 → N기준 ±45°/±135° 회전 → 256px)로 가공해
       `public/assets/hull_{함급}_{ne,nw,se,sw}.png` 24장 생성. ships.json 5함급에 hull 키 추가 + BattleScene 프리로드 6함급 확장.
-      모의전투 실검증: 아군 유닛 hasHullSprite=true. 잔여: 무기 5계열 스킨 변형(계열당 6함급, 레이저=04안 선정 — style_sheets/SELECTIONS.md).
+      모의전투 실검증: 아군 유닛 hasHullSprite=true.
+      **레이저 계열 스킨 라인 완성 (2026-07-12)** — 04안 크롭 레퍼런스 → nano_banana_2_lite 이미지 레퍼런스 생성(1회 통과) →
+      6함급 `hull_{함급}_laser_{방향}` 24장. **건조 행성 스킨 시스템**(사용자 결정): systems.json에 family 부여
+      (s0 plasma/s1 laser/s2 ion/s3 gravity/s4 antimatter), buyShip이 현재 노드 family를 인스턴스 skin으로 기록,
+      BattleScene이 스킨 텍스처 존재 시 우선 사용(없으면 기본 폴백). 개발실 Debug 탭 "함대 스킨 순환" QA 버튼.
+      잔여: 이온→플라즈마→중력→반물질 4계열(각 계열 시작 시 후보 9안 중 1안 선정), 성계맵 아이콘(8-3).
 - [ ] 8-3 성계맵 아이콘 6함급 × 4방향
 - [ ] 8-4 보이드 세력 시트 제작 → 적 유닛 11종 스프라이트
 - [ ] 8-5 에이스 초상화 4 + 컷인 일러스트 4 (visualNote 기준)
