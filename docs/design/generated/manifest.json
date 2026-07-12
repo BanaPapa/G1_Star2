@@ -1,85 +1,608 @@
 {
-  "_comment": "힉스필드(Higgsfield) MCP로 생성한 Phase 8 아트 원본 회수 매니페스트. 2026-07-11 이전 PC 세션 생성분 41장. 탑다운 함선 프롬프트 전문은 docs/design/image_prompts/04_ships_helion.md 참조.",
-  "cdn_base": "https://d8j0ntlcm91z4.cloudfront.net/user_3GEBVMQLbsnbDmMiajM7BXDJA41/",
-  "items": [
-    { "file": "topdown_gunship.png", "model": "nano_banana_2", "category": "ship_topdown", "target": "hull_gunship_n.png", "generation_id": "818f876a-f940-4eb1-86b4-dc2c808b154b", "cdn_file": "hf_20260711_175942_818f876a-f940-4eb1-86b4-dc2c808b154b.png", "prompt_ref": "04_ships_helion.md#hull_gunship_n" },
-    { "file": "topdown_frigate.png", "model": "nano_banana_2", "category": "ship_topdown", "target": "hull_frigate_n.png", "generation_id": "b43ca0c7-d907-46bc-93c9-bc82df3e9dd7", "cdn_file": "hf_20260711_175944_b43ca0c7-d907-46bc-93c9-bc82df3e9dd7.png", "prompt_ref": "04_ships_helion.md#hull_frigate_n" },
-    { "file": "topdown_frigate_v2.png", "model": "nano_banana_2", "category": "ship_topdown", "target": "hull_frigate_n.png", "generation_id": "2e991b11-7969-4ade-888f-ab649daf73c3", "cdn_file": "hf_20260711_180748_2e991b11-7969-4ade-888f-ab649daf73c3.png", "prompt_note": "v2 재생성 — ONE slim elongated vertical hull, no perpendicular crossing hull, no wings wider than one third of hull length 제약 추가" },
-    { "file": "topdown_destroyer.png", "model": "nano_banana_2", "category": "ship_topdown", "target": "hull_destroyer_n.png", "generation_id": "bfd0483b-7bcb-4ecf-8cba-4af8537c03f9", "cdn_file": "hf_20260711_175947_bfd0483b-7bcb-4ecf-8cba-4af8537c03f9.png", "prompt_ref": "04_ships_helion.md#hull_destroyer_n" },
-    { "file": "topdown_cruiser.png", "model": "nano_banana_2", "category": "ship_topdown", "target": "hull_cruiser_n.png", "generation_id": "bb343499-2541-43fd-bbba-1b368e414b1d", "cdn_file": "hf_20260711_175950_bb343499-2541-43fd-bbba-1b368e414b1d.png", "prompt_ref": "04_ships_helion.md#hull_cruiser_n" },
-    { "file": "topdown_battlecruiser.png", "model": "nano_banana_2", "category": "ship_topdown", "target": "hull_battlecruiser_n.png", "generation_id": "f06cb40f-4261-4c5e-ad07-bf398b98b5ec", "cdn_file": "hf_20260711_175952_f06cb40f-4261-4c5e-ad07-bf398b98b5ec.png", "prompt_ref": "04_ships_helion.md#hull_battlecruiser_n" },
-    { "file": "topdown_battleship.png", "model": "nano_banana_2", "category": "ship_topdown", "target": "hull_battleship_n.png", "generation_id": "ce932993-cfe6-46b4-b837-74069f682436", "cdn_file": "hf_20260711_175953_ce932993-cfe6-46b4-b837-74069f682436.png", "prompt_ref": "04_ships_helion.md#hull_battleship_n" },
-    { "file": "topdown_cruiser_photoreal_test.png", "model": "nano_banana_2", "category": "ship_topdown_test", "generation_id": "2c154d35-c6b2-40b5-abc7-a3ea11225713", "cdn_file": "hf_20260711_190155_2c154d35-c6b2-40b5-abc7-a3ea11225713.png", "prompt_note": "포토리얼 3D 렌더 스타일 탑다운 실험 (미채택 후보)" },
-
-    { "file": "icon_recraft_laser.png", "model": "recraft_v4_1", "category": "weapon_icon_recraft", "target": "wpn_laser.png", "generation_id": "94f34abd-3bd9-4398-97ee-d4baa1959a42", "cdn_file": "hf_20260711_175912_94f34abd-3bd9-4398-97ee-d4baa1959a42.png" },
-    { "file": "icon_recraft_ion.png", "model": "recraft_v4_1", "category": "weapon_icon_recraft", "target": "wpn_ion.png", "generation_id": "a123d876-e818-47e9-b04f-debeaca2b76f", "cdn_file": "hf_20260711_175915_a123d876-e818-47e9-b04f-debeaca2b76f.png" },
-    { "file": "icon_recraft_plasma.png", "model": "recraft_v4_1", "category": "weapon_icon_recraft", "target": "wpn_plasma.png", "generation_id": "01e70350-ec4a-414b-9cbe-57a283b75587", "cdn_file": "hf_20260711_175916_01e70350-ec4a-414b-9cbe-57a283b75587.png" },
-    { "file": "icon_recraft_gravity.png", "model": "recraft_v4_1", "category": "weapon_icon_recraft", "target": "wpn_gravity.png", "generation_id": "9bfdd91d-3a1f-4a97-839f-b3392d22f61c", "cdn_file": "hf_20260711_175918_9bfdd91d-3a1f-4a97-839f-b3392d22f61c.png" },
-    { "file": "icon_recraft_antimatter.png", "model": "recraft_v4_1", "category": "weapon_icon_recraft", "target": "wpn_antimatter.png", "generation_id": "76c2b802-7246-4885-8ea9-ae71cde30011", "cdn_file": "hf_20260711_175920_76c2b802-7246-4885-8ea9-ae71cde30011.png" },
-    { "file": "icon_recraft_laser_v2.png", "model": "recraft_v4_1", "category": "weapon_icon_recraft", "generation_id": "8bba7b4a-c53f-491c-b1ad-9ab1ef0b4325", "cdn_file": "hf_20260711_180732_8bba7b4a-c53f-491c-b1ad-9ab1ef0b4325.png", "prompt_note": "v2 — chunky 총몸 강조, 64px 가독성 개선 시도" },
-    { "file": "icon_recraft_ion_v2.png", "model": "recraft_v4_1", "category": "weapon_icon_recraft", "generation_id": "94aa1466-5ecd-4bdf-a500-f54fbe5d947c", "cdn_file": "hf_20260711_180734_94aa1466-5ecd-4bdf-a500-f54fbe5d947c.png", "prompt_note": "v2 — 테슬라 코일 밝기 강조, 64px 가독성 개선 시도" },
-
-    { "file": "icon_glass_laser_early.png", "model": "nano_banana_2", "category": "weapon_icon_glass", "generation_id": "729f4b48-43b4-419a-939c-7b19647663eb", "cdn_file": "hf_20260711_190154_729f4b48-43b4-419a-939c-7b19647663eb.png", "prompt_note": "글래스모피즘 스타일 첫 실험" },
-    { "file": "icon_glass_laser.png", "model": "nano_banana_2", "category": "weapon_icon_glass", "target": "wpn_laser.png", "generation_id": "8b415408-9f6f-479a-92de-49b8022dc1be", "cdn_file": "hf_20260711_192624_8b415408-9f6f-479a-92de-49b8022dc1be.png" },
-    { "file": "icon_glass_ion.png", "model": "nano_banana_2", "category": "weapon_icon_glass", "target": "wpn_ion.png", "generation_id": "07920d1f-1a45-4d0d-87b0-b0cae6ff978d", "cdn_file": "hf_20260711_192625_07920d1f-1a45-4d0d-87b0-b0cae6ff978d.png" },
-    { "file": "icon_glass_plasma.png", "model": "nano_banana_2", "category": "weapon_icon_glass", "target": "wpn_plasma.png", "generation_id": "9d7e80d0-3a98-43a4-b6fb-f42be616afbb", "cdn_file": "hf_20260711_192627_9d7e80d0-3a98-43a4-b6fb-f42be616afbb.png" },
-    { "file": "icon_glass_gravity.png", "model": "nano_banana_2", "category": "weapon_icon_glass", "target": "wpn_gravity.png", "generation_id": "7917d1f2-8bc2-4be4-9d5e-cfcbf0f8a48d", "cdn_file": "hf_20260711_192628_7917d1f2-8bc2-4be4-9d5e-cfcbf0f8a48d.png" },
-    { "file": "icon_glass_antimatter.png", "model": "nano_banana_2", "category": "weapon_icon_glass", "target": "wpn_antimatter.png", "generation_id": "1060e92d-7f57-437e-a876-4284f710b4da", "cdn_file": "hf_20260711_192630_1060e92d-7f57-437e-a876-4284f710b4da.png" },
-    { "file": "icon_glass_plasma_v2.png", "model": "nano_banana_2", "category": "weapon_icon_glass", "generation_id": "ce373f19-b8ac-4baf-b0f7-6c30c5941215", "cdn_file": "hf_20260711_195503_ce373f19-b8ac-4baf-b0f7-6c30c5941215.png", "prompt_note": "v2 — ROUNDED-SQUARE(원형 아님) 강조 재생성" },
-
-    { "file": "portrait_kai.png", "model": "text2image_soul_v2", "category": "ace_portrait", "target": "ace_kai_portrait.png", "generation_id": "9f2beb7a-2251-4efb-acad-24619f3d5a70", "cdn_file": "hf_20260711_192749_9f2beb7a-2251-4efb-acad-24619f3d5a70.png", "prompt_note": "열혈 남성 파일럿, 붉은 스파이키 헤어 + 뺨 흉터, 레드 파일럿 수트" },
-    { "file": "portrait_sera.png", "model": "text2image_soul_v2", "category": "ace_portrait", "target": "ace_sera_portrait.png", "generation_id": "533810de-a69e-44f1-a868-2d33540cd38b", "cdn_file": "hf_20260711_192751_533810de-a69e-44f1-a868-2d33540cd38b.png", "prompt_note": "냉정한 여성 저격 장교, 은발 포니테일, 딥블루 수트" },
-    { "file": "portrait_mila.png", "model": "text2image_soul_v2", "category": "ace_portrait", "target": "ace_mila_portrait.png", "generation_id": "2e05b278-3d1d-4850-987f-51b6cd1eb110", "cdn_file": "hf_20260711_192753_2e05b278-3d1d-4850-987f-51b6cd1eb110.png", "prompt_note": "쾌활한 여성 정비사, 고글 + 시안/그린 작업복" },
-    { "file": "portrait_raven.png", "model": "text2image_soul_v2", "category": "ace_portrait", "target": "ace_raven_portrait.png", "generation_id": "414200fe-4f1e-475b-b7cc-abd909cdaf18", "cdn_file": "hf_20260711_192755_414200fe-4f1e-475b-b7cc-abd909cdaf18.png", "prompt_note": "과묵한 에이스 레이븐, 블랙 앵귤러 마스크 + 바이올렛 글로우" },
-
-    { "file": "wireframe_frigate_early.png", "model": "nano_banana_2", "category": "ship_wireframe", "generation_id": "df808a18-01aa-4e15-9493-aebb1cd1ddfd", "cdn_file": "hf_20260711_190152_df808a18-01aa-4e15-9493-aebb1cd1ddfd.png", "prompt_note": "홀로그램 청사진 스타일 첫 실험 (유리 패널 배경)" },
-    { "file": "wireframe_gunship.png", "model": "nano_banana_2", "category": "ship_wireframe", "generation_id": "666b1c51-d76f-422d-bf71-cbd87a79c306", "cdn_file": "hf_20260711_192746_666b1c51-d76f-422d-bf71-cbd87a79c306.png" },
-    { "file": "wireframe_frigate.png", "model": "nano_banana_2", "category": "ship_wireframe", "generation_id": "f9820028-9b43-48ea-b53f-bfccafa1c509", "cdn_file": "hf_20260711_192717_f9820028-9b43-48ea-b53f-bfccafa1c509.png" },
-    { "file": "wireframe_destroyer.png", "model": "nano_banana_2", "category": "ship_wireframe", "generation_id": "7098a4b3-9f14-4844-801d-ab5c95bc843c", "cdn_file": "hf_20260711_192718_7098a4b3-9f14-4844-801d-ab5c95bc843c.png" },
-    { "file": "wireframe_cruiser.png", "model": "nano_banana_2", "category": "ship_wireframe", "generation_id": "10243e80-d49f-4167-90e4-d50ef3f56b14", "cdn_file": "hf_20260711_192720_10243e80-d49f-4167-90e4-d50ef3f56b14.png" },
-    { "file": "wireframe_battlecruiser.png", "model": "nano_banana_2", "category": "ship_wireframe", "generation_id": "ea726cc5-6187-4da6-acce-616f937f1a89", "cdn_file": "hf_20260711_192721_ea726cc5-6187-4da6-acce-616f937f1a89.png" },
-    { "file": "wireframe_battleship.png", "model": "nano_banana_2", "category": "ship_wireframe", "generation_id": "ad21ffc6-3d8c-4873-9b93-f9c62d06f0bc", "cdn_file": "hf_20260711_192722_ad21ffc6-3d8c-4873-9b93-f9c62d06f0bc.png" },
-
-    { "file": "cine_cruiser_early.png", "model": "nano_banana_2", "category": "ship_cinematic", "generation_id": "5f550111-f01c-4f63-9cf7-f2917f775ca8", "cdn_file": "hf_20260711_190150_5f550111-f01c-4f63-9cf7-f2917f775ca8.png", "prompt_note": "시네마틱 키아트 스타일 첫 실험" },
-    { "file": "cine_gunship.png", "model": "nano_banana_2", "category": "ship_cinematic", "generation_id": "fab3b40b-0820-476d-98cd-92a2544ac978", "cdn_file": "hf_20260711_192645_fab3b40b-0820-476d-98cd-92a2544ac978.png" },
-    { "file": "cine_frigate.png", "model": "nano_banana_2", "category": "ship_cinematic", "generation_id": "05d40cae-7a15-4fb0-ae00-685b109fa9b3", "cdn_file": "hf_20260711_192646_05d40cae-7a15-4fb0-ae00-685b109fa9b3.png" },
-    { "file": "cine_destroyer.png", "model": "nano_banana_2", "category": "ship_cinematic", "generation_id": "8bf9ce2e-b461-40a9-ba3f-432d0b6cb85a", "cdn_file": "hf_20260711_192649_8bf9ce2e-b461-40a9-ba3f-432d0b6cb85a.png" },
-    { "file": "cine_cruiser.png", "model": "nano_banana_2", "category": "ship_cinematic", "generation_id": "86211beb-87f7-4a2f-868f-9dab387b5c0d", "cdn_file": "hf_20260711_192651_86211beb-87f7-4a2f-868f-9dab387b5c0d.png" },
-    { "file": "cine_battlecruiser.png", "model": "nano_banana_2", "category": "ship_cinematic", "generation_id": "7d8088ec-a738-4755-be34-0610290a5859", "cdn_file": "hf_20260711_192654_7d8088ec-a738-4755-be34-0610290a5859.png" },
-    { "file": "cine_battleship.png", "model": "nano_banana_2", "category": "ship_cinematic", "generation_id": "3f012c17-06ec-4614-b837-92b47d1b4024", "cdn_file": "hf_20260711_192655_3f012c17-06ec-4614-b837-92b47d1b4024.png" },
-
-    { "file": "bg_starfield.png", "model": "nano_banana_2", "category": "background", "target": "bg_space.png", "generation_id": "ebb6fc4e-1bcb-4603-a9e9-81661e033731", "cdn_file": "hf_20260711_175931_ebb6fc4e-1bcb-4603-a9e9-81661e033731.png", "prompt_note": "16:9 1376x768, 저대비 스타필드 (UI 가독성 우선)" },
-
-    { "file": "laser_gunship_ref_04.png", "model": null, "category": "skin_reference", "prompt_note": "레이저 계열 건십 04안 크롭 (gunship_candidates_laser.png 2행 1열, 라벨 제거). 계열 라인 생성의 스타일 앵커. 힉스필드 media_id e292d2b7-653f-4af3-b44c-c1adf6537f2f" },
-    { "file": "laser_topdown_gunship.png", "model": "nano_banana_2_lite", "category": "ship_topdown_laser", "target": "hull_gunship_laser_n.png", "generation_id": "dd62437f-182b-4654-856e-161662c61df2", "cdn_file": "hf_20260712_093944_dd62437f-182b-4654-856e-161662c61df2.png", "prompt_note": "04안 레퍼런스 → 탑다운 변환. 이후 5함급 생성의 레퍼런스로 사용됨" },
-    { "file": "laser_topdown_frigate.png", "model": "nano_banana_2_lite", "category": "ship_topdown_laser", "target": "hull_frigate_laser_n.png", "generation_id": "0775b721-75af-4870-a0ee-1ed1d3a82257", "cdn_file": "hf_20260712_094052_0775b721-75af-4870-a0ee-1ed1d3a82257.png" },
-    { "file": "laser_topdown_destroyer.png", "model": "nano_banana_2_lite", "category": "ship_topdown_laser", "target": "hull_destroyer_laser_n.png", "generation_id": "193a4d40-2ec9-4360-8ab9-809bee8f8b71", "cdn_file": "hf_20260712_094055_193a4d40-2ec9-4360-8ab9-809bee8f8b71.png" },
-    { "file": "laser_topdown_cruiser.png", "model": "nano_banana_2_lite", "category": "ship_topdown_laser", "target": "hull_cruiser_laser_n.png", "generation_id": "3d937ceb-3931-4d21-bf89-f504bd3fcc46", "cdn_file": "hf_20260712_094059_3d937ceb-3931-4d21-bf89-f504bd3fcc46.png" },
-    { "file": "laser_topdown_battlecruiser.png", "model": "nano_banana_2_lite", "category": "ship_topdown_laser", "target": "hull_battlecruiser_laser_n.png", "generation_id": "d018449e-1d80-4668-9ed4-6e40ef519637", "cdn_file": "hf_20260712_094103_d018449e-1d80-4668-9ed4-6e40ef519637.png" },
-    { "file": "laser_topdown_battleship.png", "model": "nano_banana_2_lite", "category": "ship_topdown_laser", "target": "hull_battleship_laser_n.png", "generation_id": "ac6aae72-93e1-4bde-801f-e1470c016665", "cdn_file": "hf_20260712_094106_ac6aae72-93e1-4bde-801f-e1470c016665.png" },
-
-    { "file": "ion_gunship_ref_05.png", "model": null, "category": "skin_reference", "prompt_note": "이온 계열 건십 05안 크롭 (gunship_candidates_ion.png 2행 2열, 라벨 제거). 계열 라인 생성의 스타일 앵커. 힉스필드 media_id 96386a10-1fcc-481d-aaa6-4adf1cd21f8c" },
-    { "file": "ion_topdown_gunship.png", "model": "nano_banana_2_lite", "category": "ship_topdown_ion", "target": "hull_gunship_ion_n.png", "generation_id": "6f40be9c-309f-4ddb-afb0-c2576543cf9a", "cdn_file": "hf_20260712_112911_6f40be9c-309f-4ddb-afb0-c2576543cf9a.png", "prompt_note": "05안 레퍼런스 → 탑다운 변환. 이후 5함급 생성의 레퍼런스로 사용됨. 배경은 마젠타 크로마키(이온 발광이 초록이라 그린 크로마키 회피)" },
-    { "file": "ion_topdown_frigate.png", "model": "nano_banana_2_lite", "category": "ship_topdown_ion", "target": "hull_frigate_ion_n.png", "generation_id": "68c15c5b-fc37-4a05-a536-cfa79a92d476", "cdn_file": "hf_20260712_113039_68c15c5b-fc37-4a05-a536-cfa79a92d476.png" },
-    { "file": "ion_topdown_destroyer.png", "model": "nano_banana_2_lite", "category": "ship_topdown_ion", "target": "hull_destroyer_ion_n.png", "generation_id": "741d32d4-91a5-48a4-81fd-f6b15ba7de2c", "cdn_file": "hf_20260712_113043_741d32d4-91a5-48a4-81fd-f6b15ba7de2c.png" },
-    { "file": "ion_topdown_cruiser.png", "model": "nano_banana_2_lite", "category": "ship_topdown_ion", "target": "hull_cruiser_ion_n.png", "generation_id": "0317d398-9286-4ff3-b118-c842d7e94f57", "cdn_file": "hf_20260712_113048_0317d398-9286-4ff3-b118-c842d7e94f57.png" },
-    { "file": "ion_topdown_battlecruiser.png", "model": "nano_banana_2_lite", "category": "ship_topdown_ion", "target": "hull_battlecruiser_ion_n.png", "generation_id": "71949c28-8373-47ae-8709-edfdf586a70d", "cdn_file": "hf_20260712_113054_71949c28-8373-47ae-8709-edfdf586a70d.png" },
-    { "file": "ion_topdown_battleship.png", "model": "nano_banana_2_lite", "category": "ship_topdown_ion", "target": "hull_battleship_ion_n.png", "generation_id": "89a0890c-6065-4556-b267-d2e236a97a90", "cdn_file": "hf_20260712_113057_89a0890c-6065-4556-b267-d2e236a97a90.png" },
-
-    { "file": "plasma_gunship_ref_05.png", "model": null, "category": "skin_reference", "prompt_note": "플라즈마 계열 건십 05안 크롭 (gunship_candidates_plasma.png 2행 2열, 라벨 제거). 계열 라인 생성의 스타일 앵커. 힉스필드 media_id f70d1091-ce0b-452c-89a4-a7e7143df01b" },
-    { "file": "plasma_topdown_gunship.png", "model": "nano_banana_2_lite", "category": "ship_topdown_plasma", "target": "hull_gunship_plasma_n.png", "generation_id": "346aa50e-280f-4be0-a6e9-657e2c025989", "cdn_file": "hf_20260712_121025_346aa50e-280f-4be0-a6e9-657e2c025989.png", "prompt_note": "05안 레퍼런스 → 탑다운 변환. 이후 5함급 생성의 레퍼런스로 사용됨. 붉은 발광 계열이라 그린 크로마키 사용" },
-    { "file": "plasma_topdown_frigate.png", "model": "nano_banana_2_lite", "category": "ship_topdown_plasma", "target": "hull_frigate_plasma_n.png", "generation_id": "8c2ff1af-ff74-45b5-a4f5-803483beb1f8", "cdn_file": "hf_20260712_121142_8c2ff1af-ff74-45b5-a4f5-803483beb1f8.png" },
-    { "file": "plasma_topdown_destroyer.png", "model": "nano_banana_2_lite", "category": "ship_topdown_plasma", "target": "hull_destroyer_plasma_n.png", "generation_id": "8510489b-19c7-4e4c-ab13-971eb89a7e81", "cdn_file": "hf_20260712_121147_8510489b-19c7-4e4c-ab13-971eb89a7e81.png" },
-    { "file": "plasma_topdown_cruiser.png", "model": "nano_banana_2_lite", "category": "ship_topdown_plasma", "target": "hull_cruiser_plasma_n.png", "generation_id": "470e9bf0-b411-4628-a7ae-084d9af53f08", "cdn_file": "hf_20260712_121150_470e9bf0-b411-4628-a7ae-084d9af53f08.png" },
-    { "file": "plasma_topdown_battlecruiser.png", "model": "nano_banana_2_lite", "category": "ship_topdown_plasma", "target": "hull_battlecruiser_plasma_n.png", "generation_id": "a4fdd1d4-e27a-4796-83c3-c37c57b2c7b0", "cdn_file": "hf_20260712_121155_a4fdd1d4-e27a-4796-83c3-c37c57b2c7b0.png" },
-    { "file": "plasma_topdown_battleship.png", "model": "nano_banana_2_lite", "category": "ship_topdown_plasma", "target": "hull_battleship_plasma_n.png", "generation_id": "956ce9e4-cc2e-4b91-8405-4f4ec21aec68", "cdn_file": "hf_20260712_121203_956ce9e4-cc2e-4b91-8405-4f4ec21aec68.png" },
-
-    { "file": "gravity_gunship_ref_05.png", "model": null, "category": "skin_reference", "prompt_note": "중력 계열 건십 05안 크롭 (gunship_candidates_gravity.png 2행 2열, 라벨 제거). 계열 라인 생성의 스타일 앵커. 힉스필드 media_id 7b4921e3-28ab-42b8-9ede-88c52cf0d78f" },
-    { "file": "gravity_topdown_gunship.png", "model": "nano_banana_2_lite", "category": "ship_topdown_gravity", "target": "hull_gunship_gravity_n.png", "generation_id": "718621b8-42c7-46f9-b821-718369dc8c6a", "cdn_file": "hf_20260712_122841_718621b8-42c7-46f9-b821-718369dc8c6a.png", "prompt_note": "05안 레퍼런스 → 탑다운 변환. 이후 5함급 생성의 레퍼런스로 사용됨. 보라 발광 계열 — 그린 크로마키. 유일하게 다크 건메탈+골드 선체(다른 계열은 백색 헬리온)" },
-    { "file": "gravity_topdown_frigate.png", "model": "nano_banana_2_lite", "category": "ship_topdown_gravity", "target": "hull_frigate_gravity_n.png", "generation_id": "efd2c2f0-037e-4914-9773-490c9373dd7a", "cdn_file": "hf_20260712_123033_efd2c2f0-037e-4914-9773-490c9373dd7a.png" },
-    { "file": "gravity_topdown_destroyer.png", "model": "nano_banana_2_lite", "category": "ship_topdown_gravity", "target": "hull_destroyer_gravity_n.png", "generation_id": "cee30324-6c64-43b0-8938-56a16600f4f1", "cdn_file": "hf_20260712_123037_cee30324-6c64-43b0-8938-56a16600f4f1.png" },
-    { "file": "gravity_topdown_cruiser.png", "model": "nano_banana_2_lite", "category": "ship_topdown_gravity", "target": "hull_cruiser_gravity_n.png", "generation_id": "4ec24850-6ac4-44e9-a9c3-742522805246", "cdn_file": "hf_20260712_123041_4ec24850-6ac4-44e9-a9c3-742522805246.png" },
-    { "file": "gravity_topdown_battlecruiser.png", "model": "nano_banana_2_lite", "category": "ship_topdown_gravity", "target": "hull_battlecruiser_gravity_n.png", "generation_id": "0ef812ab-1c9b-4bf5-8611-468b421c7663", "cdn_file": "hf_20260712_123046_0ef812ab-1c9b-4bf5-8611-468b421c7663.png" },
-    { "file": "gravity_topdown_battleship.png", "model": "nano_banana_2_lite", "category": "ship_topdown_gravity", "target": "hull_battleship_gravity_n.png", "generation_id": "1a588972-850e-4074-a0e8-bcc63cff46eb", "cdn_file": "hf_20260712_123049_1a588972-850e-4074-a0e8-bcc63cff46eb.png" }
-  ]
+ "_comment": "힉스필드(Higgsfield) MCP로 생성한 Phase 8 아트 원본 회수 매니페스트. 2026-07-11 이전 PC 세션 생성분 41장. 탑다운 함선 프롬프트 전문은 docs/design/image_prompts/04_ships_helion.md 참조.",
+ "cdn_base": "https://d8j0ntlcm91z4.cloudfront.net/user_3GEBVMQLbsnbDmMiajM7BXDJA41/",
+ "items": [
+  {
+   "file": "topdown_gunship.png",
+   "model": "nano_banana_2",
+   "category": "ship_topdown",
+   "target": "hull_gunship_n.png",
+   "generation_id": "818f876a-f940-4eb1-86b4-dc2c808b154b",
+   "cdn_file": "hf_20260711_175942_818f876a-f940-4eb1-86b4-dc2c808b154b.png",
+   "prompt_ref": "04_ships_helion.md#hull_gunship_n"
+  },
+  {
+   "file": "topdown_frigate.png",
+   "model": "nano_banana_2",
+   "category": "ship_topdown",
+   "target": "hull_frigate_n.png",
+   "generation_id": "b43ca0c7-d907-46bc-93c9-bc82df3e9dd7",
+   "cdn_file": "hf_20260711_175944_b43ca0c7-d907-46bc-93c9-bc82df3e9dd7.png",
+   "prompt_ref": "04_ships_helion.md#hull_frigate_n"
+  },
+  {
+   "file": "topdown_frigate_v2.png",
+   "model": "nano_banana_2",
+   "category": "ship_topdown",
+   "target": "hull_frigate_n.png",
+   "generation_id": "2e991b11-7969-4ade-888f-ab649daf73c3",
+   "cdn_file": "hf_20260711_180748_2e991b11-7969-4ade-888f-ab649daf73c3.png",
+   "prompt_note": "v2 재생성 — ONE slim elongated vertical hull, no perpendicular crossing hull, no wings wider than one third of hull length 제약 추가"
+  },
+  {
+   "file": "topdown_destroyer.png",
+   "model": "nano_banana_2",
+   "category": "ship_topdown",
+   "target": "hull_destroyer_n.png",
+   "generation_id": "bfd0483b-7bcb-4ecf-8cba-4af8537c03f9",
+   "cdn_file": "hf_20260711_175947_bfd0483b-7bcb-4ecf-8cba-4af8537c03f9.png",
+   "prompt_ref": "04_ships_helion.md#hull_destroyer_n"
+  },
+  {
+   "file": "topdown_cruiser.png",
+   "model": "nano_banana_2",
+   "category": "ship_topdown",
+   "target": "hull_cruiser_n.png",
+   "generation_id": "bb343499-2541-43fd-bbba-1b368e414b1d",
+   "cdn_file": "hf_20260711_175950_bb343499-2541-43fd-bbba-1b368e414b1d.png",
+   "prompt_ref": "04_ships_helion.md#hull_cruiser_n"
+  },
+  {
+   "file": "topdown_battlecruiser.png",
+   "model": "nano_banana_2",
+   "category": "ship_topdown",
+   "target": "hull_battlecruiser_n.png",
+   "generation_id": "f06cb40f-4261-4c5e-ad07-bf398b98b5ec",
+   "cdn_file": "hf_20260711_175952_f06cb40f-4261-4c5e-ad07-bf398b98b5ec.png",
+   "prompt_ref": "04_ships_helion.md#hull_battlecruiser_n"
+  },
+  {
+   "file": "topdown_battleship.png",
+   "model": "nano_banana_2",
+   "category": "ship_topdown",
+   "target": "hull_battleship_n.png",
+   "generation_id": "ce932993-cfe6-46b4-b837-74069f682436",
+   "cdn_file": "hf_20260711_175953_ce932993-cfe6-46b4-b837-74069f682436.png",
+   "prompt_ref": "04_ships_helion.md#hull_battleship_n"
+  },
+  {
+   "file": "topdown_cruiser_photoreal_test.png",
+   "model": "nano_banana_2",
+   "category": "ship_topdown_test",
+   "generation_id": "2c154d35-c6b2-40b5-abc7-a3ea11225713",
+   "cdn_file": "hf_20260711_190155_2c154d35-c6b2-40b5-abc7-a3ea11225713.png",
+   "prompt_note": "포토리얼 3D 렌더 스타일 탑다운 실험 (미채택 후보)"
+  },
+  {
+   "file": "icon_recraft_laser.png",
+   "model": "recraft_v4_1",
+   "category": "weapon_icon_recraft",
+   "target": "wpn_laser.png",
+   "generation_id": "94f34abd-3bd9-4398-97ee-d4baa1959a42",
+   "cdn_file": "hf_20260711_175912_94f34abd-3bd9-4398-97ee-d4baa1959a42.png"
+  },
+  {
+   "file": "icon_recraft_ion.png",
+   "model": "recraft_v4_1",
+   "category": "weapon_icon_recraft",
+   "target": "wpn_ion.png",
+   "generation_id": "a123d876-e818-47e9-b04f-debeaca2b76f",
+   "cdn_file": "hf_20260711_175915_a123d876-e818-47e9-b04f-debeaca2b76f.png"
+  },
+  {
+   "file": "icon_recraft_plasma.png",
+   "model": "recraft_v4_1",
+   "category": "weapon_icon_recraft",
+   "target": "wpn_plasma.png",
+   "generation_id": "01e70350-ec4a-414b-9cbe-57a283b75587",
+   "cdn_file": "hf_20260711_175916_01e70350-ec4a-414b-9cbe-57a283b75587.png"
+  },
+  {
+   "file": "icon_recraft_gravity.png",
+   "model": "recraft_v4_1",
+   "category": "weapon_icon_recraft",
+   "target": "wpn_gravity.png",
+   "generation_id": "9bfdd91d-3a1f-4a97-839f-b3392d22f61c",
+   "cdn_file": "hf_20260711_175918_9bfdd91d-3a1f-4a97-839f-b3392d22f61c.png"
+  },
+  {
+   "file": "icon_recraft_antimatter.png",
+   "model": "recraft_v4_1",
+   "category": "weapon_icon_recraft",
+   "target": "wpn_antimatter.png",
+   "generation_id": "76c2b802-7246-4885-8ea9-ae71cde30011",
+   "cdn_file": "hf_20260711_175920_76c2b802-7246-4885-8ea9-ae71cde30011.png"
+  },
+  {
+   "file": "icon_recraft_laser_v2.png",
+   "model": "recraft_v4_1",
+   "category": "weapon_icon_recraft",
+   "generation_id": "8bba7b4a-c53f-491c-b1ad-9ab1ef0b4325",
+   "cdn_file": "hf_20260711_180732_8bba7b4a-c53f-491c-b1ad-9ab1ef0b4325.png",
+   "prompt_note": "v2 — chunky 총몸 강조, 64px 가독성 개선 시도"
+  },
+  {
+   "file": "icon_recraft_ion_v2.png",
+   "model": "recraft_v4_1",
+   "category": "weapon_icon_recraft",
+   "generation_id": "94aa1466-5ecd-4bdf-a500-f54fbe5d947c",
+   "cdn_file": "hf_20260711_180734_94aa1466-5ecd-4bdf-a500-f54fbe5d947c.png",
+   "prompt_note": "v2 — 테슬라 코일 밝기 강조, 64px 가독성 개선 시도"
+  },
+  {
+   "file": "icon_glass_laser_early.png",
+   "model": "nano_banana_2",
+   "category": "weapon_icon_glass",
+   "generation_id": "729f4b48-43b4-419a-939c-7b19647663eb",
+   "cdn_file": "hf_20260711_190154_729f4b48-43b4-419a-939c-7b19647663eb.png",
+   "prompt_note": "글래스모피즘 스타일 첫 실험"
+  },
+  {
+   "file": "icon_glass_laser.png",
+   "model": "nano_banana_2",
+   "category": "weapon_icon_glass",
+   "target": "wpn_laser.png",
+   "generation_id": "8b415408-9f6f-479a-92de-49b8022dc1be",
+   "cdn_file": "hf_20260711_192624_8b415408-9f6f-479a-92de-49b8022dc1be.png"
+  },
+  {
+   "file": "icon_glass_ion.png",
+   "model": "nano_banana_2",
+   "category": "weapon_icon_glass",
+   "target": "wpn_ion.png",
+   "generation_id": "07920d1f-1a45-4d0d-87b0-b0cae6ff978d",
+   "cdn_file": "hf_20260711_192625_07920d1f-1a45-4d0d-87b0-b0cae6ff978d.png"
+  },
+  {
+   "file": "icon_glass_plasma.png",
+   "model": "nano_banana_2",
+   "category": "weapon_icon_glass",
+   "target": "wpn_plasma.png",
+   "generation_id": "9d7e80d0-3a98-43a4-b6fb-f42be616afbb",
+   "cdn_file": "hf_20260711_192627_9d7e80d0-3a98-43a4-b6fb-f42be616afbb.png"
+  },
+  {
+   "file": "icon_glass_gravity.png",
+   "model": "nano_banana_2",
+   "category": "weapon_icon_glass",
+   "target": "wpn_gravity.png",
+   "generation_id": "7917d1f2-8bc2-4be4-9d5e-cfcbf0f8a48d",
+   "cdn_file": "hf_20260711_192628_7917d1f2-8bc2-4be4-9d5e-cfcbf0f8a48d.png"
+  },
+  {
+   "file": "icon_glass_antimatter.png",
+   "model": "nano_banana_2",
+   "category": "weapon_icon_glass",
+   "target": "wpn_antimatter.png",
+   "generation_id": "1060e92d-7f57-437e-a876-4284f710b4da",
+   "cdn_file": "hf_20260711_192630_1060e92d-7f57-437e-a876-4284f710b4da.png"
+  },
+  {
+   "file": "icon_glass_plasma_v2.png",
+   "model": "nano_banana_2",
+   "category": "weapon_icon_glass",
+   "generation_id": "ce373f19-b8ac-4baf-b0f7-6c30c5941215",
+   "cdn_file": "hf_20260711_195503_ce373f19-b8ac-4baf-b0f7-6c30c5941215.png",
+   "prompt_note": "v2 — ROUNDED-SQUARE(원형 아님) 강조 재생성"
+  },
+  {
+   "file": "portrait_kai.png",
+   "model": "text2image_soul_v2",
+   "category": "ace_portrait",
+   "target": "ace_kai_portrait.png",
+   "generation_id": "9f2beb7a-2251-4efb-acad-24619f3d5a70",
+   "cdn_file": "hf_20260711_192749_9f2beb7a-2251-4efb-acad-24619f3d5a70.png",
+   "prompt_note": "열혈 남성 파일럿, 붉은 스파이키 헤어 + 뺨 흉터, 레드 파일럿 수트"
+  },
+  {
+   "file": "portrait_sera.png",
+   "model": "text2image_soul_v2",
+   "category": "ace_portrait",
+   "target": "ace_sera_portrait.png",
+   "generation_id": "533810de-a69e-44f1-a868-2d33540cd38b",
+   "cdn_file": "hf_20260711_192751_533810de-a69e-44f1-a868-2d33540cd38b.png",
+   "prompt_note": "냉정한 여성 저격 장교, 은발 포니테일, 딥블루 수트"
+  },
+  {
+   "file": "portrait_mila.png",
+   "model": "text2image_soul_v2",
+   "category": "ace_portrait",
+   "target": "ace_mila_portrait.png",
+   "generation_id": "2e05b278-3d1d-4850-987f-51b6cd1eb110",
+   "cdn_file": "hf_20260711_192753_2e05b278-3d1d-4850-987f-51b6cd1eb110.png",
+   "prompt_note": "쾌활한 여성 정비사, 고글 + 시안/그린 작업복"
+  },
+  {
+   "file": "portrait_raven.png",
+   "model": "text2image_soul_v2",
+   "category": "ace_portrait",
+   "target": "ace_raven_portrait.png",
+   "generation_id": "414200fe-4f1e-475b-b7cc-abd909cdaf18",
+   "cdn_file": "hf_20260711_192755_414200fe-4f1e-475b-b7cc-abd909cdaf18.png",
+   "prompt_note": "과묵한 에이스 레이븐, 블랙 앵귤러 마스크 + 바이올렛 글로우"
+  },
+  {
+   "file": "wireframe_frigate_early.png",
+   "model": "nano_banana_2",
+   "category": "ship_wireframe",
+   "generation_id": "df808a18-01aa-4e15-9493-aebb1cd1ddfd",
+   "cdn_file": "hf_20260711_190152_df808a18-01aa-4e15-9493-aebb1cd1ddfd.png",
+   "prompt_note": "홀로그램 청사진 스타일 첫 실험 (유리 패널 배경)"
+  },
+  {
+   "file": "wireframe_gunship.png",
+   "model": "nano_banana_2",
+   "category": "ship_wireframe",
+   "generation_id": "666b1c51-d76f-422d-bf71-cbd87a79c306",
+   "cdn_file": "hf_20260711_192746_666b1c51-d76f-422d-bf71-cbd87a79c306.png"
+  },
+  {
+   "file": "wireframe_frigate.png",
+   "model": "nano_banana_2",
+   "category": "ship_wireframe",
+   "generation_id": "f9820028-9b43-48ea-b53f-bfccafa1c509",
+   "cdn_file": "hf_20260711_192717_f9820028-9b43-48ea-b53f-bfccafa1c509.png"
+  },
+  {
+   "file": "wireframe_destroyer.png",
+   "model": "nano_banana_2",
+   "category": "ship_wireframe",
+   "generation_id": "7098a4b3-9f14-4844-801d-ab5c95bc843c",
+   "cdn_file": "hf_20260711_192718_7098a4b3-9f14-4844-801d-ab5c95bc843c.png"
+  },
+  {
+   "file": "wireframe_cruiser.png",
+   "model": "nano_banana_2",
+   "category": "ship_wireframe",
+   "generation_id": "10243e80-d49f-4167-90e4-d50ef3f56b14",
+   "cdn_file": "hf_20260711_192720_10243e80-d49f-4167-90e4-d50ef3f56b14.png"
+  },
+  {
+   "file": "wireframe_battlecruiser.png",
+   "model": "nano_banana_2",
+   "category": "ship_wireframe",
+   "generation_id": "ea726cc5-6187-4da6-acce-616f937f1a89",
+   "cdn_file": "hf_20260711_192721_ea726cc5-6187-4da6-acce-616f937f1a89.png"
+  },
+  {
+   "file": "wireframe_battleship.png",
+   "model": "nano_banana_2",
+   "category": "ship_wireframe",
+   "generation_id": "ad21ffc6-3d8c-4873-9b93-f9c62d06f0bc",
+   "cdn_file": "hf_20260711_192722_ad21ffc6-3d8c-4873-9b93-f9c62d06f0bc.png"
+  },
+  {
+   "file": "cine_cruiser_early.png",
+   "model": "nano_banana_2",
+   "category": "ship_cinematic",
+   "generation_id": "5f550111-f01c-4f63-9cf7-f2917f775ca8",
+   "cdn_file": "hf_20260711_190150_5f550111-f01c-4f63-9cf7-f2917f775ca8.png",
+   "prompt_note": "시네마틱 키아트 스타일 첫 실험"
+  },
+  {
+   "file": "cine_gunship.png",
+   "model": "nano_banana_2",
+   "category": "ship_cinematic",
+   "generation_id": "fab3b40b-0820-476d-98cd-92a2544ac978",
+   "cdn_file": "hf_20260711_192645_fab3b40b-0820-476d-98cd-92a2544ac978.png"
+  },
+  {
+   "file": "cine_frigate.png",
+   "model": "nano_banana_2",
+   "category": "ship_cinematic",
+   "generation_id": "05d40cae-7a15-4fb0-ae00-685b109fa9b3",
+   "cdn_file": "hf_20260711_192646_05d40cae-7a15-4fb0-ae00-685b109fa9b3.png"
+  },
+  {
+   "file": "cine_destroyer.png",
+   "model": "nano_banana_2",
+   "category": "ship_cinematic",
+   "generation_id": "8bf9ce2e-b461-40a9-ba3f-432d0b6cb85a",
+   "cdn_file": "hf_20260711_192649_8bf9ce2e-b461-40a9-ba3f-432d0b6cb85a.png"
+  },
+  {
+   "file": "cine_cruiser.png",
+   "model": "nano_banana_2",
+   "category": "ship_cinematic",
+   "generation_id": "86211beb-87f7-4a2f-868f-9dab387b5c0d",
+   "cdn_file": "hf_20260711_192651_86211beb-87f7-4a2f-868f-9dab387b5c0d.png"
+  },
+  {
+   "file": "cine_battlecruiser.png",
+   "model": "nano_banana_2",
+   "category": "ship_cinematic",
+   "generation_id": "7d8088ec-a738-4755-be34-0610290a5859",
+   "cdn_file": "hf_20260711_192654_7d8088ec-a738-4755-be34-0610290a5859.png"
+  },
+  {
+   "file": "cine_battleship.png",
+   "model": "nano_banana_2",
+   "category": "ship_cinematic",
+   "generation_id": "3f012c17-06ec-4614-b837-92b47d1b4024",
+   "cdn_file": "hf_20260711_192655_3f012c17-06ec-4614-b837-92b47d1b4024.png"
+  },
+  {
+   "file": "bg_starfield.png",
+   "model": "nano_banana_2",
+   "category": "background",
+   "target": "bg_space.png",
+   "generation_id": "ebb6fc4e-1bcb-4603-a9e9-81661e033731",
+   "cdn_file": "hf_20260711_175931_ebb6fc4e-1bcb-4603-a9e9-81661e033731.png",
+   "prompt_note": "16:9 1376x768, 저대비 스타필드 (UI 가독성 우선)"
+  },
+  {
+   "file": "laser_gunship_ref_04.png",
+   "model": null,
+   "category": "skin_reference",
+   "prompt_note": "레이저 계열 건십 04안 크롭 (gunship_candidates_laser.png 2행 1열, 라벨 제거). 계열 라인 생성의 스타일 앵커. 힉스필드 media_id e292d2b7-653f-4af3-b44c-c1adf6537f2f"
+  },
+  {
+   "file": "laser_topdown_gunship.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_laser",
+   "target": "hull_gunship_laser_n.png",
+   "generation_id": "dd62437f-182b-4654-856e-161662c61df2",
+   "cdn_file": "hf_20260712_093944_dd62437f-182b-4654-856e-161662c61df2.png",
+   "prompt_note": "04안 레퍼런스 → 탑다운 변환. 이후 5함급 생성의 레퍼런스로 사용됨"
+  },
+  {
+   "file": "laser_topdown_frigate.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_laser",
+   "target": "hull_frigate_laser_n.png",
+   "generation_id": "0775b721-75af-4870-a0ee-1ed1d3a82257",
+   "cdn_file": "hf_20260712_094052_0775b721-75af-4870-a0ee-1ed1d3a82257.png"
+  },
+  {
+   "file": "laser_topdown_destroyer.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_laser",
+   "target": "hull_destroyer_laser_n.png",
+   "generation_id": "193a4d40-2ec9-4360-8ab9-809bee8f8b71",
+   "cdn_file": "hf_20260712_094055_193a4d40-2ec9-4360-8ab9-809bee8f8b71.png"
+  },
+  {
+   "file": "laser_topdown_cruiser.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_laser",
+   "target": "hull_cruiser_laser_n.png",
+   "generation_id": "3d937ceb-3931-4d21-bf89-f504bd3fcc46",
+   "cdn_file": "hf_20260712_094059_3d937ceb-3931-4d21-bf89-f504bd3fcc46.png"
+  },
+  {
+   "file": "laser_topdown_battlecruiser.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_laser",
+   "target": "hull_battlecruiser_laser_n.png",
+   "generation_id": "d018449e-1d80-4668-9ed4-6e40ef519637",
+   "cdn_file": "hf_20260712_094103_d018449e-1d80-4668-9ed4-6e40ef519637.png"
+  },
+  {
+   "file": "laser_topdown_battleship.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_laser",
+   "target": "hull_battleship_laser_n.png",
+   "generation_id": "ac6aae72-93e1-4bde-801f-e1470c016665",
+   "cdn_file": "hf_20260712_094106_ac6aae72-93e1-4bde-801f-e1470c016665.png"
+  },
+  {
+   "file": "ion_gunship_ref_05.png",
+   "model": null,
+   "category": "skin_reference",
+   "prompt_note": "이온 계열 건십 05안 크롭 (gunship_candidates_ion.png 2행 2열, 라벨 제거). 계열 라인 생성의 스타일 앵커. 힉스필드 media_id 96386a10-1fcc-481d-aaa6-4adf1cd21f8c"
+  },
+  {
+   "file": "ion_topdown_gunship.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_ion",
+   "target": "hull_gunship_ion_n.png",
+   "generation_id": "6f40be9c-309f-4ddb-afb0-c2576543cf9a",
+   "cdn_file": "hf_20260712_112911_6f40be9c-309f-4ddb-afb0-c2576543cf9a.png",
+   "prompt_note": "05안 레퍼런스 → 탑다운 변환. 이후 5함급 생성의 레퍼런스로 사용됨. 배경은 마젠타 크로마키(이온 발광이 초록이라 그린 크로마키 회피)"
+  },
+  {
+   "file": "ion_topdown_frigate.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_ion",
+   "target": "hull_frigate_ion_n.png",
+   "generation_id": "68c15c5b-fc37-4a05-a536-cfa79a92d476",
+   "cdn_file": "hf_20260712_113039_68c15c5b-fc37-4a05-a536-cfa79a92d476.png"
+  },
+  {
+   "file": "ion_topdown_destroyer.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_ion",
+   "target": "hull_destroyer_ion_n.png",
+   "generation_id": "741d32d4-91a5-48a4-81fd-f6b15ba7de2c",
+   "cdn_file": "hf_20260712_113043_741d32d4-91a5-48a4-81fd-f6b15ba7de2c.png"
+  },
+  {
+   "file": "ion_topdown_cruiser.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_ion",
+   "target": "hull_cruiser_ion_n.png",
+   "generation_id": "0317d398-9286-4ff3-b118-c842d7e94f57",
+   "cdn_file": "hf_20260712_113048_0317d398-9286-4ff3-b118-c842d7e94f57.png"
+  },
+  {
+   "file": "ion_topdown_battlecruiser.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_ion",
+   "target": "hull_battlecruiser_ion_n.png",
+   "generation_id": "71949c28-8373-47ae-8709-edfdf586a70d",
+   "cdn_file": "hf_20260712_113054_71949c28-8373-47ae-8709-edfdf586a70d.png"
+  },
+  {
+   "file": "ion_topdown_battleship.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_ion",
+   "target": "hull_battleship_ion_n.png",
+   "generation_id": "89a0890c-6065-4556-b267-d2e236a97a90",
+   "cdn_file": "hf_20260712_113057_89a0890c-6065-4556-b267-d2e236a97a90.png"
+  },
+  {
+   "file": "plasma_gunship_ref_05.png",
+   "model": null,
+   "category": "skin_reference",
+   "prompt_note": "플라즈마 계열 건십 05안 크롭 (gunship_candidates_plasma.png 2행 2열, 라벨 제거). 계열 라인 생성의 스타일 앵커. 힉스필드 media_id f70d1091-ce0b-452c-89a4-a7e7143df01b"
+  },
+  {
+   "file": "plasma_topdown_gunship.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_plasma",
+   "target": "hull_gunship_plasma_n.png",
+   "generation_id": "346aa50e-280f-4be0-a6e9-657e2c025989",
+   "cdn_file": "hf_20260712_121025_346aa50e-280f-4be0-a6e9-657e2c025989.png",
+   "prompt_note": "05안 레퍼런스 → 탑다운 변환. 이후 5함급 생성의 레퍼런스로 사용됨. 붉은 발광 계열이라 그린 크로마키 사용"
+  },
+  {
+   "file": "plasma_topdown_frigate.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_plasma",
+   "target": "hull_frigate_plasma_n.png",
+   "generation_id": "8c2ff1af-ff74-45b5-a4f5-803483beb1f8",
+   "cdn_file": "hf_20260712_121142_8c2ff1af-ff74-45b5-a4f5-803483beb1f8.png"
+  },
+  {
+   "file": "plasma_topdown_destroyer.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_plasma",
+   "target": "hull_destroyer_plasma_n.png",
+   "generation_id": "8510489b-19c7-4e4c-ab13-971eb89a7e81",
+   "cdn_file": "hf_20260712_121147_8510489b-19c7-4e4c-ab13-971eb89a7e81.png"
+  },
+  {
+   "file": "plasma_topdown_cruiser.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_plasma",
+   "target": "hull_cruiser_plasma_n.png",
+   "generation_id": "470e9bf0-b411-4628-a7ae-084d9af53f08",
+   "cdn_file": "hf_20260712_121150_470e9bf0-b411-4628-a7ae-084d9af53f08.png"
+  },
+  {
+   "file": "plasma_topdown_battlecruiser.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_plasma",
+   "target": "hull_battlecruiser_plasma_n.png",
+   "generation_id": "a4fdd1d4-e27a-4796-83c3-c37c57b2c7b0",
+   "cdn_file": "hf_20260712_121155_a4fdd1d4-e27a-4796-83c3-c37c57b2c7b0.png"
+  },
+  {
+   "file": "plasma_topdown_battleship.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_plasma",
+   "target": "hull_battleship_plasma_n.png",
+   "generation_id": "956ce9e4-cc2e-4b91-8405-4f4ec21aec68",
+   "cdn_file": "hf_20260712_121203_956ce9e4-cc2e-4b91-8405-4f4ec21aec68.png"
+  },
+  {
+   "file": "gravity_gunship_ref_05.png",
+   "model": null,
+   "category": "skin_reference",
+   "prompt_note": "중력 계열 건십 05안 크롭 (gunship_candidates_gravity.png 2행 2열, 라벨 제거). 계열 라인 생성의 스타일 앵커. 힉스필드 media_id 7b4921e3-28ab-42b8-9ede-88c52cf0d78f"
+  },
+  {
+   "file": "gravity_topdown_gunship.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_gravity",
+   "target": "hull_gunship_gravity_n.png",
+   "generation_id": "718621b8-42c7-46f9-b821-718369dc8c6a",
+   "cdn_file": "hf_20260712_122841_718621b8-42c7-46f9-b821-718369dc8c6a.png",
+   "prompt_note": "05안 레퍼런스 → 탑다운 변환. 이후 5함급 생성의 레퍼런스로 사용됨. 보라 발광 계열 — 그린 크로마키. 유일하게 다크 건메탈+골드 선체(다른 계열은 백색 헬리온)"
+  },
+  {
+   "file": "gravity_topdown_frigate.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_gravity",
+   "target": "hull_frigate_gravity_n.png",
+   "generation_id": "efd2c2f0-037e-4914-9773-490c9373dd7a",
+   "cdn_file": "hf_20260712_123033_efd2c2f0-037e-4914-9773-490c9373dd7a.png"
+  },
+  {
+   "file": "gravity_topdown_destroyer.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_gravity",
+   "target": "hull_destroyer_gravity_n.png",
+   "generation_id": "cee30324-6c64-43b0-8938-56a16600f4f1",
+   "cdn_file": "hf_20260712_123037_cee30324-6c64-43b0-8938-56a16600f4f1.png"
+  },
+  {
+   "file": "gravity_topdown_cruiser.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_gravity",
+   "target": "hull_cruiser_gravity_n.png",
+   "generation_id": "4ec24850-6ac4-44e9-a9c3-742522805246",
+   "cdn_file": "hf_20260712_123041_4ec24850-6ac4-44e9-a9c3-742522805246.png"
+  },
+  {
+   "file": "gravity_topdown_battlecruiser.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_gravity",
+   "target": "hull_battlecruiser_gravity_n.png",
+   "generation_id": "0ef812ab-1c9b-4bf5-8611-468b421c7663",
+   "cdn_file": "hf_20260712_123046_0ef812ab-1c9b-4bf5-8611-468b421c7663.png"
+  },
+  {
+   "file": "gravity_topdown_battleship.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_gravity",
+   "target": "hull_battleship_gravity_n.png",
+   "generation_id": "1a588972-850e-4074-a0e8-bcc63cff46eb",
+   "cdn_file": "hf_20260712_123049_1a588972-850e-4074-a0e8-bcc63cff46eb.png"
+  },
+  {
+   "file": "antimatter_gunship_ref_03.png",
+   "model": null,
+   "category": "skin_reference",
+   "prompt_note": "반물질 계열 건십 03안 크롭 (gunship_candidates_antimatter.png 1행 3열, 라벨 지움). 계열 파생 디자인 스타일 앵커. 업로드된 media_id 32b3b8db-f93a-4c77-ac51-83370ff17c43. 주의: 백색 선체라 1차 생성은 흰 배경으로 나옴 — 마젠타 크로마키를 CRITICAL 문구로 강제해 해결"
+  },
+  {
+   "file": "antimatter_topdown_gunship.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_antimatter",
+   "target": "hull_gunship_antimatter_n.png",
+   "generation_id": "86792cb1-be74-4161-b9ff-14925d3dd92a",
+   "cdn_file": "hf_20260712_133203_86792cb1-be74-4161-b9ff-14925d3dd92a.png"
+  },
+  {
+   "file": "antimatter_topdown_frigate.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_antimatter",
+   "target": "hull_frigate_antimatter_n.png",
+   "generation_id": "9fef5468-4895-446e-b3a5-5615986a0395",
+   "cdn_file": "hf_20260712_133300_9fef5468-4895-446e-b3a5-5615986a0395.png"
+  },
+  {
+   "file": "antimatter_topdown_destroyer.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_antimatter",
+   "target": "hull_destroyer_antimatter_n.png",
+   "generation_id": "1f05d54d-3424-43dc-b12e-dd0ad9c6fca1",
+   "cdn_file": "hf_20260712_133307_1f05d54d-3424-43dc-b12e-dd0ad9c6fca1.png"
+  },
+  {
+   "file": "antimatter_topdown_cruiser.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_antimatter",
+   "target": "hull_cruiser_antimatter_n.png",
+   "generation_id": "91f742d1-787b-4f9d-a3e5-a3323bb374ac",
+   "cdn_file": "hf_20260712_133310_91f742d1-787b-4f9d-a3e5-a3323bb374ac.png"
+  },
+  {
+   "file": "antimatter_topdown_battlecruiser.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_antimatter",
+   "target": "hull_battlecruiser_antimatter_n.png",
+   "generation_id": "20083baf-ceaf-4b44-81db-62323a0243f2",
+   "cdn_file": "hf_20260712_133314_20083baf-ceaf-4b44-81db-62323a0243f2.png"
+  },
+  {
+   "file": "antimatter_topdown_battleship.png",
+   "model": "nano_banana_2_lite",
+   "category": "ship_topdown_antimatter",
+   "target": "hull_battleship_antimatter_n.png",
+   "generation_id": "afeefe16-ce9e-4ef9-ba39-e58e0a117508",
+   "cdn_file": "hf_20260712_133317_afeefe16-ce9e-4ef9-ba39-e58e0a117508.png"
+  }
+ ]
 }

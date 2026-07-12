@@ -69,48 +69,16 @@
   - **중력 계열 라인 완성 (2026-07-12)**: 05안(트윈 프롱+블랙홀 중력핵) → 탑다운 6함급(전부 1회 생성 통과) →
     `hull_{함급}_gravity_{방향}` 24장. 유일한 다크 건메탈+골드 선체(중력 후보 시트 자체가 다크 테마).
     반투명 궤도 링/블랙홀 스월은 despill 후 은은한 회색 잔상으로 남음 — 의도된 왜곡장 느낌으로 허용.
+  - **반물질 계열 라인 완성 (2026-07-12) — 무기 5계열 함선 스킨 라인 전체 완주**: 03안(백색 델타+검은 공허 코어+헤일로 링) →
+    탑다운 6함급(전부 1회 생성 통과) → `hull_{함급}_antimatter_{방향}` 24장.
+    **주의(재생성 시)**: 백색 선체는 그린 크로마키 지시를 모델이 무시하고 흰 배경으로 뽑음 —
+    "CRITICAL: every pixel outside the ship must be pure magenta (#FF00FF)" 강제 문구로 마젠타 크로마키 성공.
   - **장소맵 행성·건물 방향 확정 (2026-07-12 사용자)**: HoMM 스타일 — 맵 위에 건물이 세워지는 뷰. 아래 1번 항목 참조.
-    단, 무기 5계열 함선 라인을 먼저 완주하기로 결정.
-  - 다음 작업은 아래 0번(반물질 계열 라인, 5계열 마지막) — 사용자가 "다음 계열" 방식으로 단계별 트리거함.
+  - 함선 스킨 라인이 끝났으므로 **다음 작업은 아래 1번(행성·건물 HoMM)** — 트리거 조건 충족 상태, 0단계 화면 설계 합의부터.
 
 ---
 
 ## 대기 목록 (위에서부터 순서대로)
-
-### 0. Phase 8 — 반물질 계열 함선 라인 (5계열 마지막)
-
-**⏸ 트리거**: 힉스필드 MCP 연결된 세션에서 사용자가 "반물질 계열 진행" 또는 "다음 계열"이라고 하면.
-
-```
-G1_Star2 Phase 8 반물질 계열 함선 라인을 진행해줘. 앞선 4계열과 동일한 파이프라인이야 (5계열 마지막).
-컨텍스트: docs/NEXT_PROMPTS.md 현재 상황 절 + docs/design/generated/style_sheets/SELECTIONS.md.
-
-1) 선정: gunship_candidates_antimatter.png의 9안 중 1안을 반물질 컨셉(백색 장갑/검은 공허/존재삭제) 기준으로
-   선정하고 SELECTIONS.md에 근거와 함께 기록. (탑다운 변환 적합성: 좌우 대칭·실루엣 명확·컴팩트)
-2) 크롭: 선정안을 3×3 그리드에서 크롭(1254px 시트, 셀 418px) + 번호 라벨을 배경색으로 지움 →
-   docs/design/generated/antimatter_gunship_ref_XX.png 저장.
-3) 건십 생성: media_upload(+curl PUT+media_confirm) → generate_image(model=nano_banana_2_lite,
-   thinking=HIGH, 크롭을 image_references로). 프롬프트 핵심: "referenced design exactly, strict top-down,
-   nose pointing straight up, perfectly symmetrical, solid green chroma-key background, no shadow".
-   반물질 모티프(pure white armor, black void core, reality-erasure glow) 유지.
-   백/흑 선체라 그린 크로마키 사용 가능 — 검은 공허부가 어두우니 가공 후 침범 여부 확인.
-4) 건십 통과 후 → 건십 생성물(job id)을 레퍼런스로 5함급 병렬 생성 (프리깃 slim/디스트로이어 flank
-   batteries/크루저 flagship graceful/배틀크루저 long spine/배틀십 fortress bulk — 프롬프트 원문은
-   힉스필드 show_generations 히스토리(앞선 계열 세션)에서 회수해 재활용). 전부
-   docs/design/generated/antimatter_topdown_{함급}.png 저장 + manifest.json 갱신.
-5) 가공: scripts/process_hulls.py의 SKIN_SOURCES에 'antimatter' 블록 추가 →
-   python scripts/process_hulls.py antimatter → hull_{함급}_antimatter_{ne,nw,se,sw} 24장.
-   (배경 스필 억제는 despill 단계가 자동 처리 — 결과물에 프린지 남으면 SPILL_* 상수 조정)
-6) 코드: BattleScene preload의 hullSkins 배열에 'antimatter' 추가 + DebugExportTab SKIN_CYCLE에 'antimatter' 추가.
-   (스킨 해석·건조 배정 로직은 이미 구현됨 — 추가 코드 불필요, 버튼 라벨은 SKIN_CYCLE에서 자동 생성)
-7) 검증: 개발실 Debug 탭 "함대 스킨 순환"으로 antimatter 전환 → 에디터 🧪 모의전투 → window.__battleScene 훅으로
-   unit.hull이 hull_{함급}_antimatter인지 확인 → vitest·빌드 → 커밋/푸시.
-8) 5계열 완주 정리: MASTER_PLAN 8-2에 스킨 라인 전체 완료 표기 + 이 문서 0번 삭제,
-   다음 항목(1번 행성·건물 HoMM)이 트리거 가능해졌음을 "현재 상황"에 기록.
-완료 기준: 반물질 스킨 6함급 전투 표시, SELECTIONS.md·MASTER_PLAN·이 문서 갱신, 테스트 통과.
-```
-
-**완료 기준**: 프롬프트 내 완료 기준과 동일. 5계열 마지막 항목 — 완료 후 함선 스킨 라인 종료.
 
 ### 1. Phase 8 — 장소맵 행성·건물 에셋 (HoMM 스타일)
 

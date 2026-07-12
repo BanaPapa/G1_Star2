@@ -66,6 +66,14 @@ SKIN_SOURCES = {
         'battlecruiser': 'gravity_topdown_battlecruiser.png',
         'battleship': 'gravity_topdown_battleship.png',
     },
+    'antimatter': {
+        'gunship': 'antimatter_topdown_gunship.png',
+        'frigate': 'antimatter_topdown_frigate.png',
+        'destroyer': 'antimatter_topdown_destroyer.png',
+        'cruiser': 'antimatter_topdown_cruiser.png',
+        'battlecruiser': 'antimatter_topdown_battlecruiser.png',
+        'battleship': 'antimatter_topdown_battleship.png',
+    },
 }
 
 # N(위)을 기준으로 한 화면 방향 회전각 (PIL rotate: 양수=반시계)

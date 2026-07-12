@@ -200,7 +200,7 @@ export default class BattleScene extends Phaser.Scene {
     // 방향별 함선 스프라이트 — PNG가 있을 때만 실제 렌더링에 사용됨(없으면 이모지 폴백).
     // 계열 스킨(hull_{함급}_{스킨}_{방향})은 제작 완료된 계열만 목록에 추가한다 — 없는 파일은 로드 실패해도 무해.
     const hullClasses = ['gunship', 'frigate', 'destroyer', 'cruiser', 'battlecruiser', 'battleship']
-    const hullSkins = ['laser', 'ion', 'plasma', 'gravity']
+    const hullSkins = ['laser', 'ion', 'plasma', 'gravity', 'antimatter']
     for (const hullClass of hullClasses) {
       for (const dir of ['ne', 'nw', 'se', 'sw']) {
         this.load.image(`hull_${hullClass}_${dir}`, `/assets/hull_${hullClass}_${dir}.png`)
