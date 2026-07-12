@@ -69,7 +69,7 @@ export default function DebugExportTab() {
   }
 
   // 계열 스킨 QA — 함대 전체를 지정 스킨으로 순환(기본 → laser → 기본). 제작된 스킨이 늘면 목록에 추가.
-  const SKIN_CYCLE = [null, 'laser', 'ion']
+  const SKIN_CYCLE = [null, 'laser', 'ion', 'plasma']
   function cycleFleetSkin() {
     const fleet = useFleetStore.getState()
     const current = fleet.roster[0]?.skin ?? null
